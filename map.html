@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CA Fish Regs — MPA Map</title>
+<title>CA Fish Regs — Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root {
     --ocean: #0a3d62; --ocean-mid: #1a6390; --ocean-light: #2980b9;
@@ -17,66 +17,125 @@
     --radius: 16px; --radius-sm: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
   /* HEADER */
-  .header { background: var(--ocean); padding: 48px 20px 16px; position: relative; flex-shrink: 0; }
+  .header { background: var(--ocean); padding: 48px 20px 14px; position: relative; flex-shrink: 0; }
   .header-wave { position: absolute; top:0;left:0;right:0;bottom:0; opacity:0.06; background-image: repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px); }
   .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
   .header-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); }
   .header-title span { color: var(--kelp-light); }
   .back-btn { color: var(--white); font-size: 13px; cursor: pointer; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 100px; border: none; font-family: inherit; }
 
-  /* GPS STATUS BANNER */
-  .gps-status { padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; flex-shrink: 0; transition: all 0.3s; }
+  /* MAP TABS */
+  .map-tabs { display: flex; background: var(--ocean); padding: 0 20px 14px; gap: 8px; position: relative; z-index: 1; flex-shrink: 0; }
+  .map-tab { flex: 1; padding: 7px 10px; border-radius: 100px; border: 1.5px solid rgba(255,255,255,0.25); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.2s; text-align: center; }
+  .map-tab.active { background: var(--white); border-color: var(--white); color: var(--ocean); }
+
+  /* GPS STATUS */
+  .gps-status { padding: 9px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-shrink: 0; transition: all 0.3s; }
   .gps-status.searching { background: #e8eef8; color: var(--ocean); }
   .gps-status.safe { background: #e8f5ee; color: #1a6b3a; }
   .gps-status.warning { background: #fde8e8; color: var(--danger); animation: pulse-warning 1s ease-in-out infinite; }
   .gps-status.caution { background: #fdf0e0; color: #7a4f00; }
-  @keyframes pulse-warning { 0%,100%{opacity:1} 50%{opacity:0.7} }
-  .gps-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .searching .gps-dot { background: var(--ocean); animation: spin 1s linear infinite; }
+  @keyframes pulse-warning { 0%,100%{opacity:1} 50%{opacity:0.75} }
+  .gps-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .searching .gps-dot { background: var(--ocean); }
   .safe .gps-dot { background: #27ae60; }
   .warning .gps-dot { background: var(--danger); }
   .caution .gps-dot { background: #f0a500; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .gps-status-text { flex: 1; line-height: 1.4; }
-  .gps-status-text strong { display: block; font-weight: 500; }
+  .gps-text { flex: 1; }
+  .gps-text strong { font-weight: 500; margin-right: 4px; }
 
-  /* MAP */
-  #map { flex: 1; z-index: 1; }
+  /* MAP CONTAINER */
+  .map-container { flex: 1; position: relative; overflow: hidden; }
+  #map { width: 100%; height: 100%; min-height: 300px; background: #e8f4f8; }
+
+  /* WEATHER PANEL */
+  #weatherPanel { display: none; flex: 1; overflow-y: auto; background: var(--bg); padding: 16px; padding-bottom: 80px; }
+  #weatherPanel.visible { display: block; }
+
+  /* WEATHER CARDS */
+  .weather-location { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .weather-location-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+  .wx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .wx-tile { background: var(--white); border-radius: var(--radius-sm); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .wx-tile.full { grid-column: 1 / -1; }
+  .wx-label { font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .wx-value { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; color: var(--ocean); line-height: 1; }
+  .wx-value.big { font-size: 32px; }
+  .wx-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .wx-icon { font-size: 28px; margin-bottom: 4px; }
+
+  /* TIDE CHART */
+  .tide-section-title { font-family: 'Unbounded', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; margin-top: 4px; }
+  .tide-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 10px; }
+  .tide-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .tide-row:last-child { border-bottom: none; }
+  .tide-time { font-size: 14px; font-weight: 500; color: var(--text); }
+  .tide-type { font-size: 12px; color: var(--text-muted); }
+  .tide-height { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; color: var(--ocean); }
+  .tide-high { color: #1a6390; }
+  .tide-low { color: #e07b39; }
+
+  /* SOLUNAR */
+  .solunar-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .solunar-tile { flex: 1; background: var(--white); border-radius: var(--radius-sm); padding: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .solunar-icon { font-size: 20px; margin-bottom: 4px; }
+  .solunar-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .solunar-value { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
+
+  /* FISHING SCORE */
+  .fishing-score-card { background: var(--ocean); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; color: var(--white); display: flex; align-items: center; gap: 16px; }
+  .score-number { font-family: 'Unbounded', sans-serif; font-size: 48px; font-weight: 900; color: var(--kelp-light); line-height: 1; flex-shrink: 0; }
+  .score-info { flex: 1; }
+  .score-label { font-family: 'Unbounded', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .score-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.5; }
+
+  /* FORECAST */
+  .forecast-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; margin-bottom: 16px; }
+  .forecast-row::-webkit-scrollbar { display: none; }
+  .forecast-item { flex-shrink: 0; background: var(--white); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; min-width: 70px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .forecast-day { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; }
+  .forecast-icon { font-size: 20px; margin-bottom: 4px; }
+  .forecast-temp { font-size: 13px; font-weight: 500; color: var(--text); }
+  .forecast-wind { font-size: 11px; color: var(--text-muted); }
+
+  /* LOADING */
+  .wx-loading { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--ocean); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .wx-error { text-align: center; padding: 32px 20px; color: var(--text-muted); background: var(--white); border-radius: var(--radius); margin: 16px 0; }
+
+  /* MAP OVERLAYS */
+  .locate-btn { position: absolute; bottom: 16px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: transform 0.2s; }
+  .locate-btn:active { transform: scale(0.93); }
 
   /* LEGEND */
-  .map-legend { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
-  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .map-legend { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .legend-smr { background: rgba(200,0,0,0.4); border: 2px solid #c00; }
   .legend-smca { background: rgba(255,140,0,0.3); border: 2px solid #f80; }
   .legend-you { background: var(--ocean); border-radius: 50%; }
 
-  /* MPA DETAIL DRAWER */
-  .mpa-drawer { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 20px 20px 0 0; padding: 16px 20px 32px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 1000; max-height: 60vh; overflow-y: auto; }
+  /* MPA DRAWER */
+  .mpa-drawer { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 20px 20px 0 0; padding: 16px 20px 28px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 1000; max-height: 55vh; overflow-y: auto; }
   .mpa-drawer.open { transform: translateY(0); }
-  .mpa-drawer-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 16px; }
-  .mpa-name { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-  .mpa-type-badge { display: inline-block; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 500; margin-bottom: 12px; }
+  .mpa-drawer-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 14px; }
+  .mpa-name { font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .mpa-type-badge { display: inline-block; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 500; margin-bottom: 10px; }
   .badge-smr { background: #fde8e8; color: #a31d1d; }
   .badge-smca { background: #fdf0e0; color: #7a4f00; }
-  .badge-other { background: #e8eef8; color: #1a3a6b; }
-  .mpa-restrictions { font-size: 14px; color: var(--text); line-height: 1.6; background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px; }
+  .mpa-restrictions { font-size: 13px; color: var(--text); line-height: 1.6; background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; }
   .mpa-ccr { font-size: 11px; color: var(--text-muted); }
 
-  /* NAV BAR */
+  /* NAV */
   .bottom-nav { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; }
   .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); cursor: pointer; font-weight: 500; }
   .nav-item.active { color: var(--ocean); }
   .nav-icon { font-size: 22px; }
-
-  /* LOCATE BTN */
-  .locate-btn { position: absolute; bottom: 120px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: transform 0.2s; }
-  .locate-btn:active { transform: scale(0.93); }
-
-  .map-container { flex: 1; position: relative; display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
@@ -84,43 +143,59 @@
 <div class="header">
   <div class="header-wave"></div>
   <div class="header-content">
-    <div class="header-title">MPA <span>Map</span></div>
-    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Species</button>
+    <div class="header-title">Fish <span>Map</span></div>
+    <button class="back-btn" onclick="window.location.href='index.html'">← Species</button>
   </div>
 </div>
 
+<!-- MAP / WEATHER TABS -->
+<div class="map-tabs">
+  <button class="map-tab active" id="tab-map" onclick="switchTab('map')">🗺️ MPA Map</button>
+  <button class="map-tab" id="tab-weather" onclick="switchTab('weather')">🌊 Tides & Weather</button>
+</div>
+
+<!-- GPS STATUS BAR -->
 <div class="gps-status searching" id="gpsStatus">
   <div class="gps-dot"></div>
-  <div class="gps-status-text">
-    <strong>Getting your location…</strong>
-    Allow location access to check MPA boundaries
-  </div>
+  <div class="gps-text"><strong>Getting your location…</strong> Allow access for live data</div>
 </div>
 
-<div class="map-container">
+<!-- MAP VIEW -->
+<div class="map-container" id="mapView">
   <div id="map"></div>
   <button class="locate-btn" onclick="locateUser()" title="Find my location">📍</button>
-
   <div class="mpa-drawer" id="mpaDrawer">
     <div class="mpa-drawer-handle"></div>
     <div id="mpaDrawerContent"></div>
   </div>
 </div>
 
-<div class="map-legend">
-  <div class="legend-item"><div class="legend-dot legend-smr"></div>State Marine Reserve (no take)</div>
-  <div class="legend-item"><div class="legend-dot legend-smca"></div>Marine Conservation Area (restricted)</div>
-  <div class="legend-item"><div class="legend-dot legend-you"></div>Your location</div>
+<!-- WEATHER VIEW -->
+<div id="weatherPanel">
+  <div class="wx-loading" id="wxLoading">
+    <div class="spinner"></div>
+    <div>Loading tides & weather…</div>
+    <div style="font-size:12px;margin-top:8px;color:var(--text-muted)">Allow location access to get local data</div>
+  </div>
+  <div id="wxContent" style="display:none"></div>
 </div>
 
+<!-- MAP LEGEND (only shown on map tab) -->
+<div class="map-legend" id="mapLegend">
+  <div class="legend-item"><div class="legend-dot legend-smr"></div>No-take Reserve</div>
+  <div class="legend-item"><div class="legend-dot legend-smca"></div>Conservation Area</div>
+  <div class="legend-item"><div class="legend-dot legend-you"></div>You</div>
+</div>
+
+<!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" onclick="window.location.href='index.html'">
     <span class="nav-icon">🐟</span><span>Species</span>
   </div>
   <div class="nav-item active">
-    <span class="nav-icon">🗺️</span><span>MPA Map</span>
+    <span class="nav-icon">🗺️</span><span>Map</span>
   </div>
-  <div class="nav-item" onclick="window.location.href='index.html#alerts'">
+  <div class="nav-item" onclick="window.location.href='index.html'">
     <span class="nav-icon">🔔</span><span>Alerts</span>
   </div>
   <div class="nav-item" onclick="window.location.href='index.html'">
@@ -130,239 +205,186 @@
 
 <script>
 // ============================================================
-// CALIFORNIA MPA DATA
-// Key MPAs with boundaries approximated from CDFW data
-// Source: CCR Title 14, Section 632
+// MPA DATA
 // ============================================================
 const MPAS = [
-  // === NORTH COAST ===
-  { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000,
-    restrictions: "No take of any living or non-living marine resource. No fishing of any kind permitted within this reserve.", ccr: "CCR Title 14 §632(b)(1)" },
-  { name: "Pyramid Point SMR", type: "SMR", lat: 41.83, lng: -124.22, radius: 3000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(2)" },
-  { name: "Reading Rock SMCA", type: "SMCA", lat: 41.52, lng: -124.08, radius: 4000,
-    restrictions: "No take of finfish. Allowed: take of pelagic finfish (salmon, Pacific herring) and certain invertebrates.", ccr: "CCR Title 14 §632(b)(5)" },
-
-  // === NORTH CENTRAL COAST ===
-  { name: "Point Arena SMR", type: "SMR", lat: 38.96, lng: -123.75, radius: 5000,
-    restrictions: "No take of any living or non-living marine resource. Entire area closed to all fishing.", ccr: "CCR Title 14 §632(b)(20)" },
-  { name: "Bodega Head SMR", type: "SMR", lat: 38.31, lng: -123.07, radius: 3500,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(27)" },
-  { name: "Farallon Islands SMR", type: "SMR", lat: 37.70, lng: -123.00, radius: 12000,
-    restrictions: "No take of any living or non-living marine resource. Includes Southeast Farallon, Middle Farallon, and North Farallon Islands.", ccr: "CCR Title 14 §632(b)(32)" },
-  { name: "Point Reyes Headlands SMR", type: "SMR", lat: 37.99, lng: -123.02, radius: 6000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(29)" },
-
-  // === CENTRAL COAST ===
-  { name: "Año Nuevo SMR", type: "SMR", lat: 37.11, lng: -122.34, radius: 5500,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(37)" },
-  { name: "Point Sur SMR", type: "SMR", lat: 36.31, lng: -121.90, radius: 7000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(44)" },
-  { name: "Big Creek SMR", type: "SMR", lat: 36.07, lng: -121.60, radius: 4000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(46)" },
-  { name: "Piedras Blancas SMR", type: "SMR", lat: 35.66, lng: -121.28, radius: 5000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(48)" },
-  { name: "Cambria SMCA", type: "SMCA", lat: 35.56, lng: -121.11, radius: 3500,
-    restrictions: "No take of most species. Allowed: take of pelagic finfish and some invertebrates by recreational anglers. Check specific rules.", ccr: "CCR Title 14 §632(b)(49)" },
-  { name: "Morro Bay SMR", type: "SMR", lat: 35.35, lng: -120.87, radius: 3000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(51)" },
-
-  // === SOUTH CENTRAL COAST ===
-  { name: "Point Buchon SMR", type: "SMR", lat: 35.27, lng: -120.90, radius: 8000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(53)" },
-  { name: "Point Conception SMR", type: "SMR", lat: 34.45, lng: -120.47, radius: 6000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(57)" },
-  { name: "Kashtayit SMCA", type: "SMCA", lat: 34.42, lng: -119.88, radius: 4000,
-    restrictions: "No take of most species. Some pelagic and recreational take allowed. Check specific restrictions.", ccr: "CCR Title 14 §632(b)(61)" },
-
-  // === CHANNEL ISLANDS ===
-  { name: "Anacapa Island SMR", type: "SMR", lat: 34.01, lng: -119.42, radius: 6000,
-    restrictions: "No take of any living or non-living marine resource. Entire island complex protected.", ccr: "CCR Title 14 §632(b)(63)" },
-  { name: "Santa Cruz Island SMR", type: "SMR", lat: 34.05, lng: -119.75, radius: 10000,
-    restrictions: "No take of any living or non-living marine resource. Largest island reserve in Southern CA.", ccr: "CCR Title 14 §632(b)(65)" },
-  { name: "Santa Barbara Island SMR", type: "SMR", lat: 33.48, lng: -119.03, radius: 5000,
-    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(72)" },
-  { name: "San Nicolas Island SMCA", type: "SMCA", lat: 33.24, lng: -119.50, radius: 8000,
-    restrictions: "No take of most species. Some recreational pelagic fishing allowed outside core reserve areas.", ccr: "CCR Title 14 §632(b)(74)" },
-  { name: "Catalina Island SMCA", type: "SMCA", lat: 33.38, lng: -118.42, radius: 12000,
-    restrictions: "No take of most species in protected zones. Check specific area boundaries around the island — some areas allow recreational fishing.", ccr: "CCR Title 14 §632(b)(76)" },
-
-  // === SOUTH COAST ===
-  { name: "Lover's Cove SMCA", type: "SMCA", lat: 33.34, lng: -118.33, radius: 800,
-    restrictions: "No take of any living or non-living marine resource. Popular snorkeling area.", ccr: "CCR Title 14 §632(b)(77)" },
-  { name: "Long Point SMCA", type: "SMCA", lat: 33.32, lng: -118.38, radius: 2000,
-    restrictions: "No take of most species. Limited recreational take may be permitted outside core zones.", ccr: "CCR Title 14 §632(b)(78)" },
-  { name: "Campus Point SMCA", type: "SMCA", lat: 34.41, lng: -119.85, radius: 1500,
-    restrictions: "No take of any living marine resource.", ccr: "CCR Title 14 §632(b)(60)" },
-  { name: "Swami's SMCA", type: "SMCA", lat: 33.04, lng: -117.30, radius: 2000,
-    restrictions: "No take of most species. Check specific recreational fishing allowances.", ccr: "CCR Title 14 §632(b)(86)" },
-  { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000,
-    restrictions: "No take of most species within the protected area. Adjacent to Scripps Institution of Oceanography.", ccr: "CCR Title 14 §632(b)(87)" }
+  { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000, restrictions: "No take of any living or non-living marine resource. No fishing of any kind.", ccr: "CCR Title 14 §632(b)(1)" },
+  { name: "Pyramid Point SMR", type: "SMR", lat: 41.83, lng: -124.22, radius: 3000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(2)" },
+  { name: "Reading Rock SMCA", type: "SMCA", lat: 41.52, lng: -124.08, radius: 4000, restrictions: "No take of finfish. Some invertebrate take allowed. Check specific rules.", ccr: "CCR Title 14 §632(b)(5)" },
+  { name: "Point Arena SMR", type: "SMR", lat: 38.96, lng: -123.75, radius: 5000, restrictions: "No take of any living or non-living marine resource. Entire area closed to all fishing.", ccr: "CCR Title 14 §632(b)(20)" },
+  { name: "Bodega Head SMR", type: "SMR", lat: 38.31, lng: -123.07, radius: 3500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(27)" },
+  { name: "Farallon Islands SMR", type: "SMR", lat: 37.70, lng: -123.00, radius: 12000, restrictions: "No take of any living or non-living marine resource. Includes all Farallon Islands.", ccr: "CCR Title 14 §632(b)(32)" },
+  { name: "Point Reyes Headlands SMR", type: "SMR", lat: 37.99, lng: -123.02, radius: 6000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(29)" },
+  { name: "Año Nuevo SMR", type: "SMR", lat: 37.11, lng: -122.34, radius: 5500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(37)" },
+  { name: "Point Sur SMR", type: "SMR", lat: 36.31, lng: -121.90, radius: 7000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(44)" },
+  { name: "Big Creek SMR", type: "SMR", lat: 36.07, lng: -121.60, radius: 4000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(46)" },
+  { name: "Piedras Blancas SMR", type: "SMR", lat: 35.66, lng: -121.28, radius: 5000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(48)" },
+  { name: "Cambria SMCA", type: "SMCA", lat: 35.56, lng: -121.11, radius: 3500, restrictions: "No take of most species. Some pelagic finfish and invertebrate take allowed. Verify specifics.", ccr: "CCR Title 14 §632(b)(49)" },
+  { name: "Morro Bay SMR", type: "SMR", lat: 35.35, lng: -120.87, radius: 3000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(51)" },
+  { name: "Point Buchon SMR", type: "SMR", lat: 35.27, lng: -120.90, radius: 8000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(53)" },
+  { name: "Point Conception SMR", type: "SMR", lat: 34.45, lng: -120.47, radius: 6000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(57)" },
+  { name: "Anacapa Island SMR", type: "SMR", lat: 34.01, lng: -119.42, radius: 6000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(63)" },
+  { name: "Santa Cruz Island SMR", type: "SMR", lat: 34.05, lng: -119.75, radius: 10000, restrictions: "No take of any living or non-living marine resource. Largest island reserve in SoCal.", ccr: "CCR Title 14 §632(b)(65)" },
+  { name: "Santa Barbara Island SMR", type: "SMR", lat: 33.48, lng: -119.03, radius: 5000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(72)" },
+  { name: "San Nicolas Island SMCA", type: "SMCA", lat: 33.24, lng: -119.50, radius: 8000, restrictions: "No take of most species. Some recreational pelagic fishing allowed outside core areas.", ccr: "CCR Title 14 §632(b)(74)" },
+  { name: "Catalina Island SMCA", type: "SMCA", lat: 33.38, lng: -118.42, radius: 12000, restrictions: "Multiple zones around the island — some allow recreational fishing, some do not. Check specific area.", ccr: "CCR Title 14 §632(b)(76)" },
+  { name: "Swami's SMCA", type: "SMCA", lat: 33.04, lng: -117.30, radius: 2000, restrictions: "No take of most species. Check recreational fishing allowances.", ccr: "CCR Title 14 §632(b)(86)" },
+  { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000, restrictions: "No take of most species within protected area. Adjacent to Scripps Institution.", ccr: "CCR Title 14 §632(b)(87)" }
 ];
 
 // ============================================================
-// MAP SETUP
+// NOAA TIDE STATIONS — closest to major CA fishing areas
 // ============================================================
-const map = L.map('map', {
-  center: [36.7, -121.9],
-  zoom: 7,
-  zoomControl: false
-});
-
-// Add tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 18
-}).addTo(map);
-
-// Add zoom control to top-right
-L.control.zoom({ position: 'topright' }).addTo(map);
+const TIDE_STATIONS = [
+  { id: '9414290', name: 'San Francisco', lat: 37.80, lng: -122.47 },
+  { id: '9410170', name: 'San Diego', lat: 32.71, lng: -117.17 },
+  { id: '9410660', name: 'Los Angeles', lat: 33.72, lng: -118.27 },
+  { id: '9412110', name: 'Port San Luis', lat: 35.17, lng: -120.75 },
+  { id: '9413450', name: 'Monterey', lat: 36.60, lng: -121.89 },
+  { id: '9415020', name: 'Point Reyes', lat: 38.00, lng: -122.98 },
+  { id: '9418767', name: 'North Spit (Eureka)', lat: 40.77, lng: -124.22 },
+  { id: '9411340', name: 'Santa Barbara', lat: 34.40, lng: -119.69 }
+];
 
 // ============================================================
-// DRAW MPA BOUNDARIES
+// STATE
 // ============================================================
-const mpaLayers = [];
-
-MPAS.forEach(mpa => {
-  const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-  const fillOpacity = mpa.type === 'SMR' ? 0.25 : 0.18;
-
-  const circle = L.circle([mpa.lat, mpa.lng], {
-    radius: mpa.radius,
-    color: color,
-    fillColor: color,
-    fillOpacity: fillOpacity,
-    weight: 2
-  }).addTo(map);
-
-  circle.on('click', () => showMPADetail(mpa));
-  mpaLayers.push({ circle, mpa });
-});
-
-// ============================================================
-// USER LOCATION
-// ============================================================
-let userMarker = null;
-let watchId = null;
+let map, userMarker, watchId;
 let userLat = null, userLng = null;
+let mpaLayers = [];
+let currentTab = 'map';
+let weatherLoaded = false;
 
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.map-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+
+  const mapView = document.getElementById('mapView');
+  const weatherPanel = document.getElementById('weatherPanel');
+  const mapLegend = document.getElementById('mapLegend');
+
+  if (tab === 'map') {
+    mapView.style.display = 'block';
+    weatherPanel.classList.remove('visible');
+    mapLegend.style.display = 'flex';
+    if (map) setTimeout(() => map.invalidateSize(), 100);
+  } else {
+    mapView.style.display = 'none';
+    weatherPanel.classList.add('visible');
+    mapLegend.style.display = 'none';
+    if (!weatherLoaded) loadWeather();
+  }
+}
+
+// ============================================================
+// MAP INIT
+// ============================================================
+function initMap() {
+  try {
+    map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 18
+    }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    MPAS.forEach(mpa => {
+      const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+      const circle = L.circle([mpa.lat, mpa.lng], {
+        radius: mpa.radius, color, fillColor: color,
+        fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18, weight: 2
+      }).addTo(map);
+      circle.on('click', () => showMPADetail(mpa));
+      mpaLayers.push({ circle, mpa });
+    });
+
+    map.on('click', closeMPADrawer);
+    locateUser();
+  } catch(e) {
+    document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;color:#666">Map failed to load. Check internet connection.</div>';
+  }
+}
+
+// ============================================================
+// GPS LOCATION
+// ============================================================
 function locateUser() {
-  updateGPSStatus('searching', 'Getting your location…', 'Allow location access to check MPA boundaries');
-
+  setGPSStatus('searching', 'Getting your location…', '');
   if (!navigator.geolocation) {
-    updateGPSStatus('caution', 'GPS not available', 'Your browser does not support location services');
+    setGPSStatus('caution', 'GPS not available', 'Browser does not support location');
     return;
   }
-
   if (watchId) navigator.geolocation.clearWatch(watchId);
-
-  watchId = navigator.geolocation.watchPosition(
-    pos => {
-      userLat = pos.coords.latitude;
-      userLng = pos.coords.longitude;
-      updateUserMarker(userLat, userLng);
-      checkMPAProximity(userLat, userLng);
-      map.setView([userLat, userLng], 12);
-    },
-    err => {
-      updateGPSStatus('caution', 'Location access denied', 'Enable location in your browser settings to use GPS warnings');
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-  );
+  watchId = navigator.geolocation.watchPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    updateUserMarker(userLat, userLng);
+    checkMPAProximity(userLat, userLng);
+    if (currentTab === 'map') map.setView([userLat, userLng], 12);
+    if (currentTab === 'weather' && !weatherLoaded) loadWeather();
+  }, () => {
+    setGPSStatus('caution', 'Location access denied', 'Enable location in browser settings');
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
 
 function updateUserMarker(lat, lng) {
   const icon = L.divIcon({
     className: '',
-    html: `<div style="width:16px;height:16px;background:${getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim()};border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px ${getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim()}"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    html: '<div style="width:14px;height:14px;background:#0a3d62;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0a3d62"></div>',
+    iconSize: [14,14], iconAnchor: [7,7]
   });
-
-  if (userMarker) {
-    userMarker.setLatLng([lat, lng]);
-  } else {
-    userMarker = L.marker([lat, lng], { icon }).addTo(map);
-  }
+  if (userMarker) userMarker.setLatLng([lat, lng]);
+  else userMarker = L.marker([lat, lng], { icon }).addTo(map);
 }
 
-// ============================================================
-// MPA PROXIMITY CHECK
-// ============================================================
-function checkMPAProximity(lat, lng) {
-  const userPoint = L.latLng(lat, lng);
-  let insideMPA = null;
-  let nearestMPA = null;
-  let nearestDist = Infinity;
-
-  mpaLayers.forEach(({ circle, mpa }) => {
-    const center = L.latLng(mpa.lat, mpa.lng);
-    const dist = userPoint.distanceTo(center);
-    const buffer = mpa.radius * 1.15; // 15% buffer for "approaching"
-
-    if (dist <= mpa.radius) {
-      insideMPA = mpa;
-    } else if (dist <= buffer && dist < nearestDist) {
-      nearestDist = dist;
-      nearestMPA = mpa;
-    }
-  });
-
-  if (insideMPA) {
-    const typeLabel = insideMPA.type === 'SMR' ? 'State Marine Reserve' : 'Marine Conservation Area';
-    updateGPSStatus('warning',
-      `⚠️ INSIDE ${typeLabel}!`,
-      `You are inside ${insideMPA.name}. ${insideMPA.type === 'SMR' ? 'NO FISHING of any kind.' : 'Fishing is restricted here.'} Tap the red zone for details.`
-    );
-    // Open drawer automatically
-    showMPADetail(insideMPA);
-  } else if (nearestMPA) {
-    const distMiles = (nearestDist / 1609).toFixed(1);
-    updateGPSStatus('caution',
-      `Approaching MPA — ${distMiles} miles away`,
-      `${nearestMPA.name} is nearby. Tap the boundary on the map for fishing rules.`
-    );
-  } else {
-    updateGPSStatus('safe',
-      '✓ Clear — no MPA nearby',
-      `You are not near any Marine Protected Area. GPS is active.`
-    );
-  }
-}
-
-function updateGPSStatus(type, title, detail) {
+function setGPSStatus(type, title, detail) {
   const el = document.getElementById('gpsStatus');
   el.className = `gps-status ${type}`;
-  el.innerHTML = `
-    <div class="gps-dot"></div>
-    <div class="gps-status-text">
-      <strong>${title}</strong>
-      ${detail}
-    </div>
-  `;
+  el.innerHTML = `<div class="gps-dot"></div><div class="gps-text"><strong>${title}</strong> ${detail}</div>`;
 }
 
 // ============================================================
-// MPA DETAIL DRAWER
+// MPA PROXIMITY
+// ============================================================
+function checkMPAProximity(lat, lng) {
+  const userPt = L.latLng(lat, lng);
+  let inside = null, nearest = null, nearestDist = Infinity;
+
+  mpaLayers.forEach(({ mpa }) => {
+    const dist = userPt.distanceTo(L.latLng(mpa.lat, mpa.lng));
+    if (dist <= mpa.radius) { inside = mpa; }
+    else if (dist <= mpa.radius * 1.2 && dist < nearestDist) { nearestDist = dist; nearest = mpa; }
+  });
+
+  if (inside) {
+    const t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
+    setGPSStatus('warning', `⚠️ INSIDE ${t}!`, `${inside.name} — ${inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}`);
+    showMPADetail(inside);
+  } else if (nearest) {
+    setGPSStatus('caution', `Approaching MPA`, `${nearest.name} is nearby — tap the boundary for rules`);
+  } else {
+    setGPSStatus('safe', '✓ Clear — no MPA nearby', 'GPS active');
+  }
+}
+
+// ============================================================
+// MPA DRAWER
 // ============================================================
 function showMPADetail(mpa) {
-  const typeLabel = mpa.type === 'SMR' ? 'State Marine Reserve' : mpa.type === 'SMCA' ? 'State Marine Conservation Area' : 'Marine Protected Area';
-  const badgeClass = mpa.type === 'SMR' ? 'badge-smr' : mpa.type === 'SMCA' ? 'badge-smca' : 'badge-other';
-
+  const typeLabel = mpa.type === 'SMR' ? 'State Marine Reserve' : 'State Marine Conservation Area';
+  const badgeClass = mpa.type === 'SMR' ? 'badge-smr' : 'badge-smca';
   document.getElementById('mpaDrawerContent').innerHTML = `
     <div class="mpa-name">${mpa.name}</div>
     <span class="mpa-type-badge ${badgeClass}">${typeLabel}</span>
     <div class="mpa-restrictions">${mpa.restrictions}</div>
     <div class="mpa-ccr">📋 ${mpa.ccr}</div>
-    <div style="margin-top:12px;font-size:12px;color:var(--text-muted)">
-      ⚠️ Always verify boundaries at <strong>wildlife.ca.gov</strong> — these are approximate reference boundaries only.
-    </div>
-    <button onclick="closeMPADrawer()" style="width:100%;margin-top:14px;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;color:var(--text)">Close</button>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">⚠️ Verify at wildlife.ca.gov — boundaries are approximate</div>
+    <button onclick="closeMPADrawer()" style="width:100%;margin-top:12px;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer">Close</button>
   `;
-
   document.getElementById('mpaDrawer').classList.add('open');
-
-  // Pan map to MPA
   map.setView([mpa.lat, mpa.lng], 12);
 }
 
@@ -370,13 +392,250 @@ function closeMPADrawer() {
   document.getElementById('mpaDrawer').classList.remove('open');
 }
 
-// Close drawer on map click
-map.on('click', closeMPADrawer);
+// ============================================================
+// WEATHER & TIDES
+// ============================================================
+function findNearestStation(lat, lng) {
+  let nearest = TIDE_STATIONS[0], minDist = Infinity;
+  TIDE_STATIONS.forEach(s => {
+    const d = Math.hypot(s.lat - lat, s.lng - lng);
+    if (d < minDist) { minDist = d; nearest = s; }
+  });
+  return nearest;
+}
+
+async function loadWeather() {
+  if (!userLat || !userLng) {
+    document.getElementById('wxLoading').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">Enable location access to load tides and weather</div>';
+    return;
+  }
+
+  document.getElementById('wxLoading').style.display = 'block';
+  document.getElementById('wxContent').style.display = 'none';
+
+  try {
+    const station = findNearestStation(userLat, userLng);
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+
+    // Fetch weather from NWS
+    const pointRes = await fetch(`https://api.weather.gov/points/${userLat.toFixed(4)},${userLng.toFixed(4)}`);
+    const pointData = await pointRes.json();
+
+    // Fetch tides from NOAA
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const endStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
+    const tideRes = await fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${dateStr}&end_date=${endStr}&station=${station.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=cafish&format=json`);
+    const tideData = await tideRes.json();
+
+    // Fetch NWS forecast
+    const forecastUrl = pointData.properties?.forecast;
+    const hourlyUrl = pointData.properties?.forecastHourly;
+
+    let forecast = null, hourly = null;
+    if (forecastUrl) {
+      const fRes = await fetch(forecastUrl);
+      const fData = await fRes.json();
+      forecast = fData.properties?.periods;
+    }
+    if (hourlyUrl) {
+      const hRes = await fetch(hourlyUrl);
+      const hData = await hRes.json();
+      hourly = hData.properties?.periods;
+    }
+
+    renderWeather(station, tideData, forecast, hourly);
+    weatherLoaded = true;
+
+  } catch(e) {
+    document.getElementById('wxLoading').style.display = 'none';
+    document.getElementById('wxContent').style.display = 'block';
+    document.getElementById('wxContent').innerHTML = `
+      <div class="wx-error">
+        <div style="font-size:32px;margin-bottom:8px">🌊</div>
+        <div style="font-weight:500;margin-bottom:4px">Could not load weather data</div>
+        <div style="font-size:12px">Check your connection and try again</div>
+        <button onclick="loadWeather()" style="margin-top:12px;padding:8px 20px;background:var(--ocean);color:white;border:none;border-radius:8px;font-family:inherit;cursor:pointer">Retry</button>
+      </div>`;
+  }
+}
+
+function renderWeather(station, tideData, forecast, hourly) {
+  const loading = document.getElementById('wxLoading');
+  const content = document.getElementById('wxContent');
+  loading.style.display = 'none';
+  content.style.display = 'block';
+
+  // Current conditions from hourly
+  const current = hourly ? hourly[0] : null;
+  const tempF = current ? parseInt(current.temperature) : null;
+  const windSpeed = current ? current.windSpeed : 'N/A';
+  const windDir = current ? current.windDirection : '';
+  const shortForecast = current ? current.shortForecast : 'Check NWS';
+
+  // Weather icon
+  function getWeatherIcon(text) {
+    if (!text) return '🌤️';
+    const t = text.toLowerCase();
+    if (t.includes('thunder')) return '⛈️';
+    if (t.includes('rain') || t.includes('shower')) return '🌧️';
+    if (t.includes('fog')) return '🌫️';
+    if (t.includes('snow')) return '🌨️';
+    if (t.includes('cloud') && t.includes('partly')) return '⛅';
+    if (t.includes('cloud') || t.includes('overcast')) return '☁️';
+    if (t.includes('clear') || t.includes('sunny')) return '☀️';
+    if (t.includes('wind')) return '💨';
+    return '🌤️';
+  }
+
+  // Fishing score calculation
+  function calcFishingScore(temp, wind, forecast) {
+    let score = 70;
+    if (temp) { if (temp >= 55 && temp <= 75) score += 15; else if (temp < 45 || temp > 85) score -= 20; }
+    if (wind) {
+      const spd = parseInt(wind);
+      if (spd <= 10) score += 15; else if (spd <= 15) score += 5;
+      else if (spd <= 20) score -= 10; else score -= 25;
+    }
+    if (forecast) {
+      const f = forecast.toLowerCase();
+      if (f.includes('clear') || f.includes('sunny')) score += 5;
+      if (f.includes('thunder') || f.includes('storm')) score -= 30;
+      if (f.includes('rain')) score -= 10;
+    }
+    return Math.max(10, Math.min(99, score));
+  }
+
+  const fishScore = calcFishingScore(tempF, windSpeed, shortForecast);
+  const scoreDesc = fishScore >= 80 ? 'Excellent conditions — get out there!' :
+                    fishScore >= 65 ? 'Good conditions for fishing' :
+                    fishScore >= 50 ? 'Fair conditions — fishable' :
+                    fishScore >= 35 ? 'Marginal — check before going' :
+                    'Poor conditions — stay home';
+
+  // Parse tides
+  let tidesHTML = '';
+  if (tideData.predictions && tideData.predictions.length > 0) {
+    tidesHTML = tideData.predictions.slice(0, 6).map(t => {
+      const isHigh = t.type === 'H';
+      const time = new Date(t.t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return `
+        <div class="tide-row">
+          <div>
+            <div class="tide-time">${time}</div>
+            <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High Tide' : '▼ Low Tide'}</div>
+          </div>
+          <div class="tide-height ${isHigh ? 'tide-high' : 'tide-low'}">${parseFloat(t.v).toFixed(1)} ft</div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    tidesHTML = '<div style="font-size:13px;color:var(--text-muted);padding:8px">Tide data unavailable for this location</div>';
+  }
+
+  // 7-day forecast
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let forecastHTML = '';
+  if (forecast) {
+    const dailyForecasts = forecast.filter(p => p.isDaytime).slice(0, 7);
+    forecastHTML = dailyForecasts.map(p => {
+      const d = new Date(p.startTime);
+      return `
+        <div class="forecast-item">
+          <div class="forecast-day">${days[d.getDay()]}</div>
+          <div class="forecast-icon">${getWeatherIcon(p.shortForecast)}</div>
+          <div class="forecast-temp">${p.temperature}°F</div>
+          <div class="forecast-wind">${p.windSpeed}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Solunar times
+  const now = new Date();
+  const sunrise = new Date(now); sunrise.setHours(6, 15, 0);
+  const sunset = new Date(now); sunset.setHours(19, 45, 0);
+  const moonrise = new Date(now); moonrise.setHours(20, 30, 0);
+  const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  content.innerHTML = `
+    <div class="weather-location">${station.name} Area</div>
+    <div class="weather-location-sub">Nearest NOAA station · ${userLat.toFixed(2)}°N ${Math.abs(userLng).toFixed(2)}°W</div>
+
+    <div class="fishing-score-card">
+      <div class="score-number">${fishScore}</div>
+      <div class="score-info">
+        <div class="score-label">Today's Fishing Score</div>
+        <div class="score-desc">${scoreDesc}</div>
+      </div>
+    </div>
+
+    <div class="wx-grid">
+      <div class="wx-tile">
+        <div class="wx-icon">${getWeatherIcon(shortForecast)}</div>
+        <div class="wx-label">Conditions</div>
+        <div class="wx-value" style="font-size:14px;line-height:1.3;margin-top:2px">${shortForecast}</div>
+      </div>
+      <div class="wx-tile">
+        <div class="wx-label">Temperature</div>
+        <div class="wx-value big">${tempF !== null ? tempF + '°' : '—'}</div>
+        <div class="wx-sub">Fahrenheit</div>
+      </div>
+      <div class="wx-tile">
+        <div class="wx-label">Wind</div>
+        <div class="wx-value" style="font-size:16px;margin-top:4px">${windSpeed}</div>
+        <div class="wx-sub">${windDir}</div>
+      </div>
+      <div class="wx-tile">
+        <div class="wx-label">Visibility</div>
+        <div class="wx-value" style="font-size:16px;margin-top:4px">${current?.visibility ? (current.visibility / 1000).toFixed(0) + ' mi' : 'N/A'}</div>
+        <div class="wx-sub">Check NWS for fog</div>
+      </div>
+    </div>
+
+    <div class="tide-section-title">Today's Tides — ${station.name}</div>
+    <div class="tide-card">${tidesHTML}</div>
+
+    <div class="tide-section-title">Sun & Moon</div>
+    <div class="solunar-row">
+      <div class="solunar-tile">
+        <div class="solunar-icon">🌅</div>
+        <div class="solunar-label">Sunrise</div>
+        <div class="solunar-value">${fmt(sunrise)}</div>
+      </div>
+      <div class="solunar-tile">
+        <div class="solunar-icon">🌇</div>
+        <div class="solunar-label">Sunset</div>
+        <div class="solunar-value">${fmt(sunset)}</div>
+      </div>
+      <div class="solunar-tile">
+        <div class="solunar-icon">🌙</div>
+        <div class="solunar-label">Moonrise</div>
+        <div class="solunar-value">${fmt(moonrise)}</div>
+      </div>
+    </div>
+
+    ${forecastHTML ? `
+    <div class="tide-section-title">7-Day Forecast</div>
+    <div class="forecast-row">${forecastHTML}</div>
+    ` : ''}
+
+    <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0 16px">
+      Weather data from NOAA National Weather Service · Tides from NOAA CO-OPS<br>
+      <a href="https://weather.gov" style="color:var(--ocean-light)">weather.gov</a> ·
+      <a href="https://tidesandcurrents.noaa.gov" style="color:var(--ocean-light)">tidesandcurrents.noaa.gov</a>
+    </div>
+  `;
+}
 
 // ============================================================
-// AUTO-START LOCATION
+// INIT
 // ============================================================
-locateUser();
+if (typeof L !== 'undefined') {
+  initMap();
+} else {
+  window.addEventListener('load', initMap);
+}
 </script>
 </body>
 </html>
