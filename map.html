@@ -334,13 +334,6 @@ async function loadMPAs() {
     const data = await res.json();
 
     if (data.features && data.features.length > 0) {
-      // Debug: log ALL field names and first feature's values
-      const firstProps = data.features[0].properties;
-      console.log('CDFW all fields:', Object.keys(firstProps));
-      console.log('CDFW first feature:', firstProps);
-      const typeValues = [...new Set(data.features.slice(0, 30).map(f => f.properties.TYPE || f.properties.MPA_TYPE || f.properties.SHORTNAME || f.properties.type))];
-      console.log('CDFW TYPE values sample:', typeValues);
-
       mpaGeoJSON = data;
       drawMPAPolygons(data);
       // Also build MPAS array for GPS proximity checks (using feature centroids)
