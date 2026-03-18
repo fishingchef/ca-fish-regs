@@ -262,12 +262,45 @@ const MPAS_FALLBACK = [
 ];
 
 // ============================================================
+// MPA TYPE HELPERS — must be defined before loadMPAs
+// ============================================================
+function getMPAType(props) {
+  const type = (props.TYPE || props.type || '').trim().toUpperCase();
+  if (type === 'SMR') return 'SMR';
+  if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
+  if (type === 'SMP') return 'SMP';
+  if (type === 'SMRMA') return 'SMRMA';
+  const name = (props.NAME || props.FULLNAME || '').toLowerCase();
+  if (name.includes('state marine reserve')) return 'SMR';
+  if (name.includes('conservation area')) return 'SMCA';
+  return 'SMCA';
+}
+
+function getMPAColor(type) {
+  if (type === 'SMR') return '#cc0000';
+  if (type === 'SMCA') return '#ff8800';
+  if (type === 'SMP') return '#0066cc';
+  return '#888800';
+}
+
+function getMPAFillOpacity(type) {
+  if (type === 'SMR') return 0.35;
+  if (type === 'SMCA') return 0.2;
+  return 0.15;
+}
+
+function getRestrictions(type) {
+  if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
+  if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
+  if (type === 'SMP') return 'State Marine Park — Recreational take of certain invertebrates and plants may be allowed. Verify current rules at wildlife.ca.gov.';
+  return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
+}
+
+// ============================================================
 // LOAD MPAS — directly from CDFW ArcGIS API (all official MPAs)
-// Polygon boundaries dataset ds582
-// Coordinate points dataset ds3207 (used as fallback for center points)
 // ============================================================
 let MPAS = [];
-let mpaGeoJSON = null; // stores actual polygon shapes
+let mpaGeoJSON = null;
 
 async function loadMPAs() {
   setGPSStatus('searching', 'Loading official CDFW MPA boundaries…', '');
@@ -487,36 +520,6 @@ function estimateRadius(bbox) {
   const latSpan = (bbox.maxLat - bbox.minLat) * 111000;
   const lngSpan = (bbox.maxLng - bbox.minLng) * 111000 * Math.cos(bbox.minLat * Math.PI / 180);
   return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
-}
-
-function getMPAType(props) {
-  const type = (props.TYPE || props.type || '').trim().toUpperCase();
-  if (type === 'SMR') return 'SMR';
-  if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
-  if (type === 'SMP') return 'SMP';
-  if (type === 'SMRMA') return 'SMRMA';
-  // Fallback: check full name
-  const name = (props.NAME || props.FULLNAME || '').toLowerCase();
-  if (name.includes('state marine reserve')) return 'SMR';
-  if (name.includes('conservation area')) return 'SMCA';
-  return 'SMCA';
-}
-
-function getMPAColor(type) {
-  if (type === 'SMR') return '#cc0000';       // Red — no take
-  if (type === 'SMCA') return '#ff8800';      // Orange — conservation
-  if (type === 'SMP') return '#0066cc';       // Blue — marine park
-  return '#888800';                            // Olive — other
-}
-
-function getMPAFillOpacity(type) {
-  if (type === 'SMR') return 0.35;
-  if (type === 'SMCA') return 0.2;
-  return 0.15;
-}
-  if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
-  if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
-  return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
 }
 
 // ============================================================
