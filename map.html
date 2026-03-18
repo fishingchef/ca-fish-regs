@@ -212,9 +212,22 @@
 
 <script>
 // ============================================================
-// MPA DATA
+// SUPABASE CONFIG
 // ============================================================
-const MPAS = [
+const SUPABASE_URL = 'https://maqffkhgynuzbvpbueds.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3Lh4gmjt2Wvvp0u76qqkrQ_3h-DqVwY';
+
+async function fetchMPAs() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/mpas?is_active=eq.true&select=*`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return res.json();
+}
+
+// ============================================================
+// HARDCODED MPA FALLBACK (used if DB fetch fails)
+// ============================================================
+const MPAS_FALLBACK = [
   { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000, restrictions: "No take of any living or non-living marine resource. No fishing of any kind.", ccr: "CCR Title 14 §632(b)(1)" },
   { name: "Pyramid Point SMR", type: "SMR", lat: 41.83, lng: -124.22, radius: 3000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(2)" },
   { name: "Reading Rock SMCA", type: "SMCA", lat: 41.52, lng: -124.08, radius: 4000, restrictions: "No take of finfish. Some invertebrate take allowed. Check specific rules.", ccr: "CCR Title 14 §632(b)(5)" },
@@ -238,6 +251,34 @@ const MPAS = [
   { name: "Swami's SMCA", type: "SMCA", lat: 33.04, lng: -117.30, radius: 2000, restrictions: "No take of most species. Check recreational fishing allowances.", ccr: "CCR Title 14 §632(b)(86)" },
   { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000, restrictions: "No take of most species within protected area. Adjacent to Scripps Institution.", ccr: "CCR Title 14 §632(b)(87)" }
 ];
+
+// ============================================================
+// LOAD MPAS — from Supabase DB, fallback to hardcoded list
+// ============================================================
+let MPAS = [];
+
+async function loadMPAs() {
+  try {
+    const dbMPAs = await fetchMPAs();
+    if (dbMPAs && dbMPAs.length > 0) {
+      MPAS = dbMPAs.map(m => ({
+        name: m.name,
+        type: m.mpa_type && m.mpa_type.includes('Reserve') ? 'SMR' : 'SMCA',
+        lat: m.lat_center,
+        lng: m.lng_center,
+        radius: m.mpa_type && m.mpa_type.includes('Reserve') ? 5000 : 4000,
+        restrictions: m.restrictions,
+        ccr: m.ccr_section || ''
+      })).filter(m => m.lat && m.lng);
+      console.log(`Loaded ${MPAS.length} MPAs from database`);
+    } else {
+      MPAS = MPAS_FALLBACK;
+    }
+  } catch(e) {
+    console.log('Using fallback MPA data');
+    MPAS = MPAS_FALLBACK;
+  }
+}
 
 // ============================================================
 // NOAA TIDE STATIONS — closest to major CA fishing areas
@@ -399,16 +440,6 @@ function initMap() {
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    MPAS.forEach(mpa => {
-      const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-      const circle = L.circle([mpa.lat, mpa.lng], {
-        radius: mpa.radius, color, fillColor: color,
-        fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18, weight: 2
-      }).addTo(map);
-      circle.on('click', () => showMPADetail(mpa));
-      mpaLayers.push({ circle, mpa });
-    });
-
     map.on('click', (e) => {
       if (pinMode) {
         dropPin(e.latlng.lat, e.latlng.lng);
@@ -416,10 +447,33 @@ function initMap() {
         closeMPADrawer();
       }
     });
-    locateUser();
+
+    // Load MPAs from DB then draw them
+    loadMPAs().then(() => {
+      drawMPAs();
+      locateUser();
+    });
+
   } catch(e) {
     document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;color:#666">Map failed to load. Check internet connection.</div>';
   }
+}
+
+function drawMPAs() {
+  mpaLayers = [];
+  MPAS.forEach(mpa => {
+    if (!mpa.lat || !mpa.lng) return;
+    const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+    const circle = L.circle([mpa.lat, mpa.lng], {
+      radius: mpa.radius || 5000,
+      color, fillColor: color,
+      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
+      weight: 2
+    }).addTo(map);
+    circle.on('click', (e) => { L.DomEvent.stopPropagation(e); showMPADetail(mpa); });
+    mpaLayers.push({ circle, mpa });
+  });
+  console.log(`Drew ${mpaLayers.length} MPA boundaries`);
 }
 
 // ============================================================
