@@ -189,8 +189,9 @@
 
 <!-- MAP LEGEND (only shown on map tab) -->
 <div class="map-legend" id="mapLegend">
-  <div class="legend-item"><div class="legend-dot legend-smr"></div>No-take Reserve</div>
-  <div class="legend-item"><div class="legend-dot legend-smca"></div>Conservation Area</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(204,0,0,0.4);border:2px solid #cc0000"></div>SMR (no take)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,136,0,0.3);border:2px solid #ff8800"></div>SMCA (restricted)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(0,102,204,0.3);border:2px solid #0066cc"></div>Marine Park</div>
   <div class="legend-item"><div class="legend-dot legend-you"></div>You</div>
 </div>
 
@@ -286,8 +287,7 @@ async function loadMPAs() {
       // Also build MPAS array for GPS proximity checks (using feature centroids)
       MPAS = data.features.map(f => {
         const props = f.properties;
-        const type = (props.TYPE || '').includes('Reserve') ? 'SMR' :
-                     (props.TYPE || '').includes('Conservation') ? 'SMCA' : 'SMCA';
+        const type = getMPAType(props);
         const bbox = getBBox(f.geometry);
         return {
           name: props.NAME || props.SHORTNAME || 'MPA',
@@ -393,17 +393,17 @@ async function loadMPAs() {
 function drawMPAPolygons(geojson) {
   const geoLayer = L.geoJSON(geojson, {
     style: feature => {
-      const type = (feature.properties.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+      const type = getMPAType(feature.properties);
       return {
-        color: type === 'SMR' ? '#cc0000' : '#ff8800',
-        fillColor: type === 'SMR' ? '#cc0000' : '#ff8800',
-        fillOpacity: type === 'SMR' ? 0.3 : 0.2,
+        color: getMPAColor(type),
+        fillColor: getMPAColor(type),
+        fillOpacity: getMPAFillOpacity(type),
         weight: 2
       };
     },
     onEachFeature: (feature, layer) => {
       const props = feature.properties;
-      const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+      const type = getMPAType(props);
       const mpa = {
         name: props.NAME || props.SHORTNAME || 'Marine Protected Area',
         type,
@@ -489,8 +489,31 @@ function estimateRadius(bbox) {
   return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
 }
 
-// Helper: get restriction text based on MPA type
-function getRestrictions(type) {
+function getMPAType(props) {
+  const type = (props.TYPE || props.type || '').trim().toUpperCase();
+  if (type === 'SMR') return 'SMR';
+  if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
+  if (type === 'SMP') return 'SMP';
+  if (type === 'SMRMA') return 'SMRMA';
+  // Fallback: check full name
+  const name = (props.NAME || props.FULLNAME || '').toLowerCase();
+  if (name.includes('state marine reserve')) return 'SMR';
+  if (name.includes('conservation area')) return 'SMCA';
+  return 'SMCA';
+}
+
+function getMPAColor(type) {
+  if (type === 'SMR') return '#cc0000';       // Red — no take
+  if (type === 'SMCA') return '#ff8800';      // Orange — conservation
+  if (type === 'SMP') return '#0066cc';       // Blue — marine park
+  return '#888800';                            // Olive — other
+}
+
+function getMPAFillOpacity(type) {
+  if (type === 'SMR') return 0.35;
+  if (type === 'SMCA') return 0.2;
+  return 0.15;
+}
   if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
   if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
   return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
