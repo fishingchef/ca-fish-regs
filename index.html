@@ -539,11 +539,16 @@ async function enterAdminMode() {
 }
 
 async function signInWithGoogle() {
+  // Mark that we're in admin flow so we know to show admin panel on return
+  localStorage.setItem('adminFlow', 'true');
   const { error } = await db.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: window.location.origin + window.location.pathname }
   });
-  if (error) alert('Sign in failed: ' + error.message);
+  if (error) {
+    localStorage.removeItem('adminFlow');
+    alert('Sign in failed: ' + error.message);
+  }
 }
 
 async function signOut() {
@@ -574,10 +579,33 @@ function showAdminPanel() {
 
 // Check for Google OAuth redirect on page load
 async function checkAuthRedirect() {
+  // Listen for auth state changes (handles OAuth redirect)
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      // Only show admin if we were in admin flow
+      const wasInAdminFlow = localStorage.getItem('adminFlow');
+      if (wasInAdminFlow) {
+        localStorage.removeItem('adminFlow');
+        showAdminPanel();
+      }
+    }
+  });
+
+  // Also check for existing session on load
   const { data: { session } } = await db.auth.getSession();
-  if (session && window.location.hash.includes('access_token')) {
+  if (session) {
     currentUser = session.user;
-    showAdminPanel();
+    const wasInAdminFlow = localStorage.getItem('adminFlow');
+    if (wasInAdminFlow || window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+      localStorage.removeItem('adminFlow');
+      showAdminPanel();
+    }
+  }
+
+  // Clean up URL after OAuth redirect
+  if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 
