@@ -323,16 +323,19 @@ async function loadMPAs() {
     // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
     const res = await fetch(
       'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds582_fpu/FeatureServer/0/query' +
-      '?where=1%3D1&outFields=NAME,TYPE,SHORTNAME&outSR=4326&f=geojson&resultRecordCount=200'
+      '?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=200'
     );
 
     if (!res.ok) throw new Error('CDFW API error');
     const data = await res.json();
 
     if (data.features && data.features.length > 0) {
-      // Debug: log first 10 TYPE values to see what CDFW actually returns
-      const typeValues = [...new Set(data.features.slice(0, 30).map(f => f.properties.TYPE))];
-      console.log('CDFW TYPE field values:', typeValues);
+      // Debug: log ALL field names and first feature's values
+      const firstProps = data.features[0].properties;
+      console.log('CDFW all fields:', Object.keys(firstProps));
+      console.log('CDFW first feature:', firstProps);
+      const typeValues = [...new Set(data.features.slice(0, 30).map(f => f.properties.TYPE || f.properties.MPA_TYPE || f.properties.SHORTNAME || f.properties.type))];
+      console.log('CDFW TYPE values sample:', typeValues);
 
       mpaGeoJSON = data;
       drawMPAPolygons(data);
@@ -475,14 +478,13 @@ function drawMPAPolygons(geojson) {
 // GPS proximity check using actual polygon containment when available
 function checkPointInPolygon(lat, lng) {
   if (!mpaGeoJSON) return null;
-  const pt = turf_point([lng, lat]);
   for (const feature of mpaGeoJSON.features) {
     try {
       if (isPointInGeoJSON(lat, lng, feature.geometry)) {
         const props = feature.properties;
-        const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+        const type = getMPAType(props);
         return {
-          name: props.NAME || props.SHORTNAME || 'Marine Protected Area',
+          name: props.NAME || props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
           type,
           restrictions: getRestrictions(type),
           ccr: 'CCR Title 14, Section 632'
