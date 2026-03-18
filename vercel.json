@@ -1,50 +1,25 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "**/*",
-      "use": "@vercel/static"
-    }
+  "rewrites": [
+    { "source": "/api/identify", "destination": "/api/identify.js" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/map.html", "destination": "/map.html" },
+    { "source": "/index.html", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/api/identify",
-      "dest": "/api/identify.js"
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
     },
     {
-      "src": "/sw.js",
-      "dest": "/sw.js",
-      "headers": {
-        "Content-Type": "application/javascript",
-        "Service-Worker-Allowed": "/"
-      }
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json",
-      "headers": {
-        "Content-Type": "application/manifest+json"
-      }
-    },
-    {
-      "src": "/icon-(.*)\\.png",
-      "dest": "/icon-$1.png"
-    },
-    {
-      "src": "/map.html",
-      "dest": "/map.html"
-    },
-    {
-      "src": "/index.html",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
     }
   ]
 }
