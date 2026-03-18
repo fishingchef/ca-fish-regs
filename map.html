@@ -280,14 +280,17 @@ const MPAS_FALLBACK = [
 // MPA TYPE HELPERS — must be defined before loadMPAs
 // ============================================================
 function getMPAType(props) {
-  const type = (props.TYPE || props.type || '').trim().toUpperCase();
+  const type = (props.Type || props.TYPE || props.type || '').trim().toUpperCase();
   if (type === 'SMR') return 'SMR';
   if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
   if (type === 'SMP') return 'SMP';
   if (type === 'SMRMA') return 'SMRMA';
-  const name = (props.NAME || props.FULLNAME || '').toLowerCase();
+  if (type === 'SPECIAL CLOSURE' || type === 'SC') return 'SC';
+  // Fallback: check full name
+  const name = (props.FULLNAME || props.NAME || '').toLowerCase();
   if (name.includes('state marine reserve')) return 'SMR';
   if (name.includes('conservation area')) return 'SMCA';
+  if (name.includes('marine park')) return 'SMP';
   return 'SMCA';
 }
 
@@ -295,6 +298,7 @@ function getMPAColor(type) {
   if (type === 'SMR') return '#cc0000';
   if (type === 'SMCA') return '#ff8800';
   if (type === 'SMP') return '#0066cc';
+  if (type === 'SC') return '#888888';
   return '#888800';
 }
 
@@ -460,7 +464,7 @@ function drawMPAPolygons(geojson) {
       const props = feature.properties;
       const type = getMPAType(props);
       const mpa = {
-        name: props.NAME || props.SHORTNAME || 'Marine Protected Area',
+        name: props.FULLNAME || props.NAME || props.SHORTNAME || 'Marine Protected Area',
         type,
         restrictions: getRestrictions(type),
         ccr: 'CCR Title 14, Section 632'
