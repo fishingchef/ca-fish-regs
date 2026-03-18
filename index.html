@@ -1076,112 +1076,10 @@ async function loadData() {
     statusEl.textContent = `● Live · ${allSpecies.length} species`;
     statusEl.className = 'data-status live';
     renderList();
-
-    // Fetch real photos from iNaturalist in background
-    fetchiNatPhotos();
   } catch(e) {
     document.getElementById('dataStatus').textContent = '⚠ Connection error';
     document.getElementById('speciesList').innerHTML = '<div class="no-results"><div class="no-results-icon">📡</div><h3>Connection error</h3><p>Check your internet and try again</p></div>';
   }
-}
-
-// ============================================================
-// iNATURALIST PHOTO FETCHING
-// Fetches real species photos in background, updates UI as they arrive
-// ============================================================
-const inatPhotoCache = {};
-
-async function fetchiNatPhotos() {
-  const needsPhoto = allSpecies.filter(s => !s.image_url && s.scientific_name);
-  if (!needsPhoto.length) return;
-
-  // Check sessionStorage cache first
-  needsPhoto.forEach(s => {
-    try {
-      const cached = sessionStorage.getItem(`inat_${s.id}`);
-      if (cached) {
-        s._inatPhoto = cached;
-        inatPhotoCache[s.id] = cached;
-      }
-    } catch(e) {}
-  });
-
-  // Re-render list so cached photos show immediately
-  renderList();
-
-  // Fetch remaining from iNaturalist in small batches
-  const remaining = needsPhoto.filter(s => !inatPhotoCache[s.id]);
-  console.log(`Fetching iNat photos for ${remaining.length} species...`);
-
-  for (let i = 0; i < remaining.length; i += 3) {
-    const batch = remaining.slice(i, i + 3);
-    await Promise.all(batch.map(s => fetchOnePhoto(s)));
-    await new Promise(r => setTimeout(r, 300));
-  }
-}
-
-async function fetchOnePhoto(species) {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const query = encodeURIComponent(species.scientific_name.split(' ').slice(0,2).join(' '));
-    const res = await fetch(
-      `https://api.inaturalist.org/v1/taxa?q=${query}&per_page=3`,
-      { signal: controller.signal }
-    );
-    clearTimeout(timeout);
-
-    if (!res.ok) { console.warn(`iNat API error for ${species.name}: ${res.status}`); return; }
-
-    const data = await res.json();
-
-    // Find best match — prefer exact scientific name match
-    let taxon = data.results?.find(t =>
-      t.name?.toLowerCase() === species.scientific_name.toLowerCase().split(' ').slice(0,2).join(' ')
-    ) || data.results?.[0];
-
-    const photoUrl = taxon?.default_photo?.medium_url;
-    if (!photoUrl) { console.log(`No photo for ${species.name}`); return; }
-
-    console.log(`✓ Photo loaded: ${species.name}`);
-    inatPhotoCache[species.id] = photoUrl;
-    species._inatPhoto = photoUrl;
-
-    try { sessionStorage.setItem(`inat_${species.id}`, photoUrl); } catch(e) {}
-
-    // Update card in the list directly
-    updateSpeciesImage(species.id, photoUrl);
-
-  } catch(e) {
-    if (e.name !== 'AbortError') console.warn(`Failed to fetch photo for ${species.name}:`, e.message);
-  }
-}
-
-function updateSpeciesImage(speciesId, photoUrl) {
-  // Update card image if visible
-  const card = document.querySelector(`.species-card[data-id="${speciesId}"]`);
-  if (!card) return;
-
-  let img = card.querySelector('.species-img');
-  const emoji = card.querySelector('.species-emoji');
-
-  if (!img) {
-    // Create img element
-    img = document.createElement('img');
-    img.className = 'species-img';
-    img.alt = '';
-    img.onerror = () => {
-      img.style.display = 'none';
-      if (emoji) emoji.style.display = 'flex';
-    };
-    if (emoji) card.insertBefore(img, emoji);
-    else card.prepend(img);
-  }
-
-  img.src = photoUrl;
-  img.style.display = 'block';
-  if (emoji) emoji.style.display = 'none';
 }
 
 // ============================================================
@@ -1230,7 +1128,7 @@ function renderList() {
     const reg = getRegForSpecies(s.id);
     const status = deriveStatus(reg);
     const typeLabel = s.water_type === 'both' ? 'Fresh + Salt' : s.water_type === 'saltwater' ? 'Saltwater' : 'Freshwater';
-    const photo = s.image_url || s._inatPhoto || inatPhotoCache[s.id];
+    const photo = s.image_url;
     const imgEl = photo
       ? `<img class="species-img" src="${photo}" alt="${s.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
       : '';
@@ -1261,7 +1159,7 @@ function openDrawer(id) {
   const pos = reg?.possession_limit ?? '—';
   const noteClass = status === 'closed' ? 'danger-note' : reg?.season_open_month ? 'warning' : '';
 
-  const photo = s.image_url || s._inatPhoto || inatPhotoCache[s.id];
+  const photo = s.image_url;
   const imgEl = photo
     ? `<img class="drawer-img ${s.water_type||'both'}" src="${photo}" alt="${s.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">` : '';
   const emojiEl = `<div class="drawer-emoji ${s.water_type||'both'}" ${photo ? 'style="display:none"' : ''}>${getEmoji(s.name)}</div>`;
