@@ -1352,49 +1352,21 @@ async function identifyFish() {
   document.getElementById('fishIdResult').style.display = 'none';
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/identify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: fishIdImageType, data: fishIdImageBase64 }
-            },
-            {
-              type: 'text',
-              text: `You are a California fishing regulations expert. Identify the fish in this photo and provide California-specific regulations.
-
-Respond ONLY with a JSON object — no markdown, no backticks, no extra text:
-{
-  "commonName": "Common name of the fish",
-  "scientificName": "Scientific name",
-  "confidence": "high|medium|low",
-  "confidenceReason": "Brief reason for confidence level",
-  "found_in_california": true or false,
-  "legalStatus": "legal|check|protected|unknown",
-  "legalStatusNote": "One sentence on legal status in CA",
-  "bagLimit": "e.g. 10 fish or No limit or CLOSED",
-  "minSize": "e.g. 22 inches or None",
-  "season": "e.g. Open year-round or April-October",
-  "identificationTips": "2-3 key visual features to confirm ID",
-  "lookAlikes": "Similar species to watch out for, or none",
-  "tips": "1-2 practical tips for this species in California"
-}`
-            }
-          ]
-        }]
+        imageBase64: fishIdImageBase64,
+        imageType: fishIdImageType
       })
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${response.status}`);
+    }
+
+    const result = await response.json();
     renderFishIdResult(result);
 
   } catch(e) {
@@ -1403,9 +1375,10 @@ Respond ONLY with a JSON object — no markdown, no backticks, no extra text:
     document.getElementById('fishIdResult').innerHTML = `
       <div class="fishid-result" style="padding:20px;text-align:center">
         <div style="font-size:32px;margin-bottom:8px">🐟</div>
-        <div style="font-weight:600;margin-bottom:4px">Could not identify fish</div>
-        <div style="font-size:13px;color:var(--text-muted)">Check your connection and try again</div>
-        <button onclick="identifyFish()" style="margin-top:12px;padding:10px 24px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">Retry</button>
+        <div style="font-weight:600;margin-bottom:4px">Could not identify species</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${e.message}</div>
+        <button onclick="document.getElementById('fishIdResult').style.display='none';document.getElementById('fishIdBtn').style.display='block'"
+          style="padding:10px 24px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">Try Again</button>
       </div>`;
     document.getElementById('fishIdBtn').style.display = 'block';
   }
