@@ -351,6 +351,7 @@
         </div>
 
         <button class="btn btn-primary" id="saveRegBtn" onclick="saveRegulation()">💾 Save Regulation</button>
+        <button class="btn btn-danger" onclick="deleteRegulation()">🗑️ Delete Regulation</button>
       </div>
 
       <div class="admin-section-title" style="margin-top:16px">Species Info & Photo</div>
@@ -371,6 +372,7 @@
           </div>
         </div>
         <button class="btn btn-primary" onclick="saveSpeciesInfo()">💾 Save Species Info</button>
+        <button class="btn btn-danger" onclick="deleteSpecies()">🗑️ Delete This Species</button>
       </div>
     </div>
   </div>
@@ -742,6 +744,60 @@ async function saveSpeciesInfo() {
 
   if (error) { alert('Error saving: ' + error.message); return; }
   showToast('✓ Species info saved!');
+  loadData();
+}
+
+// ============================================================
+// DELETE FUNCTIONS
+// ============================================================
+async function deleteSpecies() {
+  const speciesId = document.getElementById('adminSpeciesPicker').value;
+  if (!speciesId) return;
+
+  const picker = document.getElementById('adminSpeciesPicker');
+  const speciesName = picker.options[picker.selectedIndex].text;
+
+  if (!confirm(`⚠️ Delete "${speciesName}" and ALL its regulations?\n\nThis cannot be undone.`)) return;
+
+  // Delete regulations first (foreign key), then species
+  const { error: regError } = await db.from('regulations').delete().eq('species_id', speciesId);
+  if (regError) { alert('Error deleting regulations: ' + regError.message); return; }
+
+  const { error: specError } = await db.from('species').delete().eq('id', speciesId);
+  if (specError) { alert('Error deleting species: ' + specError.message); return; }
+
+  // Reset form
+  document.getElementById('editForm').style.display = 'none';
+
+  // Remove from picker dropdowns
+  const closurePicker = document.getElementById('new_closure_species');
+  document.querySelectorAll(`#adminSpeciesPicker option[value="${speciesId}"], #new_closure_species option[value="${speciesId}"]`).forEach(o => o.remove());
+  document.getElementById('adminSpeciesPicker').value = '';
+
+  showToast('✓ Species deleted');
+  loadData();
+}
+
+async function deleteRegulation() {
+  const speciesId = document.getElementById('adminSpeciesPicker').value;
+  if (!speciesId) return;
+
+  const picker = document.getElementById('adminSpeciesPicker');
+  const speciesName = picker.options[picker.selectedIndex].text;
+
+  if (!confirm(`Delete regulation data for "${speciesName}"?\n\nThe species will remain but all regulation details will be cleared.`)) return;
+
+  const { error } = await db.from('regulations').delete().eq('species_id', speciesId);
+  if (error) { alert('Error deleting regulation: ' + error.message); return; }
+
+  // Clear the form fields
+  ['edit_bag_limit','edit_possession_limit','edit_size_min','edit_size_max',
+   'edit_bag_note','edit_size_note','edit_gear','edit_notes','edit_ccr',
+   'edit_season_open','edit_season_close'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('edit_report_card').checked = false;
+  document.getElementById('edit_catch_release').checked = false;
+
+  showToast('✓ Regulation deleted');
   loadData();
 }
 
