@@ -1360,55 +1360,32 @@ async function identifyFish() {
   document.getElementById('fishIdLoading').style.display = 'block';
   document.getElementById('fishIdResult').style.display = 'none';
   document.getElementById('fishIdLoading').querySelector('.fishid-loading-text').textContent = 'Identifying species…';
-  document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = 'Powered by iNaturalist AI';
+  document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = 'Analyzing your photo';
 
   try {
-    // Step 1: Send photo to iNaturalist Computer Vision API
-    const formData = new FormData();
-    // Convert base64 back to blob
-    const byteString = atob(fishIdImageBase64);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-    const blob = new Blob([ab], { type: fishIdImageType });
-    formData.append('image', blob, 'photo.jpg');
-
-    const inatRes = await fetch('https://api.inaturalist.org/v1/computervision/score_image', {
+    const response = await fetch('/api/identify', {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: fishIdImageBase64,
+        imageType: fishIdImageType
+      })
     });
 
-    if (!inatRes.ok) throw new Error('iNaturalist API error: ' + inatRes.status);
-    const inatData = await inatRes.json();
-
-    if (!inatData.results || inatData.results.length === 0) {
-      throw new Error('Could not identify species from this photo');
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${response.status}`);
     }
 
-    // Step 2: Get top matches (fish/marine animals only if possible)
-    const topResults = inatData.results.slice(0, 5);
-    const topMatch = topResults[0];
-    const taxon = topMatch.taxon;
+    const aiResult = await response.json();
 
-    document.getElementById('fishIdLoading').querySelector('.fishid-loading-text').textContent = 'Looking up regulations…';
-    document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = `Found: ${taxon.name}`;
+    // Look up species in our local DB using the AI's identified name
+    const matchedSpecies = findSpeciesInDB(
+      aiResult.scientificName || '',
+      aiResult.commonName || ''
+    );
 
-    // Step 3: Look up species in our Supabase regulations database
-    const sciName = taxon.name;
-    const commonName = taxon.preferred_common_name || taxon.english_common_name || taxon.name;
-
-    // Try exact match first, then fuzzy search in our species list
-    let matchedSpecies = findSpeciesInDB(sciName, commonName);
-
-    // Step 4: Render result
-    renderFishIdResult({
-      taxon,
-      topMatch,
-      allMatches: topResults,
-      matchedSpecies,
-      commonName,
-      sciName
-    });
+    renderFishIdResult(aiResult, matchedSpecies);
 
   } catch(e) {
     document.getElementById('fishIdLoading').style.display = 'none';
@@ -1416,9 +1393,13 @@ async function identifyFish() {
     document.getElementById('fishIdResult').innerHTML = `
       <div class="fishid-result" style="padding:20px;text-align:center">
         <div style="font-size:32px;margin-bottom:8px">🐟</div>
-        <div style="font-weight:600;margin-bottom:4px">Could not identify species</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${e.message}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Try a clearer photo with good lighting and the whole animal visible</div>
+        <div style="font-weight:600;margin-bottom:8px">Could not identify species</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">${e.message}</div>
+        <div class="reg-note warning" style="text-align:left;margin-bottom:12px">
+          ⚙️ <strong>Setup needed:</strong> Fish ID requires a Gemini API key added to Vercel.<br><br>
+          Go to <strong>vercel.com → your project → Settings → Environment Variables</strong> and add:<br>
+          <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">GEMINI_API_KEY</code> = your key from aistudio.google.com
+        </div>
         <button onclick="document.getElementById('fishIdResult').style.display='none';document.getElementById('fishIdBtn').style.display='block'"
           style="padding:10px 24px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">Try Again</button>
       </div>`;
@@ -1426,130 +1407,143 @@ async function identifyFish() {
   }
 }
 
-// Search our loaded species database for a match
+// Search our loaded species database for a match by scientific or common name
 function findSpeciesInDB(sciName, commonName) {
   if (!allSpecies || !allSpecies.length) return null;
-
   const sciLower = (sciName || '').toLowerCase();
   const commonLower = (commonName || '').toLowerCase();
 
-  // Try scientific name match first
+  // Exact scientific name match
   let match = allSpecies.find(s =>
     s.scientific_name && s.scientific_name.toLowerCase() === sciLower
   );
   if (match) return match;
 
-  // Try partial scientific name (genus match)
+  // Genus-level match
   const genus = sciLower.split(' ')[0];
-  match = allSpecies.find(s =>
-    s.scientific_name && s.scientific_name.toLowerCase().startsWith(genus + ' ')
-  );
-  if (match) return match;
+  if (genus.length > 3) {
+    match = allSpecies.find(s =>
+      s.scientific_name && s.scientific_name.toLowerCase().startsWith(genus + ' ')
+    );
+    if (match) return match;
+  }
 
-  // Try common name match
+  // Common name match
   match = allSpecies.find(s => {
-    const dbName = s.name.toLowerCase();
+    const dbName = s.name.toLowerCase().replace(/\s*\(.*\)/, '').trim();
     return dbName === commonLower ||
-           dbName.includes(commonLower) ||
-           commonLower.includes(dbName.replace(/\s*\(.*\)/, '').trim());
+           commonLower.includes(dbName) ||
+           dbName.includes(commonLower);
   });
-  if (match) return match;
-
-  return null;
+  return match || null;
 }
 
-function renderFishIdResult({ taxon, topMatch, allMatches, matchedSpecies, commonName, sciName }) {
+function renderFishIdResult(r, matchedSpecies) {
   document.getElementById('fishIdLoading').style.display = 'none';
   document.getElementById('fishIdBtn').style.display = 'block';
 
-  const score = Math.round((topMatch.combined_score || 0) * 100);
-  const confidence = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
-  const confidenceLabel = score >= 70 ? '✓ High confidence' : score >= 40 ? '~ Medium confidence' : '⚠ Low confidence';
-  const confidenceClass = { high: 'high', medium: 'medium', low: 'low' }[confidence];
-
-  // Photo from iNaturalist for this taxon
-  const taxonPhoto = taxon.default_photo?.medium_url || '';
+  const confidence = r.confidence || 'medium';
+  const confidenceLabels = { high: '✓ High confidence', medium: '~ Medium confidence', low: '⚠ Low confidence' };
+  const legalColors = { legal: 'legal', check: 'check', protected: 'protected', closed: 'protected', unknown: 'check' };
+  const legalIcons = { legal: '✅', check: '⚠️', protected: '🚫', closed: '🚫', unknown: '❓' };
 
   // Get regulations from our DB if we found a match
   const reg = matchedSpecies ? getRegForSpecies(matchedSpecies.id) : null;
   const status = reg ? deriveStatus(reg) : null;
+  const photo = matchedSpecies?.image_url || '';
 
-  // Build legal status banner
-  let legalClass = 'check', legalIcon = '⚠️', legalText = 'Check current California regulations before keeping';
+  // Override AI legal info with our verified DB data if available
+  const bagLimit = reg
+    ? (reg.bag_limit === 0 ? 'CLOSED' : reg.bag_limit !== null ? String(reg.bag_limit) : 'No limit')
+    : (r.bagLimit || '—');
+  const minSize = reg
+    ? (reg.size_min_inches ? reg.size_min_inches + ' inches' : 'None')
+    : (r.minSize || 'None');
+  const season = reg
+    ? formatSeason(reg)
+    : (r.season || '—');
+  const gear = reg?.gear_restricted || r.gearAllowed || null;
+
+  // Legal banner — prefer DB data
+  let legalClass = legalColors[r.legalStatus] || 'check';
+  let legalIcon = legalIcons[r.legalStatus] || '⚠️';
+  let legalText = r.legalStatusNote || 'Check current California regulations';
   if (reg) {
     if (reg.bag_limit === 0 || reg.catch_release_only) {
       legalClass = 'protected'; legalIcon = '🚫';
-      legalText = reg.special_notes?.split('.')[0] || 'Protected — no take allowed';
+      legalText = 'Protected or closed — no take allowed in California';
     } else if (status === 'open') {
       legalClass = 'legal'; legalIcon = '✅';
-      legalText = `Open season in California`;
+      legalText = 'Open season in California';
     } else if (status === 'seasonal') {
       legalClass = 'check'; legalIcon = '📅';
       legalText = reg.season_note || 'Seasonal restrictions apply';
     }
   }
 
-  // Other top matches
-  const otherMatches = allMatches.slice(1, 4).map(m => `
-    <span style="display:inline-block;background:var(--bg);border-radius:100px;padding:4px 10px;font-size:11px;margin:3px 3px 0 0;color:var(--text-muted)">
-      ${m.taxon.preferred_common_name || m.taxon.name}
-      <span style="color:var(--border);margin-left:3px">${Math.round((m.combined_score||0)*100)}%</span>
-    </span>`
-  ).join('');
-
   const result = document.getElementById('fishIdResult');
   result.style.display = 'block';
   result.innerHTML = `
     <div class="fishid-result">
-      <div class="fishid-result-header" style="${taxonPhoto ? `background-image:linear-gradient(to bottom, rgba(10,61,98,0.7), rgba(10,61,98,0.95)), url(${taxonPhoto}); background-size:cover; background-position:center;` : ''}">
-        <div class="fishid-result-name">${commonName}</div>
-        <div class="fishid-result-sci">${sciName}</div>
-        ${matchedSpecies ? `<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">✓ Found in CA regulations database</div>` : `<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">Not in local database — showing general info</div>`}
+      <div class="fishid-result-header" style="${photo ? `background-image:linear-gradient(to bottom,rgba(10,61,98,0.6),rgba(10,61,98,0.95)),url(${photo});background-size:cover;background-position:center;` : ''}">
+        <div class="fishid-result-name">${r.commonName || 'Unknown species'}</div>
+        <div class="fishid-result-sci">${r.scientificName || ''}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">
+          ${matchedSpecies ? '✓ Matched to CA regulations database' : '⚠ Not found in local database'}
+        </div>
       </div>
       <div class="fishid-result-body">
 
-        <div class="fishid-confidence ${confidenceClass}" style="margin-bottom:8px">
-          ${confidenceLabel} · ${score}% match
+        <div class="fishid-confidence ${confidence}" style="margin-bottom:${r.confidenceReason ? '4px' : '14px'}">
+          ${confidenceLabels[confidence] || '~ Medium confidence'}
         </div>
-
-        ${otherMatches ? `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Other possibilities</div>${otherMatches}</div>` : ''}
+        ${r.confidenceReason ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${r.confidenceReason}</div>` : ''}
 
         <div class="fishid-legal-banner ${legalClass}">
           ${legalIcon} ${legalText}
         </div>
 
-        ${reg ? `
         <div class="reg-grid">
           <div class="reg-tile">
             <div class="reg-tile-label">Bag Limit</div>
-            <div class="reg-tile-value" style="font-size:16px">${reg.bag_limit !== null && reg.bag_limit !== undefined ? (reg.bag_limit === 0 ? 'CLOSED' : reg.bag_limit) : 'No limit'}</div>
+            <div class="reg-tile-value" style="font-size:16px">${bagLimit}</div>
+            ${matchedSpecies ? '<div class="reg-tile-sub">From CA database</div>' : ''}
           </div>
           <div class="reg-tile">
             <div class="reg-tile-label">Min Size</div>
-            <div class="reg-tile-value" style="font-size:16px">${reg.size_min_inches ? reg.size_min_inches + '"' : 'None'}</div>
+            <div class="reg-tile-value" style="font-size:16px">${minSize}</div>
           </div>
           <div class="reg-tile" style="grid-column:1/-1">
             <div class="reg-tile-label">Season</div>
-            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${reg.season_note || 'Open year-round'}</div>
+            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${season}</div>
           </div>
-          ${reg.gear_restricted ? `<div class="reg-tile" style="grid-column:1/-1">
-            <div class="reg-tile-label">Gear</div>
-            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${reg.gear_restricted}</div>
+          ${gear ? `<div class="reg-tile" style="grid-column:1/-1">
+            <div class="reg-tile-label">Gear Allowed</div>
+            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${gear}</div>
           </div>` : ''}
         </div>
-        ${reg.special_notes ? `<div class="reg-note" style="margin-bottom:12px">${reg.special_notes}</div>` : ''}
+
+        ${reg?.special_notes ? `<div class="reg-note" style="margin-bottom:12px">${reg.special_notes}</div>` : ''}
+
+        ${r.identificationTips ? `
+        <div style="margin-bottom:12px">
+          <div class="reg-section-title">How to confirm ID</div>
+          <div class="reg-note">${r.identificationTips}</div>
+        </div>` : ''}
+
+        ${r.lookAlikes && r.lookAlikes !== 'none' && r.lookAlikes !== 'null' ? `
+        <div style="margin-bottom:12px">
+          <div class="reg-section-title">Watch out for</div>
+          <div class="reg-note warning">⚠️ ${r.lookAlikes}</div>
+        </div>` : ''}
+
+        ${matchedSpecies ? `
         <button onclick="openDrawer(${matchedSpecies.id})" style="width:100%;padding:12px;background:var(--ocean);color:white;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">
           📋 View Full Regulations
-        </button>
-        ` : `
-        <div class="reg-note warning" style="margin-bottom:12px">
-          ⚠️ This species isn't in our California database yet. Always check <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> for current regulations.
-        </div>
-        `}
+        </button>` : ''}
 
         <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
-          Species ID by <a href="https://www.inaturalist.org" style="color:var(--ocean-light)">iNaturalist</a> computer vision ·
-          Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping
+          Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any catch. AI identification can make mistakes.
         </div>
       </div>
     </div>
