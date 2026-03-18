@@ -111,6 +111,11 @@
   /* MAP OVERLAYS */
   .locate-btn { position: absolute; bottom: 16px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: transform 0.2s; }
   .locate-btn:active { transform: scale(0.93); }
+  .pin-btn { position: absolute; bottom: 68px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: all 0.2s; }
+  .pin-btn.active { background: var(--ocean); }
+  .pin-btn:active { transform: scale(0.93); }
+  .pin-mode-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 500; background: var(--ocean); color: white; padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 500; white-space: nowrap; display: none; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+  .pin-mode-banner.visible { display: block; }
 
   /* LEGEND */
   .map-legend { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
@@ -163,7 +168,9 @@
 <!-- MAP VIEW -->
 <div class="map-container" id="mapView">
   <div id="map"></div>
-  <button class="locate-btn" onclick="locateUser()" title="Find my location">📍</button>
+  <div class="pin-mode-banner" id="pinModeBanner">📌 Tap anywhere to drop a pin</div>
+  <button class="locate-btn" id="locateBtn" onclick="centerOnUser()" title="Center on my location">📍</button>
+  <button class="pin-btn" id="pinBtn" onclick="togglePinMode()" title="Drop a pin">📌</button>
   <div class="mpa-drawer" id="mpaDrawer">
     <div class="mpa-drawer-handle"></div>
     <div id="mpaDrawerContent"></div>
@@ -281,6 +288,107 @@ function switchTab(tab) {
 }
 
 // ============================================================
+// DROP PIN MODE
+// ============================================================
+function togglePinMode() {
+  pinMode = !pinMode;
+  const btn = document.getElementById('pinBtn');
+  const banner = document.getElementById('pinModeBanner');
+  btn.classList.toggle('active', pinMode);
+  banner.classList.toggle('visible', pinMode);
+  map.getContainer().style.cursor = pinMode ? 'crosshair' : '';
+}
+
+function dropPin(lat, lng) {
+  // Remove existing pin
+  if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
+
+  // Create pin marker
+  const pinIcon = L.divIcon({
+    className: '',
+    html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">📌</div>',
+    iconSize: [28, 28],
+    iconAnchor: [8, 28]
+  });
+
+  pinMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
+
+  // Exit pin mode
+  pinMode = false;
+  document.getElementById('pinBtn').classList.remove('active');
+  document.getElementById('pinModeBanner').classList.remove('visible');
+  map.getContainer().style.cursor = '';
+
+  // Show pin info popup
+  showPinInfo(lat, lng);
+}
+
+function showPinInfo(lat, lng) {
+  // Check if pin is inside an MPA
+  const pt = L.latLng(lat, lng);
+  let insideMPA = null;
+  mpaLayers.forEach(({ mpa }) => {
+    if (pt.distanceTo(L.latLng(mpa.lat, mpa.lng)) <= mpa.radius) insideMPA = mpa;
+  });
+
+  const nearestStation = findNearestStation(lat, lng);
+
+  document.getElementById('mpaDrawerContent').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:24px">📌</span>
+      <div>
+        <div class="mpa-name" style="font-size:14px">Dropped Pin</div>
+        <div style="font-size:12px;color:var(--text-muted)">${lat.toFixed(4)}°N, ${Math.abs(lng).toFixed(4)}°W</div>
+      </div>
+    </div>
+
+    ${insideMPA ? `
+      <div style="background:#fde8e8;border-left:3px solid var(--danger);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--danger);font-weight:500">
+        ⚠️ This pin is inside ${insideMPA.name} — ${insideMPA.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}
+      </div>
+    ` : `
+      <div style="background:#e8f5ee;border-left:3px solid #27ae60;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#1a6b3a">
+        ✓ This location is not inside a Marine Protected Area
+      </div>
+    `}
+
+    <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Nearest Tide Station</div>
+      <div style="font-size:14px;font-weight:500">${nearestStation.name}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">NOAA Station ${nearestStation.id}</div>
+    </div>
+
+    <button onclick="loadWeatherForPin(${lat}, ${lng})" style="width:100%;padding:11px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:8px">
+      🌊 View Tides & Weather Here
+    </button>
+    <button onclick="removePin()" style="width:100%;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text);margin-bottom:4px">
+      Remove Pin
+    </button>
+    <button onclick="closeMPADrawer()" style="width:100%;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text)">
+      Close
+    </button>
+  `;
+
+  document.getElementById('mpaDrawer').classList.add('open');
+}
+
+function removePin() {
+  if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
+  closeMPADrawer();
+}
+
+async function loadWeatherForPin(lat, lng) {
+  // Temporarily override user location for weather
+  const prevLat = userLat, prevLng = userLng;
+  userLat = lat; userLng = lng;
+  weatherLoaded = false;
+  closeMPADrawer();
+  switchTab('weather');
+  await loadWeather();
+  // Don't restore — user tapped this location intentionally
+}
+
+// ============================================================
 // MAP INIT
 // ============================================================
 function initMap() {
@@ -301,7 +409,13 @@ function initMap() {
       mpaLayers.push({ circle, mpa });
     });
 
-    map.on('click', closeMPADrawer);
+    map.on('click', (e) => {
+      if (pinMode) {
+        dropPin(e.latlng.lat, e.latlng.lng);
+      } else {
+        closeMPADrawer();
+      }
+    });
     locateUser();
   } catch(e) {
     document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;color:#666">Map failed to load. Check internet connection.</div>';
@@ -311,6 +425,13 @@ function initMap() {
 // ============================================================
 // GPS LOCATION
 // ============================================================
+// ============================================================
+// GPS LOCATION — only center map on FIRST fix, not every update
+// ============================================================
+let mapCenteredOnce = false;
+let pinMarker = null;
+let pinMode = false;
+
 function locateUser() {
   setGPSStatus('searching', 'Getting your location…', '');
   if (!navigator.geolocation) {
@@ -318,16 +439,30 @@ function locateUser() {
     return;
   }
   if (watchId) navigator.geolocation.clearWatch(watchId);
+  mapCenteredOnce = false; // reset so next locate re-centers
   watchId = navigator.geolocation.watchPosition(pos => {
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
     updateUserMarker(userLat, userLng);
     checkMPAProximity(userLat, userLng);
-    if (currentTab === 'map') map.setView([userLat, userLng], 12);
+    // Only center map on the FIRST location fix — never again unless user taps locate btn
+    if (!mapCenteredOnce && currentTab === 'map') {
+      map.setView([userLat, userLng], 12);
+      mapCenteredOnce = true;
+    }
     if (currentTab === 'weather' && !weatherLoaded) loadWeather();
   }, () => {
     setGPSStatus('caution', 'Location access denied', 'Enable location in browser settings');
   }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+}
+
+// Re-center on user — called by the 📍 button
+function centerOnUser() {
+  if (userLat && userLng) {
+    map.setView([userLat, userLng], 14);
+  } else {
+    locateUser();
+  }
 }
 
 function updateUserMarker(lat, lng) {
