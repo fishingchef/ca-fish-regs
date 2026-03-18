@@ -93,14 +93,29 @@
   .score-label { font-family: 'Unbounded', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
   .score-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.5; }
 
-  /* FORECAST */
-  .forecast-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; margin-bottom: 16px; }
-  .forecast-row::-webkit-scrollbar { display: none; }
-  .forecast-item { flex-shrink: 0; background: var(--white); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; min-width: 70px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .forecast-day { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; }
-  .forecast-icon { font-size: 20px; margin-bottom: 4px; }
-  .forecast-temp { font-size: 13px; font-weight: 500; color: var(--text); }
-  .forecast-wind { font-size: 11px; color: var(--text-muted); }
+  /* FORECAST TABS */
+  .forecast-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
+  .forecast-tabs::-webkit-scrollbar { display: none; }
+  .forecast-tab { flex-shrink: 0; padding: 7px 14px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-align: center; }
+  .forecast-tab.active { background: var(--ocean); border-color: var(--ocean); color: var(--white); }
+  .forecast-tab .tab-score { display: block; font-size: 11px; margin-top: 1px; }
+  .forecast-tab.good .tab-score { color: #27ae60; }
+  .forecast-tab.fair .tab-score { color: #f0a500; }
+  .forecast-tab.poor .tab-score { color: var(--danger); }
+  .forecast-tab.active .tab-score { color: var(--kelp-light); }
+
+  /* DAY DETAIL */
+  .day-detail { display: none; }
+  .day-detail.active { display: block; }
+  .day-header { display: flex; align-items: center; gap: 14px; background: var(--white); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .day-icon { font-size: 36px; }
+  .day-info { flex: 1; }
+  .day-name { font-family: 'Unbounded', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
+  .day-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .day-score-pill { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); background: var(--ocean); border-radius: 100px; padding: 6px 14px; }
+  .day-score-pill.good { background: #27ae60; }
+  .day-score-pill.fair { background: #f0a500; }
+  .day-score-pill.poor { background: var(--danger); }
 
   /* LOADING */
   .wx-loading { text-align: center; padding: 48px 20px; color: var(--text-muted); }
@@ -854,17 +869,22 @@ async function loadWeather() {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
 
+    // Fetch 14 days of tides
+    const end14 = new Date(today); end14.setDate(today.getDate() + 13);
+    const endStr14 = end14.toISOString().split('T')[0].replace(/-/g, '');
+
     // Fetch weather from NWS
     const pointRes = await fetch(`https://api.weather.gov/points/${userLat.toFixed(4)},${userLng.toFixed(4)}`);
     const pointData = await pointRes.json();
 
-    // Fetch tides from NOAA
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    const endStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
-    const tideRes = await fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${dateStr}&end_date=${endStr}&station=${station.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=cafish&format=json`);
+    // Fetch 14 days of tides from NOAA
+    const tideRes = await fetch(
+      `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${dateStr}&end_date=${endStr14}` +
+      `&station=${station.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=cafish&format=json`
+    );
     const tideData = await tideRes.json();
 
-    // Fetch NWS forecast
+    // Fetch NWS forecast (7 days day/night) and hourly
     const forecastUrl = pointData.properties?.forecast;
     const hourlyUrl = pointData.properties?.forecastHourly;
 
@@ -896,172 +916,237 @@ async function loadWeather() {
   }
 }
 
+function getWeatherIcon(text) {
+  if (!text) return '🌤️';
+  const t = text.toLowerCase();
+  if (t.includes('thunder')) return '⛈️';
+  if (t.includes('rain') || t.includes('shower')) return '🌧️';
+  if (t.includes('drizzle')) return '🌦️';
+  if (t.includes('fog')) return '🌫️';
+  if (t.includes('snow')) return '🌨️';
+  if (t.includes('cloud') && t.includes('partly')) return '⛅';
+  if (t.includes('cloud') || t.includes('overcast')) return '☁️';
+  if (t.includes('clear') || t.includes('sunny')) return '☀️';
+  if (t.includes('wind')) return '💨';
+  return '🌤️';
+}
+
+function calcFishingScore(temp, wind, forecastText) {
+  let score = 70;
+  if (temp) {
+    if (temp >= 55 && temp <= 75) score += 15;
+    else if (temp < 45 || temp > 85) score -= 20;
+  }
+  if (wind) {
+    const spd = parseInt(wind);
+    if (spd <= 10) score += 15;
+    else if (spd <= 15) score += 5;
+    else if (spd <= 20) score -= 10;
+    else score -= 25;
+  }
+  if (forecastText) {
+    const f = forecastText.toLowerCase();
+    if (f.includes('clear') || f.includes('sunny')) score += 5;
+    if (f.includes('thunder') || f.includes('storm')) score -= 30;
+    if (f.includes('rain')) score -= 10;
+    if (f.includes('fog')) score -= 5;
+  }
+  return Math.max(10, Math.min(99, score));
+}
+
+function scoreClass(score) {
+  if (score >= 70) return 'good';
+  if (score >= 45) return 'fair';
+  return 'poor';
+}
+
+function scoreDesc(score) {
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Fair';
+  if (score >= 40) return 'Marginal';
+  return 'Poor';
+}
+
 function renderWeather(station, tideData, forecast, hourly) {
   const loading = document.getElementById('wxLoading');
   const content = document.getElementById('wxContent');
   loading.style.display = 'none';
   content.style.display = 'block';
 
-  // Current conditions from hourly
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  // Group tides by date
+  const tidesByDate = {};
+  if (tideData.predictions) {
+    tideData.predictions.forEach(t => {
+      const dateKey = t.t.split(' ')[0];
+      if (!tidesByDate[dateKey]) tidesByDate[dateKey] = [];
+      tidesByDate[dateKey].push(t);
+    });
+  }
+
+  // Group forecast by day (daytime periods)
+  const dayForecasts = forecast ? forecast.filter(p => p.isDaytime) : [];
+  const nightForecasts = forecast ? forecast.filter(p => !p.isDaytime) : [];
+
+  // Current conditions
   const current = hourly ? hourly[0] : null;
-  const tempF = current ? parseInt(current.temperature) : null;
-  const windSpeed = current ? current.windSpeed : 'N/A';
-  const windDir = current ? current.windDirection : '';
-  const shortForecast = current ? current.shortForecast : 'Check NWS';
+  const todayForecast = dayForecasts[0];
+  const currentTemp = current ? parseInt(current.temperature) : (todayForecast ? todayForecast.temperature : null);
+  const currentWind = current ? current.windSpeed : (todayForecast ? todayForecast.windSpeed : 'N/A');
+  const currentForecast = current ? current.shortForecast : (todayForecast ? todayForecast.shortForecast : 'Check NWS');
+  const todayScore = calcFishingScore(currentTemp, currentWind, currentForecast);
 
-  // Weather icon
-  function getWeatherIcon(text) {
-    if (!text) return '🌤️';
-    const t = text.toLowerCase();
-    if (t.includes('thunder')) return '⛈️';
-    if (t.includes('rain') || t.includes('shower')) return '🌧️';
-    if (t.includes('fog')) return '🌫️';
-    if (t.includes('snow')) return '🌨️';
-    if (t.includes('cloud') && t.includes('partly')) return '⛅';
-    if (t.includes('cloud') || t.includes('overcast')) return '☁️';
-    if (t.includes('clear') || t.includes('sunny')) return '☀️';
-    if (t.includes('wind')) return '💨';
-    return '🌤️';
-  }
+  // Build day tabs — up to 7 days from NWS, show 14-day tide notice
+  const numDays = Math.min(dayForecasts.length, 7);
+  const tabsHTML = dayForecasts.slice(0, numDays).map((p, i) => {
+    const d = new Date(p.startTime);
+    const score = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+    const sc = scoreClass(score);
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[d.getDay()];
+    return `
+      <button class="forecast-tab ${i === 0 ? 'active' : ''} ${sc}"
+        onclick="switchForecastDay(${i})" id="ftab-${i}">
+        ${label}<br>
+        <span class="tab-score">${getWeatherIcon(p.shortForecast)} ${score}</span>
+      </button>
+    `;
+  }).join('');
 
-  // Fishing score calculation
-  function calcFishingScore(temp, wind, forecast) {
-    let score = 70;
-    if (temp) { if (temp >= 55 && temp <= 75) score += 15; else if (temp < 45 || temp > 85) score -= 20; }
-    if (wind) {
-      const spd = parseInt(wind);
-      if (spd <= 10) score += 15; else if (spd <= 15) score += 5;
-      else if (spd <= 20) score -= 10; else score -= 25;
-    }
-    if (forecast) {
-      const f = forecast.toLowerCase();
-      if (f.includes('clear') || f.includes('sunny')) score += 5;
-      if (f.includes('thunder') || f.includes('storm')) score -= 30;
-      if (f.includes('rain')) score -= 10;
-    }
-    return Math.max(10, Math.min(99, score));
-  }
+  // Build day detail panels
+  const dayPanelsHTML = dayForecasts.slice(0, numDays).map((p, i) => {
+    const d = new Date(p.startTime);
+    const night = nightForecasts[i];
+    const score = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+    const sc = scoreClass(score);
+    const dateKey = d.toISOString().split('T')[0];
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${days[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
-  const fishScore = calcFishingScore(tempF, windSpeed, shortForecast);
-  const scoreDesc = fishScore >= 80 ? 'Excellent conditions — get out there!' :
-                    fishScore >= 65 ? 'Good conditions for fishing' :
-                    fishScore >= 50 ? 'Fair conditions — fishable' :
-                    fishScore >= 35 ? 'Marginal — check before going' :
-                    'Poor conditions — stay home';
-
-  // Parse tides
-  let tidesHTML = '';
-  if (tideData.predictions && tideData.predictions.length > 0) {
-    tidesHTML = tideData.predictions.slice(0, 6).map(t => {
+    // Tides for this day
+    const dayTides = tidesByDate[dateKey] || [];
+    const tidesHTML = dayTides.length > 0 ? dayTides.map(t => {
       const isHigh = t.type === 'H';
       const time = new Date(t.t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       return `
         <div class="tide-row">
           <div>
             <div class="tide-time">${time}</div>
-            <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High Tide' : '▼ Low Tide'}</div>
+            <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High' : '▼ Low'}</div>
           </div>
           <div class="tide-height ${isHigh ? 'tide-high' : 'tide-low'}">${parseFloat(t.v).toFixed(1)} ft</div>
-        </div>
-      `;
-    }).join('');
-  } else {
-    tidesHTML = '<div style="font-size:13px;color:var(--text-muted);padding:8px">Tide data unavailable for this location</div>';
-  }
+        </div>`;
+    }).join('') : '<div style="font-size:13px;color:var(--text-muted);padding:8px">Tide data not available</div>';
 
-  // 7-day forecast
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let forecastHTML = '';
-  if (forecast) {
-    const dailyForecasts = forecast.filter(p => p.isDaytime).slice(0, 7);
-    forecastHTML = dailyForecasts.map(p => {
-      const d = new Date(p.startTime);
-      return `
-        <div class="forecast-item">
-          <div class="forecast-day">${days[d.getDay()]}</div>
-          <div class="forecast-icon">${getWeatherIcon(p.shortForecast)}</div>
-          <div class="forecast-temp">${p.temperature}°F</div>
-          <div class="forecast-wind">${p.windSpeed}</div>
+    return `
+      <div class="day-detail ${i === 0 ? 'active' : ''}" id="fday-${i}">
+        <div class="day-header">
+          <div class="day-icon">${getWeatherIcon(p.shortForecast)}</div>
+          <div class="day-info">
+            <div class="day-name">${label}</div>
+            <div class="day-desc">${p.shortForecast} · ${p.temperature}°F · ${p.windSpeed} ${p.windDirection}</div>
+          </div>
+          <div class="day-score-pill ${sc}">${score}</div>
         </div>
-      `;
-    }).join('');
-  }
 
-  // Solunar times
-  const now = new Date();
-  const sunrise = new Date(now); sunrise.setHours(6, 15, 0);
-  const sunset = new Date(now); sunset.setHours(19, 45, 0);
-  const moonrise = new Date(now); moonrise.setHours(20, 30, 0);
-  const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        <div class="wx-grid">
+          <div class="wx-tile">
+            <div class="reg-tile-label">High temp</div>
+            <div class="wx-value">${p.temperature}°</div>
+            <div class="reg-tile-sub">${p.shortForecast}</div>
+          </div>
+          <div class="wx-tile">
+            <div class="reg-tile-label">Wind</div>
+            <div class="wx-value" style="font-size:16px;margin-top:4px">${p.windSpeed}</div>
+            <div class="reg-tile-sub">${p.windDirection}</div>
+          </div>
+          ${night ? `
+          <div class="wx-tile">
+            <div class="reg-tile-label">Tonight</div>
+            <div class="wx-value" style="font-size:16px;margin-top:4px">${night.temperature}°F</div>
+            <div class="reg-tile-sub">${night.shortForecast}</div>
+          </div>` : ''}
+          <div class="wx-tile">
+            <div class="reg-tile-label">Fishing score</div>
+            <div class="wx-value ${sc === 'good' ? '' : sc === 'fair' ? 'caution' : 'danger'}">${score}</div>
+            <div class="reg-tile-sub">${scoreDesc(score)}</div>
+          </div>
+        </div>
+
+        ${p.detailedForecast ? `
+        <div class="reg-note" style="margin-bottom:12px;font-size:12px">${p.detailedForecast}</div>
+        ` : ''}
+
+        <div class="tide-section-title">Tides — ${station.name}</div>
+        <div class="tide-card">${tidesHTML}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Extended tide notice for days 8-14
+  const tideDateKeys = Object.keys(tidesByDate).sort();
+  const extendedTideHTML = tideDateKeys.slice(7, 14).map(dateKey => {
+    const d = new Date(dateKey + 'T12:00:00');
+    const dayTides = tidesByDate[dateKey] || [];
+    if (!dayTides.length) return '';
+    return `
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
+          ${days[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}
+        </div>
+        <div class="tide-card">
+          ${dayTides.map(t => {
+            const isHigh = t.type === 'H';
+            const time = new Date(t.t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            return `<div class="tide-row">
+              <div>
+                <div class="tide-time">${time}</div>
+                <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High' : '▼ Low'}</div>
+              </div>
+              <div class="tide-height ${isHigh ? 'tide-high' : 'tide-low'}">${parseFloat(t.v).toFixed(1)} ft</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
 
   content.innerHTML = `
     <div class="weather-location">${station.name} Area</div>
     <div class="weather-location-sub">Nearest NOAA station · ${userLat.toFixed(2)}°N ${Math.abs(userLng).toFixed(2)}°W</div>
 
     <div class="fishing-score-card">
-      <div class="score-number">${fishScore}</div>
+      <div class="score-number">${todayScore}</div>
       <div class="score-info">
-        <div class="score-label">Today's Fishing Score</div>
-        <div class="score-desc">${scoreDesc}</div>
+        <div class="score-label">Today's fishing score</div>
+        <div class="score-desc">${currentTemp ? currentTemp + '°F · ' : ''}${currentWind} · ${currentForecast}</div>
       </div>
     </div>
 
-    <div class="wx-grid">
-      <div class="wx-tile">
-        <div class="wx-icon">${getWeatherIcon(shortForecast)}</div>
-        <div class="wx-label">Conditions</div>
-        <div class="wx-value" style="font-size:14px;line-height:1.3;margin-top:2px">${shortForecast}</div>
-      </div>
-      <div class="wx-tile">
-        <div class="wx-label">Temperature</div>
-        <div class="wx-value big">${tempF !== null ? tempF + '°' : '—'}</div>
-        <div class="wx-sub">Fahrenheit</div>
-      </div>
-      <div class="wx-tile">
-        <div class="wx-label">Wind</div>
-        <div class="wx-value" style="font-size:16px;margin-top:4px">${windSpeed}</div>
-        <div class="wx-sub">${windDir}</div>
-      </div>
-      <div class="wx-tile">
-        <div class="wx-label">Visibility</div>
-        <div class="wx-value" style="font-size:16px;margin-top:4px">${current?.visibility ? (current.visibility / 1000).toFixed(0) + ' mi' : 'N/A'}</div>
-        <div class="wx-sub">Check NWS for fog</div>
-      </div>
-    </div>
+    <div class="tide-section-title">7-Day Forecast — tap a day for details</div>
+    <div class="forecast-tabs">${tabsHTML}</div>
+    <div id="dayPanels">${dayPanelsHTML}</div>
 
-    <div class="tide-section-title">Today's Tides — ${station.name}</div>
-    <div class="tide-card">${tidesHTML}</div>
-
-    <div class="tide-section-title">Sun & Moon</div>
-    <div class="solunar-row">
-      <div class="solunar-tile">
-        <div class="solunar-icon">🌅</div>
-        <div class="solunar-label">Sunrise</div>
-        <div class="solunar-value">${fmt(sunrise)}</div>
-      </div>
-      <div class="solunar-tile">
-        <div class="solunar-icon">🌇</div>
-        <div class="solunar-label">Sunset</div>
-        <div class="solunar-value">${fmt(sunset)}</div>
-      </div>
-      <div class="solunar-tile">
-        <div class="solunar-icon">🌙</div>
-        <div class="solunar-label">Moonrise</div>
-        <div class="solunar-value">${fmt(moonrise)}</div>
-      </div>
-    </div>
-
-    ${forecastHTML ? `
-    <div class="tide-section-title">7-Day Forecast</div>
-    <div class="forecast-row">${forecastHTML}</div>
+    ${extendedTideHTML ? `
+    <div class="tide-section-title" style="margin-top:8px">14-Day Tide Forecast</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Weather unavailable beyond 7 days · Tide predictions only</div>
+    ${extendedTideHTML}
     ` : ''}
 
     <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0 16px">
-      Weather data from NOAA National Weather Service · Tides from NOAA CO-OPS<br>
+      Weather: NOAA National Weather Service (7-day) · Tides: NOAA CO-OPS (14-day)<br>
       <a href="https://weather.gov" style="color:var(--ocean-light)">weather.gov</a> ·
       <a href="https://tidesandcurrents.noaa.gov" style="color:var(--ocean-light)">tidesandcurrents.noaa.gov</a>
     </div>
   `;
+}
+
+function switchForecastDay(i) {
+  document.querySelectorAll('.forecast-tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  document.querySelectorAll('.day-detail').forEach((p, idx) => p.classList.toggle('active', idx === i));
+  // Scroll to top of weather panel
+  document.getElementById('weatherPanel').scrollTop = 0;
 }
 
 // ============================================================
