@@ -814,6 +814,7 @@ function centerOnUser() {
 }
 
 function updateUserMarker(lat, lng) {
+  if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
   const icon = L.divIcon({
     className: '',
     html: '<div style="width:14px;height:14px;background:#0a3d62;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0a3d62"></div>',
@@ -1232,6 +1233,7 @@ function drawFishingSpots() {
 
   const isSaltwater = ['bay','pier','shore','beach'].includes;
   FISHING_SPOTS.forEach(spot => {
+    if (!spot.lat || !spot.lng || isNaN(spot.lat) || isNaN(spot.lng)) return;
     const isOcean = ['bay','pier','shore','beach'].includes(spot.type);
     const typeIcon = spot.type === 'pier' ? '🪝' : spot.type === 'lake' ? '🏔️' : spot.type === 'river' ? '🏞️' : spot.type === 'beach' ? '🏖️' : '🎣';
     const colorClass = isOcean ? 'spot-type-ocean' : 'spot-type-fresh';

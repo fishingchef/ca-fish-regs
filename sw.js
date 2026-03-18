@@ -36,7 +36,10 @@ self.addEventListener('activate', e => {
 
 // Fetch — serve from cache first, fall back to network, cache new responses
 self.addEventListener('fetch', e => {
-  // Don't intercept Supabase API calls or Claude API — always need fresh data
+  // Only handle http/https requests — skip chrome-extension, data: etc.
+  if (!e.request.url.startsWith('http')) return;
+
+  // Don't intercept live data APIs — always need fresh data
   const url = e.request.url;
   if (url.includes('supabase.co') || url.includes('anthropic.com') ||
       url.includes('api.weather.gov') || url.includes('tidesandcurrents') ||
