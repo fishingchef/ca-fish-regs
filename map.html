@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CA Fish Regs — MPA Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --ocean: #0a3d62; --ocean-mid: #1a6390; --ocean-light: #2980b9;
+    --kelp-light: #52b788; --danger: #c0392b;
+    --text: #1a1a2e; --text-muted: #5a6473;
+    --white: #ffffff; --bg: #f0f4f8; --border: #dce3ea;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+
+  /* HEADER */
+  .header { background: var(--ocean); padding: 48px 20px 16px; position: relative; flex-shrink: 0; }
+  .header-wave { position: absolute; top:0;left:0;right:0;bottom:0; opacity:0.06; background-image: repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px); }
+  .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); }
+  .header-title span { color: var(--kelp-light); }
+  .back-btn { color: var(--white); font-size: 13px; cursor: pointer; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 100px; border: none; font-family: inherit; }
+
+  /* GPS STATUS BANNER */
+  .gps-status { padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; flex-shrink: 0; transition: all 0.3s; }
+  .gps-status.searching { background: #e8eef8; color: var(--ocean); }
+  .gps-status.safe { background: #e8f5ee; color: #1a6b3a; }
+  .gps-status.warning { background: #fde8e8; color: var(--danger); animation: pulse-warning 1s ease-in-out infinite; }
+  .gps-status.caution { background: #fdf0e0; color: #7a4f00; }
+  @keyframes pulse-warning { 0%,100%{opacity:1} 50%{opacity:0.7} }
+  .gps-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .searching .gps-dot { background: var(--ocean); animation: spin 1s linear infinite; }
+  .safe .gps-dot { background: #27ae60; }
+  .warning .gps-dot { background: var(--danger); }
+  .caution .gps-dot { background: #f0a500; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gps-status-text { flex: 1; line-height: 1.4; }
+  .gps-status-text strong { display: block; font-weight: 500; }
+
+  /* MAP */
+  #map { flex: 1; z-index: 1; }
+
+  /* LEGEND */
+  .map-legend { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-smr { background: rgba(200,0,0,0.4); border: 2px solid #c00; }
+  .legend-smca { background: rgba(255,140,0,0.3); border: 2px solid #f80; }
+  .legend-you { background: var(--ocean); border-radius: 50%; }
+
+  /* MPA DETAIL DRAWER */
+  .mpa-drawer { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 20px 20px 0 0; padding: 16px 20px 32px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 1000; max-height: 60vh; overflow-y: auto; }
+  .mpa-drawer.open { transform: translateY(0); }
+  .mpa-drawer-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 16px; }
+  .mpa-name { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .mpa-type-badge { display: inline-block; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 500; margin-bottom: 12px; }
+  .badge-smr { background: #fde8e8; color: #a31d1d; }
+  .badge-smca { background: #fdf0e0; color: #7a4f00; }
+  .badge-other { background: #e8eef8; color: #1a3a6b; }
+  .mpa-restrictions { font-size: 14px; color: var(--text); line-height: 1.6; background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px; }
+  .mpa-ccr { font-size: 11px; color: var(--text-muted); }
+
+  /* NAV BAR */
+  .bottom-nav { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); cursor: pointer; font-weight: 500; }
+  .nav-item.active { color: var(--ocean); }
+  .nav-icon { font-size: 22px; }
+
+  /* LOCATE BTN */
+  .locate-btn { position: absolute; bottom: 120px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: transform 0.2s; }
+  .locate-btn:active { transform: scale(0.93); }
+
+  .map-container { flex: 1; position: relative; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="header-title">MPA <span>Map</span></div>
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Species</button>
+  </div>
+</div>
+
+<div class="gps-status searching" id="gpsStatus">
+  <div class="gps-dot"></div>
+  <div class="gps-status-text">
+    <strong>Getting your location…</strong>
+    Allow location access to check MPA boundaries
+  </div>
+</div>
+
+<div class="map-container">
+  <div id="map"></div>
+  <button class="locate-btn" onclick="locateUser()" title="Find my location">📍</button>
+
+  <div class="mpa-drawer" id="mpaDrawer">
+    <div class="mpa-drawer-handle"></div>
+    <div id="mpaDrawerContent"></div>
+  </div>
+</div>
+
+<div class="map-legend">
+  <div class="legend-item"><div class="legend-dot legend-smr"></div>State Marine Reserve (no take)</div>
+  <div class="legend-item"><div class="legend-dot legend-smca"></div>Marine Conservation Area (restricted)</div>
+  <div class="legend-item"><div class="legend-dot legend-you"></div>Your location</div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='index.html'">
+    <span class="nav-icon">🐟</span><span>Species</span>
+  </div>
+  <div class="nav-item active">
+    <span class="nav-icon">🗺️</span><span>MPA Map</span>
+  </div>
+  <div class="nav-item" onclick="window.location.href='index.html#alerts'">
+    <span class="nav-icon">🔔</span><span>Alerts</span>
+  </div>
+  <div class="nav-item" onclick="window.location.href='index.html'">
+    <span class="nav-icon">⭐</span><span>Saved</span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CALIFORNIA MPA DATA
+// Key MPAs with boundaries approximated from CDFW data
+// Source: CCR Title 14, Section 632
+// ============================================================
+const MPAS = [
+  // === NORTH COAST ===
+  { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000,
+    restrictions: "No take of any living or non-living marine resource. No fishing of any kind permitted within this reserve.", ccr: "CCR Title 14 §632(b)(1)" },
+  { name: "Pyramid Point SMR", type: "SMR", lat: 41.83, lng: -124.22, radius: 3000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(2)" },
+  { name: "Reading Rock SMCA", type: "SMCA", lat: 41.52, lng: -124.08, radius: 4000,
+    restrictions: "No take of finfish. Allowed: take of pelagic finfish (salmon, Pacific herring) and certain invertebrates.", ccr: "CCR Title 14 §632(b)(5)" },
+
+  // === NORTH CENTRAL COAST ===
+  { name: "Point Arena SMR", type: "SMR", lat: 38.96, lng: -123.75, radius: 5000,
+    restrictions: "No take of any living or non-living marine resource. Entire area closed to all fishing.", ccr: "CCR Title 14 §632(b)(20)" },
+  { name: "Bodega Head SMR", type: "SMR", lat: 38.31, lng: -123.07, radius: 3500,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(27)" },
+  { name: "Farallon Islands SMR", type: "SMR", lat: 37.70, lng: -123.00, radius: 12000,
+    restrictions: "No take of any living or non-living marine resource. Includes Southeast Farallon, Middle Farallon, and North Farallon Islands.", ccr: "CCR Title 14 §632(b)(32)" },
+  { name: "Point Reyes Headlands SMR", type: "SMR", lat: 37.99, lng: -123.02, radius: 6000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(29)" },
+
+  // === CENTRAL COAST ===
+  { name: "Año Nuevo SMR", type: "SMR", lat: 37.11, lng: -122.34, radius: 5500,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(37)" },
+  { name: "Point Sur SMR", type: "SMR", lat: 36.31, lng: -121.90, radius: 7000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(44)" },
+  { name: "Big Creek SMR", type: "SMR", lat: 36.07, lng: -121.60, radius: 4000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(46)" },
+  { name: "Piedras Blancas SMR", type: "SMR", lat: 35.66, lng: -121.28, radius: 5000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(48)" },
+  { name: "Cambria SMCA", type: "SMCA", lat: 35.56, lng: -121.11, radius: 3500,
+    restrictions: "No take of most species. Allowed: take of pelagic finfish and some invertebrates by recreational anglers. Check specific rules.", ccr: "CCR Title 14 §632(b)(49)" },
+  { name: "Morro Bay SMR", type: "SMR", lat: 35.35, lng: -120.87, radius: 3000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(51)" },
+
+  // === SOUTH CENTRAL COAST ===
+  { name: "Point Buchon SMR", type: "SMR", lat: 35.27, lng: -120.90, radius: 8000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(53)" },
+  { name: "Point Conception SMR", type: "SMR", lat: 34.45, lng: -120.47, radius: 6000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(57)" },
+  { name: "Kashtayit SMCA", type: "SMCA", lat: 34.42, lng: -119.88, radius: 4000,
+    restrictions: "No take of most species. Some pelagic and recreational take allowed. Check specific restrictions.", ccr: "CCR Title 14 §632(b)(61)" },
+
+  // === CHANNEL ISLANDS ===
+  { name: "Anacapa Island SMR", type: "SMR", lat: 34.01, lng: -119.42, radius: 6000,
+    restrictions: "No take of any living or non-living marine resource. Entire island complex protected.", ccr: "CCR Title 14 §632(b)(63)" },
+  { name: "Santa Cruz Island SMR", type: "SMR", lat: 34.05, lng: -119.75, radius: 10000,
+    restrictions: "No take of any living or non-living marine resource. Largest island reserve in Southern CA.", ccr: "CCR Title 14 §632(b)(65)" },
+  { name: "Santa Barbara Island SMR", type: "SMR", lat: 33.48, lng: -119.03, radius: 5000,
+    restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(72)" },
+  { name: "San Nicolas Island SMCA", type: "SMCA", lat: 33.24, lng: -119.50, radius: 8000,
+    restrictions: "No take of most species. Some recreational pelagic fishing allowed outside core reserve areas.", ccr: "CCR Title 14 §632(b)(74)" },
+  { name: "Catalina Island SMCA", type: "SMCA", lat: 33.38, lng: -118.42, radius: 12000,
+    restrictions: "No take of most species in protected zones. Check specific area boundaries around the island — some areas allow recreational fishing.", ccr: "CCR Title 14 §632(b)(76)" },
+
+  // === SOUTH COAST ===
+  { name: "Lover's Cove SMCA", type: "SMCA", lat: 33.34, lng: -118.33, radius: 800,
+    restrictions: "No take of any living or non-living marine resource. Popular snorkeling area.", ccr: "CCR Title 14 §632(b)(77)" },
+  { name: "Long Point SMCA", type: "SMCA", lat: 33.32, lng: -118.38, radius: 2000,
+    restrictions: "No take of most species. Limited recreational take may be permitted outside core zones.", ccr: "CCR Title 14 §632(b)(78)" },
+  { name: "Campus Point SMCA", type: "SMCA", lat: 34.41, lng: -119.85, radius: 1500,
+    restrictions: "No take of any living marine resource.", ccr: "CCR Title 14 §632(b)(60)" },
+  { name: "Swami's SMCA", type: "SMCA", lat: 33.04, lng: -117.30, radius: 2000,
+    restrictions: "No take of most species. Check specific recreational fishing allowances.", ccr: "CCR Title 14 §632(b)(86)" },
+  { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000,
+    restrictions: "No take of most species within the protected area. Adjacent to Scripps Institution of Oceanography.", ccr: "CCR Title 14 §632(b)(87)" }
+];
+
+// ============================================================
+// MAP SETUP
+// ============================================================
+const map = L.map('map', {
+  center: [36.7, -121.9],
+  zoom: 7,
+  zoomControl: false
+});
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// Add zoom control to top-right
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// ============================================================
+// DRAW MPA BOUNDARIES
+// ============================================================
+const mpaLayers = [];
+
+MPAS.forEach(mpa => {
+  const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+  const fillOpacity = mpa.type === 'SMR' ? 0.25 : 0.18;
+
+  const circle = L.circle([mpa.lat, mpa.lng], {
+    radius: mpa.radius,
+    color: color,
+    fillColor: color,
+    fillOpacity: fillOpacity,
+    weight: 2
+  }).addTo(map);
+
+  circle.on('click', () => showMPADetail(mpa));
+  mpaLayers.push({ circle, mpa });
+});
+
+// ============================================================
+// USER LOCATION
+// ============================================================
+let userMarker = null;
+let watchId = null;
+let userLat = null, userLng = null;
+
+function locateUser() {
+  updateGPSStatus('searching', 'Getting your location…', 'Allow location access to check MPA boundaries');
+
+  if (!navigator.geolocation) {
+    updateGPSStatus('caution', 'GPS not available', 'Your browser does not support location services');
+    return;
+  }
+
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      updateUserMarker(userLat, userLng);
+      checkMPAProximity(userLat, userLng);
+      map.setView([userLat, userLng], 12);
+    },
+    err => {
+      updateGPSStatus('caution', 'Location access denied', 'Enable location in your browser settings to use GPS warnings');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  );
+}
+
+function updateUserMarker(lat, lng) {
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:16px;height:16px;background:${getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim()};border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px ${getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim()}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+
+  if (userMarker) {
+    userMarker.setLatLng([lat, lng]);
+  } else {
+    userMarker = L.marker([lat, lng], { icon }).addTo(map);
+  }
+}
+
+// ============================================================
+// MPA PROXIMITY CHECK
+// ============================================================
+function checkMPAProximity(lat, lng) {
+  const userPoint = L.latLng(lat, lng);
+  let insideMPA = null;
+  let nearestMPA = null;
+  let nearestDist = Infinity;
+
+  mpaLayers.forEach(({ circle, mpa }) => {
+    const center = L.latLng(mpa.lat, mpa.lng);
+    const dist = userPoint.distanceTo(center);
+    const buffer = mpa.radius * 1.15; // 15% buffer for "approaching"
+
+    if (dist <= mpa.radius) {
+      insideMPA = mpa;
+    } else if (dist <= buffer && dist < nearestDist) {
+      nearestDist = dist;
+      nearestMPA = mpa;
+    }
+  });
+
+  if (insideMPA) {
+    const typeLabel = insideMPA.type === 'SMR' ? 'State Marine Reserve' : 'Marine Conservation Area';
+    updateGPSStatus('warning',
+      `⚠️ INSIDE ${typeLabel}!`,
+      `You are inside ${insideMPA.name}. ${insideMPA.type === 'SMR' ? 'NO FISHING of any kind.' : 'Fishing is restricted here.'} Tap the red zone for details.`
+    );
+    // Open drawer automatically
+    showMPADetail(insideMPA);
+  } else if (nearestMPA) {
+    const distMiles = (nearestDist / 1609).toFixed(1);
+    updateGPSStatus('caution',
+      `Approaching MPA — ${distMiles} miles away`,
+      `${nearestMPA.name} is nearby. Tap the boundary on the map for fishing rules.`
+    );
+  } else {
+    updateGPSStatus('safe',
+      '✓ Clear — no MPA nearby',
+      `You are not near any Marine Protected Area. GPS is active.`
+    );
+  }
+}
+
+function updateGPSStatus(type, title, detail) {
+  const el = document.getElementById('gpsStatus');
+  el.className = `gps-status ${type}`;
+  el.innerHTML = `
+    <div class="gps-dot"></div>
+    <div class="gps-status-text">
+      <strong>${title}</strong>
+      ${detail}
+    </div>
+  `;
+}
+
+// ============================================================
+// MPA DETAIL DRAWER
+// ============================================================
+function showMPADetail(mpa) {
+  const typeLabel = mpa.type === 'SMR' ? 'State Marine Reserve' : mpa.type === 'SMCA' ? 'State Marine Conservation Area' : 'Marine Protected Area';
+  const badgeClass = mpa.type === 'SMR' ? 'badge-smr' : mpa.type === 'SMCA' ? 'badge-smca' : 'badge-other';
+
+  document.getElementById('mpaDrawerContent').innerHTML = `
+    <div class="mpa-name">${mpa.name}</div>
+    <span class="mpa-type-badge ${badgeClass}">${typeLabel}</span>
+    <div class="mpa-restrictions">${mpa.restrictions}</div>
+    <div class="mpa-ccr">📋 ${mpa.ccr}</div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+      ⚠️ Always verify boundaries at <strong>wildlife.ca.gov</strong> — these are approximate reference boundaries only.
+    </div>
+    <button onclick="closeMPADrawer()" style="width:100%;margin-top:14px;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;color:var(--text)">Close</button>
+  `;
+
+  document.getElementById('mpaDrawer').classList.add('open');
+
+  // Pan map to MPA
+  map.setView([mpa.lat, mpa.lng], 12);
+}
+
+function closeMPADrawer() {
+  document.getElementById('mpaDrawer').classList.remove('open');
+}
+
+// Close drawer on map click
+map.on('click', closeMPADrawer);
+
+// ============================================================
+// AUTO-START LOCATION
+// ============================================================
+locateUser();
+</script>
+</body>
+</html>
