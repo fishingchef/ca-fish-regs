@@ -325,7 +325,7 @@
   <div class="fishid-header">
     <div class="fishid-header-wave"></div>
     <div class="fishid-title">Fish <span>ID</span></div>
-    <div class="fishid-sub">Take a photo — AI identifies your catch instantly</div>
+    <div class="fishid-sub">Photo ID powered by iNaturalist · Regulations from CA database</div>
   </div>
 
   <input type="file" id="fishIdFileInput" accept="image/*" style="display:none" onchange="handleFishIdFile(event)">
@@ -350,8 +350,8 @@
 
   <div id="fishIdLoading" class="fishid-loading" style="display:none">
     <div class="spinner"></div>
-    <div class="fishid-loading-text">Analyzing your catch…</div>
-    <div class="fishid-loading-sub">Checking California regulations</div>
+    <div class="fishid-loading-text">Identifying species…</div>
+    <div class="fishid-loading-sub">Powered by iNaturalist AI · Free</div>
   </div>
 
   <div id="fishIdResult" style="display:none"></div>
@@ -1091,7 +1091,13 @@ function getEmoji(name) { const n = name.toLowerCase(); for (const [k,v] of Obje
 function deriveStatus(reg) {
   if (!reg) return 'open';
   if (reg.catch_release_only || reg.bag_limit === 0) return 'closed';
-  if (reg.season_open_month) return 'seasonal';
+  // Check if season is Jan 1 – Dec 31 (effectively year-round)
+  if (reg.season_open_month) {
+    const isFullYear = reg.season_open_month === 1 && reg.season_open_day === 1 &&
+                       reg.season_close_month === 12 && reg.season_close_day === 31;
+    if (isFullYear) return 'open';
+    return 'seasonal';
+  }
   return 'open';
 }
 function getStatusLabel(s) { return s === 'open' ? 'Open' : s === 'closed' ? 'Closed' : 'Seasonal'; }
@@ -1102,6 +1108,9 @@ function formatSeason(reg) {
   if (reg.catch_release_only) return 'Catch & Release Only';
   if (reg.bag_limit === 0) return 'CLOSED';
   if (!reg.season_open_month) return 'Year-round';
+  // Jan 1 – Dec 31 is year-round
+  if (reg.season_open_month === 1 && reg.season_open_day === 1 &&
+      reg.season_close_month === 12 && reg.season_close_day === 31) return 'Year-round';
   return `${MONTHS[reg.season_open_month]} ${reg.season_open_day} – ${MONTHS[reg.season_close_month]} ${reg.season_close_day}`;
 }
 function getRegForSpecies(id) { return allRegulations.find(r => r.species_id === id) || null; }
@@ -1350,24 +1359,56 @@ async function identifyFish() {
   document.getElementById('fishIdBtn').style.display = 'none';
   document.getElementById('fishIdLoading').style.display = 'block';
   document.getElementById('fishIdResult').style.display = 'none';
+  document.getElementById('fishIdLoading').querySelector('.fishid-loading-text').textContent = 'Identifying species…';
+  document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = 'Powered by iNaturalist AI';
 
   try {
-    const response = await fetch('/api/identify', {
+    // Step 1: Send photo to iNaturalist Computer Vision API
+    const formData = new FormData();
+    // Convert base64 back to blob
+    const byteString = atob(fishIdImageBase64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: fishIdImageType });
+    formData.append('image', blob, 'photo.jpg');
+
+    const inatRes = await fetch('https://api.inaturalist.org/v1/computervision/score_image', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imageBase64: fishIdImageBase64,
-        imageType: fishIdImageType
-      })
+      body: formData
     });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Server error ${response.status}`);
+    if (!inatRes.ok) throw new Error('iNaturalist API error: ' + inatRes.status);
+    const inatData = await inatRes.json();
+
+    if (!inatData.results || inatData.results.length === 0) {
+      throw new Error('Could not identify species from this photo');
     }
 
-    const result = await response.json();
-    renderFishIdResult(result);
+    // Step 2: Get top matches (fish/marine animals only if possible)
+    const topResults = inatData.results.slice(0, 5);
+    const topMatch = topResults[0];
+    const taxon = topMatch.taxon;
+
+    document.getElementById('fishIdLoading').querySelector('.fishid-loading-text').textContent = 'Looking up regulations…';
+    document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = `Found: ${taxon.name}`;
+
+    // Step 3: Look up species in our Supabase regulations database
+    const sciName = taxon.name;
+    const commonName = taxon.preferred_common_name || taxon.english_common_name || taxon.name;
+
+    // Try exact match first, then fuzzy search in our species list
+    let matchedSpecies = findSpeciesInDB(sciName, commonName);
+
+    // Step 4: Render result
+    renderFishIdResult({
+      taxon,
+      topMatch,
+      allMatches: topResults,
+      matchedSpecies,
+      commonName,
+      sciName
+    });
 
   } catch(e) {
     document.getElementById('fishIdLoading').style.display = 'none';
@@ -1377,6 +1418,7 @@ async function identifyFish() {
         <div style="font-size:32px;margin-bottom:8px">🐟</div>
         <div style="font-weight:600;margin-bottom:4px">Could not identify species</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${e.message}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Try a clearer photo with good lighting and the whole animal visible</div>
         <button onclick="document.getElementById('fishIdResult').style.display='none';document.getElementById('fishIdBtn').style.display='block'"
           style="padding:10px 24px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">Try Again</button>
       </div>`;
@@ -1384,74 +1426,135 @@ async function identifyFish() {
   }
 }
 
-function renderFishIdResult(r) {
+// Search our loaded species database for a match
+function findSpeciesInDB(sciName, commonName) {
+  if (!allSpecies || !allSpecies.length) return null;
+
+  const sciLower = (sciName || '').toLowerCase();
+  const commonLower = (commonName || '').toLowerCase();
+
+  // Try scientific name match first
+  let match = allSpecies.find(s =>
+    s.scientific_name && s.scientific_name.toLowerCase() === sciLower
+  );
+  if (match) return match;
+
+  // Try partial scientific name (genus match)
+  const genus = sciLower.split(' ')[0];
+  match = allSpecies.find(s =>
+    s.scientific_name && s.scientific_name.toLowerCase().startsWith(genus + ' ')
+  );
+  if (match) return match;
+
+  // Try common name match
+  match = allSpecies.find(s => {
+    const dbName = s.name.toLowerCase();
+    return dbName === commonLower ||
+           dbName.includes(commonLower) ||
+           commonLower.includes(dbName.replace(/\s*\(.*\)/, '').trim());
+  });
+  if (match) return match;
+
+  return null;
+}
+
+function renderFishIdResult({ taxon, topMatch, allMatches, matchedSpecies, commonName, sciName }) {
   document.getElementById('fishIdLoading').style.display = 'none';
   document.getElementById('fishIdBtn').style.display = 'block';
 
-  const confidenceColors = { high: 'high', medium: 'medium', low: 'low' };
-  const confidenceLabels = { high: '✓ High confidence', medium: '~ Medium confidence', low: '⚠ Low confidence' };
-  const legalColors = { legal: 'legal', check: 'check', protected: 'protected', unknown: 'check' };
-  const legalIcons = { legal: '✅', check: '⚠️', protected: '🚫', unknown: '❓' };
+  const score = Math.round((topMatch.combined_score || 0) * 100);
+  const confidence = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
+  const confidenceLabel = score >= 70 ? '✓ High confidence' : score >= 40 ? '~ Medium confidence' : '⚠ Low confidence';
+  const confidenceClass = { high: 'high', medium: 'medium', low: 'low' }[confidence];
+
+  // Photo from iNaturalist for this taxon
+  const taxonPhoto = taxon.default_photo?.medium_url || '';
+
+  // Get regulations from our DB if we found a match
+  const reg = matchedSpecies ? getRegForSpecies(matchedSpecies.id) : null;
+  const status = reg ? deriveStatus(reg) : null;
+
+  // Build legal status banner
+  let legalClass = 'check', legalIcon = '⚠️', legalText = 'Check current California regulations before keeping';
+  if (reg) {
+    if (reg.bag_limit === 0 || reg.catch_release_only) {
+      legalClass = 'protected'; legalIcon = '🚫';
+      legalText = reg.special_notes?.split('.')[0] || 'Protected — no take allowed';
+    } else if (status === 'open') {
+      legalClass = 'legal'; legalIcon = '✅';
+      legalText = `Open season in California`;
+    } else if (status === 'seasonal') {
+      legalClass = 'check'; legalIcon = '📅';
+      legalText = reg.season_note || 'Seasonal restrictions apply';
+    }
+  }
+
+  // Other top matches
+  const otherMatches = allMatches.slice(1, 4).map(m => `
+    <span style="display:inline-block;background:var(--bg);border-radius:100px;padding:4px 10px;font-size:11px;margin:3px 3px 0 0;color:var(--text-muted)">
+      ${m.taxon.preferred_common_name || m.taxon.name}
+      <span style="color:var(--border);margin-left:3px">${Math.round((m.combined_score||0)*100)}%</span>
+    </span>`
+  ).join('');
 
   const result = document.getElementById('fishIdResult');
   result.style.display = 'block';
   result.innerHTML = `
     <div class="fishid-result">
-      <div class="fishid-result-header">
-        <div class="fishid-result-name">${r.commonName}</div>
-        <div class="fishid-result-sci">${r.scientificName}</div>
+      <div class="fishid-result-header" style="${taxonPhoto ? `background-image:linear-gradient(to bottom, rgba(10,61,98,0.7), rgba(10,61,98,0.95)), url(${taxonPhoto}); background-size:cover; background-position:center;` : ''}">
+        <div class="fishid-result-name">${commonName}</div>
+        <div class="fishid-result-sci">${sciName}</div>
+        ${matchedSpecies ? `<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">✓ Found in CA regulations database</div>` : `<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">Not in local database — showing general info</div>`}
       </div>
       <div class="fishid-result-body">
-        <div class="fishid-confidence ${confidenceColors[r.confidence] || 'medium'}">
-          ${confidenceLabels[r.confidence] || '~ Medium confidence'}
-        </div>
-        ${r.confidenceReason ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;margin-top:-6px">${r.confidenceReason}</div>` : ''}
 
-        <div class="fishid-legal-banner ${legalColors[r.legalStatus] || 'check'}">
-          ${legalIcons[r.legalStatus] || '❓'} ${r.legalStatusNote}
+        <div class="fishid-confidence ${confidenceClass}" style="margin-bottom:8px">
+          ${confidenceLabel} · ${score}% match
         </div>
 
+        ${otherMatches ? `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Other possibilities</div>${otherMatches}</div>` : ''}
+
+        <div class="fishid-legal-banner ${legalClass}">
+          ${legalIcon} ${legalText}
+        </div>
+
+        ${reg ? `
         <div class="reg-grid">
           <div class="reg-tile">
             <div class="reg-tile-label">Bag Limit</div>
-            <div class="reg-tile-value" style="font-size:16px">${r.bagLimit || '—'}</div>
+            <div class="reg-tile-value" style="font-size:16px">${reg.bag_limit !== null && reg.bag_limit !== undefined ? (reg.bag_limit === 0 ? 'CLOSED' : reg.bag_limit) : 'No limit'}</div>
           </div>
           <div class="reg-tile">
             <div class="reg-tile-label">Min Size</div>
-            <div class="reg-tile-value" style="font-size:16px">${r.minSize || 'None'}</div>
+            <div class="reg-tile-value" style="font-size:16px">${reg.size_min_inches ? reg.size_min_inches + '"' : 'None'}</div>
           </div>
           <div class="reg-tile" style="grid-column:1/-1">
             <div class="reg-tile-label">Season</div>
-            <div class="reg-tile-value" style="font-size:14px;line-height:1.3">${r.season || '—'}</div>
+            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${reg.season_note || 'Open year-round'}</div>
           </div>
+          ${reg.gear_restricted ? `<div class="reg-tile" style="grid-column:1/-1">
+            <div class="reg-tile-label">Gear</div>
+            <div class="reg-tile-value" style="font-size:13px;line-height:1.4">${reg.gear_restricted}</div>
+          </div>` : ''}
         </div>
+        ${reg.special_notes ? `<div class="reg-note" style="margin-bottom:12px">${reg.special_notes}</div>` : ''}
+        <button onclick="openDrawer(${matchedSpecies.id})" style="width:100%;padding:12px;background:var(--ocean);color:white;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px">
+          📋 View Full Regulations
+        </button>
+        ` : `
+        <div class="reg-note warning" style="margin-bottom:12px">
+          ⚠️ This species isn't in our California database yet. Always check <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> for current regulations.
+        </div>
+        `}
 
-        ${r.identificationTips ? `
-        <div style="margin-bottom:12px">
-          <div class="reg-section-title">How to confirm ID</div>
-          <div class="reg-note">${r.identificationTips}</div>
-        </div>` : ''}
-
-        ${r.lookAlikes && r.lookAlikes !== 'none' ? `
-        <div style="margin-bottom:12px">
-          <div class="reg-section-title">Watch out for</div>
-          <div class="reg-note warning">⚠️ ${r.lookAlikes}</div>
-        </div>` : ''}
-
-        ${r.tips ? `
-        <div style="margin-bottom:4px">
-          <div class="reg-section-title">Fishing Tips</div>
-          <div class="reg-note">${r.tips}</div>
-        </div>` : ''}
-
-        <div style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">
-          Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any fish. AI can make mistakes.
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
+          Species ID by <a href="https://www.inaturalist.org" style="color:var(--ocean-light)">iNaturalist</a> computer vision ·
+          Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping
         </div>
       </div>
     </div>
   `;
 
-  // Scroll to result
   result.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
