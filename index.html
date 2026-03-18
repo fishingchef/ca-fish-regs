@@ -1306,11 +1306,17 @@ document.getElementById('drawer').addEventListener('touchend', e => { if (e.chan
 checkAuthRedirect();
 loadData();
 
-// Service worker disabled to prevent caching issues
-// Will re-enable once Fish ID is working
+// Force clear ALL service workers and caches
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(reg => reg.unregister());
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+    console.log('Service workers cleared');
+  });
+}
+if ('caches' in window) {
+  caches.keys().then(keys => {
+    keys.forEach(k => caches.delete(k));
+    console.log('Caches cleared');
   });
 }
 
