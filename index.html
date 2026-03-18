@@ -6,397 +6,468 @@
 <title>CA Fish Regs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --ocean: #0a3d62;
-    --ocean-mid: #1a6390;
-    --ocean-light: #2980b9;
-    --foam: #e8f4f8;
-    --sand: #f5efe6;
-    --kelp: #2d6a4f;
-    --kelp-light: #52b788;
-    --sunset: #e07b39;
-    --danger: #c0392b;
-    --text: #1a1a2e;
-    --text-muted: #5a6473;
-    --white: #ffffff;
-    --card-bg: #ffffff;
-    --bg: #f0f4f8;
-    --border: #dce3ea;
-    --radius: 16px;
-    --radius-sm: 10px;
+    --ocean: #0a3d62; --ocean-mid: #1a6390; --ocean-light: #2980b9;
+    --foam: #e8f4f8; --kelp: #2d6a4f; --kelp-light: #52b788;
+    --danger: #c0392b; --text: #1a1a2e; --text-muted: #5a6473;
+    --white: #ffffff; --bg: #f0f4f8; --border: #dce3ea;
+    --radius: 16px; --radius-sm: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    max-width: 480px;
-    margin: 0 auto;
-    position: relative;
-  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
 
   /* HEADER */
-  .header {
-    background: var(--ocean);
-    padding: 52px 20px 24px;
-    position: relative;
-    overflow: hidden;
-  }
-  .header::before {
-    content: '';
-    position: absolute;
-    bottom: -30px; left: -10%; right: -10%;
-    height: 60px;
-    background: var(--bg);
-    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  }
-  .header-wave {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    opacity: 0.06;
-    background-image: repeating-linear-gradient(
-      -45deg, transparent, transparent 20px,
-      var(--white) 20px, var(--white) 22px
-    );
-  }
+  .header { background: var(--ocean); padding: 52px 20px 24px; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; bottom: -30px; left: -10%; right: -10%; height: 60px; background: var(--bg); border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .header-wave { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.06; background-image: repeating-linear-gradient(-45deg, transparent, transparent 20px, var(--white) 20px, var(--white) 22px); }
   .header-content { position: relative; z-index: 1; }
-  .app-title {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 11px; font-weight: 400;
-    color: var(--ocean-light);
-    letter-spacing: 3px; text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  .app-name {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 26px; font-weight: 900;
-    color: var(--white); line-height: 1.1;
-    margin-bottom: 16px;
-  }
+  .app-title { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 400; color: var(--ocean-light); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+  .app-name { font-family: 'Unbounded', sans-serif; font-size: 26px; font-weight: 900; color: var(--white); line-height: 1.1; margin-bottom: 16px; }
   .app-name span { color: var(--kelp-light); }
   .search-wrap { position: relative; margin-top: 4px; }
-  .search-icon {
-    position: absolute; left: 14px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted); font-size: 18px;
-    pointer-events: none;
-  }
-  #search {
-    width: 100%;
-    padding: 14px 14px 14px 44px;
-    border: none; border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif; font-size: 15px;
-    background: var(--white); color: var(--text);
-    outline: none;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 18px; pointer-events: none; }
+  #search { width: 100%; padding: 14px 14px 14px 44px; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--white); color: var(--text); outline: none; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
   #search::placeholder { color: var(--text-muted); }
 
   /* TABS */
-  .tabs {
-    display: flex; gap: 8px;
-    padding: 24px 20px 12px;
-    overflow-x: auto; scrollbar-width: none;
-  }
+  .tabs { display: flex; gap: 8px; padding: 24px 20px 12px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    flex-shrink: 0;
-    padding: 8px 18px;
-    border-radius: 100px;
-    border: 1.5px solid var(--border);
-    background: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px; font-weight: 500;
-    color: var(--text-muted);
-    cursor: pointer; transition: all 0.2s;
-  }
-  .tab.active {
-    background: var(--ocean);
-    border-color: var(--ocean);
-    color: var(--white);
-  }
+  .tab { flex-shrink: 0; padding: 8px 18px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: var(--ocean); border-color: var(--ocean); color: var(--white); }
 
-  /* ALERT BANNER */
-  .alert-banner {
-    margin: 0 20px 16px;
-    background: #fdf0e0;
-    border: 1.5px solid #f0a500;
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    display: flex; gap: 10px;
-    align-items: flex-start;
-    cursor: pointer;
-  }
+  /* BANNERS */
+  .alert-banner { margin: 0 20px 16px; background: #fdf0e0; border: 1.5px solid #f0a500; border-radius: var(--radius-sm); padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
   .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
   .alert-text { font-size: 13px; color: #7a4f00; line-height: 1.4; }
   .alert-text strong { font-weight: 500; display: block; margin-bottom: 2px; }
+  .gps-banner { margin: 0 20px 16px; background: var(--foam); border: 1.5px solid var(--ocean-light); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; gap: 10px; align-items: center; cursor: pointer; }
+  .gps-text { font-size: 13px; color: var(--ocean); line-height: 1.4; flex: 1; }
+  .gps-text strong { font-weight: 500; display: block; margin-bottom: 2px; }
 
   /* SPECIES LIST */
-  .section-label {
-    padding: 0 20px 10px;
-    font-family: 'Unbounded', sans-serif;
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 2px; color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .species-list {
-    padding: 0 20px;
-    display: flex; flex-direction: column;
-    gap: 10px; padding-bottom: 100px;
-  }
-  .species-card {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 16px; cursor: pointer;
-    border: 1.5px solid transparent;
-    transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    display: flex; align-items: center; gap: 14px;
-  }
+  .section-label { padding: 0 20px 10px; font-family: 'Unbounded', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+  .species-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 100px; }
+  .species-card { background: var(--white); border-radius: var(--radius); padding: 16px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 14px; }
   .species-card:active { transform: scale(0.98); }
   .species-card.open { border-color: var(--ocean-light); }
   .species-card.closed { border-color: var(--danger); }
-  .species-card.caution { border-color: #f0a500; }
   .species-card.seasonal { border-color: #7f8fa6; }
-  .species-emoji {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px; flex-shrink: 0;
-  }
+  .species-img { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+  .species-emoji { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
   .species-emoji.saltwater { background: #e8f4fb; }
   .species-emoji.freshwater { background: #e8f5ee; }
   .species-emoji.both { background: #f0e8f5; }
   .species-info { flex: 1; min-width: 0; }
-  .species-name {
-    font-weight: 500; font-size: 15px; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  .species-name { font-weight: 500; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .species-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .species-badge {
-    flex-shrink: 0; padding: 4px 10px;
-    border-radius: 100px; font-size: 11px; font-weight: 500;
-  }
+  .species-badge { flex-shrink: 0; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; }
   .badge-open { background: #e8f5ee; color: #1a6b3a; }
   .badge-closed { background: #fde8e8; color: #a31d1d; }
-  .badge-caution { background: #fdf0e0; color: #7a4f00; }
   .badge-seasonal { background: #e8eef8; color: #1a3a6b; }
 
-  /* LOADING STATE */
-  .loading-state {
-    text-align: center; padding: 48px 20px;
-    color: var(--text-muted);
-  }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--ocean);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
+  /* LOADING */
+  .loading-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--ocean); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* DRAWER */
-  .drawer-overlay {
-    display: none; position: fixed;
-    inset: 0; background: rgba(0,0,0,0.4);
-    z-index: 100; backdrop-filter: blur(2px);
-  }
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; backdrop-filter: blur(2px); }
   .drawer-overlay.open { display: block; }
-  .drawer {
-    position: fixed; bottom: 0;
-    left: 50%; transform: translateX(-50%) translateY(100%);
-    width: 100%; max-width: 480px;
-    background: var(--white);
-    border-radius: 24px 24px 0 0;
-    z-index: 101; max-height: 88vh;
-    overflow-y: auto;
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-    padding-bottom: 32px;
-  }
+  .drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: var(--white); border-radius: 24px 24px 0 0; z-index: 101; max-height: 88vh; overflow-y: auto; transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); padding-bottom: 32px; }
   .drawer.open { transform: translateX(-50%) translateY(0); }
-  .drawer-handle {
-    width: 36px; height: 4px;
-    background: var(--border); border-radius: 4px;
-    margin: 14px auto 20px;
-  }
-  .drawer-header {
-    padding: 0 20px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-  .drawer-species-row {
-    display: flex; align-items: center;
-    gap: 14px; margin-bottom: 12px;
-  }
-  .drawer-emoji {
-    width: 56px; height: 56px;
-    border-radius: 14px;
-    display: flex; align-items: center;
-    justify-content: center; font-size: 32px;
-  }
-  .drawer-title {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 18px; font-weight: 700;
-    color: var(--text); line-height: 1.2;
-  }
-  .drawer-scientific {
-    font-size: 12px; color: var(--text-muted);
-    font-style: italic; margin-top: 3px;
-  }
-  .drawer-status {
-    display: inline-flex; align-items: center;
-    gap: 6px; padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 13px; font-weight: 500;
-  }
+  .drawer-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 14px auto 20px; }
+  .drawer-header { padding: 0 20px 20px; border-bottom: 1px solid var(--border); }
+  .drawer-species-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .drawer-img { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; }
+  .drawer-emoji { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .drawer-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .drawer-scientific { font-size: 12px; color: var(--text-muted); font-style: italic; margin-top: 3px; }
+  .drawer-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 500; }
   .drawer-status.open { background: #e8f5ee; color: #1a6b3a; }
   .drawer-status.closed { background: #fde8e8; color: #a31d1d; }
-  .drawer-status.caution { background: #fdf0e0; color: #7a4f00; }
   .drawer-status.seasonal { background: #e8eef8; color: #1a3a6b; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; }
   .open .status-dot { background: #27ae60; }
   .closed .status-dot { background: var(--danger); }
-  .caution .status-dot, .seasonal .status-dot { background: #f0a500; }
-
-  /* REG TILES */
+  .seasonal .status-dot { background: #f0a500; }
   .reg-section { padding: 20px 20px 0; }
-  .reg-section-title {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 2px; color: var(--text-muted);
-    text-transform: uppercase; margin-bottom: 12px;
-  }
-  .reg-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 16px;
-  }
+  .reg-section-title { font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; }
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
   .reg-tile { background: var(--bg); border-radius: var(--radius-sm); padding: 14px; }
   .reg-tile-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
-  .reg-tile-value {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 20px; font-weight: 700;
-    color: var(--ocean); line-height: 1;
-  }
+  .reg-tile-value { font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; color: var(--ocean); line-height: 1; }
   .reg-tile-value.danger { color: var(--danger); }
   .reg-tile-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-  .reg-note {
-    background: var(--foam);
-    border-left: 3px solid var(--ocean-light);
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    padding: 12px 14px; font-size: 13px;
-    color: var(--text); line-height: 1.6; margin-bottom: 12px;
-  }
+  .reg-note { background: var(--foam); border-left: 3px solid var(--ocean-light); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 14px; font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
   .reg-note.warning { background: #fdf0e0; border-color: #f0a500; }
   .reg-note.danger-note { background: #fde8e8; border-color: var(--danger); font-weight: 500; }
-  .source-line {
-    padding: 16px 20px 0; font-size: 11px;
-    color: var(--text-muted); display: flex;
-    align-items: center; gap: 6px;
-  }
+  .source-line { padding: 16px 20px 0; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
-  /* GPS BANNER */
-  .gps-banner {
-    margin: 0 20px 16px;
-    background: var(--foam);
-    border: 1.5px solid var(--ocean-light);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    display: flex; gap: 10px; align-items: center;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .gps-banner:active { opacity: 0.8; }
-  .gps-text { font-size: 13px; color: var(--ocean); line-height: 1.4; flex: 1; }
-  .gps-text strong { font-weight: 500; display: block; margin-bottom: 2px; }
-
-  /* NO RESULTS */
+  /* NAV BAR */
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; z-index: 50; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); cursor: pointer; font-weight: 500; transition: color 0.2s; }
+  .nav-item.active { color: var(--ocean); }
+  .nav-icon { font-size: 22px; }
+  .data-status { text-align: center; padding: 8px 20px 0; font-size: 11px; color: var(--text-muted); }
+  .data-status.live { color: #1a6b3a; }
   .no-results { text-align: center; padding: 48px 20px; color: var(--text-muted); }
   .no-results-icon { font-size: 48px; margin-bottom: 12px; }
   .no-results h3 { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
-  .no-results p { font-size: 14px; }
 
-  /* NAV BAR */
-  .bottom-nav {
-    position: fixed; bottom: 0;
-    left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 480px;
-    background: var(--white);
-    border-top: 1px solid var(--border);
-    display: flex; padding: 10px 0 20px;
-    z-index: 50;
-  }
-  .nav-item {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; gap: 3px;
-    font-size: 10px; color: var(--text-muted);
-    cursor: pointer; font-weight: 500; transition: color 0.2s;
-  }
-  .nav-item.active { color: var(--ocean); }
-  .nav-icon { font-size: 22px; }
+  /* ===================== ADMIN STYLES ===================== */
+  #adminView { display: none; padding-bottom: 100px; }
+  #adminView.visible { display: block; }
 
-  /* DATA STATUS */
-  .data-status {
-    text-align: center; padding: 8px 20px 0;
-    font-size: 11px; color: var(--text-muted);
-  }
-  .data-status.live { color: #1a6b3a; }
-  .data-status.cached { color: #7a4f00; }
+  .admin-header { background: var(--ocean); padding: 52px 20px 20px; position: relative; }
+  .admin-header-wave { position: absolute; top:0;left:0;right:0;bottom:0; opacity:0.06; background-image: repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px); }
+  .admin-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 900; color: var(--white); position: relative; z-index:1; }
+  .admin-title span { color: var(--kelp-light); }
+  .admin-subtitle { font-size: 13px; color: var(--ocean-light); position: relative; z-index:1; margin-top: 4px; }
+  .admin-user-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; position: relative; z-index:1; }
+  .admin-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--kelp-light); }
+  .admin-user-name { font-size: 13px; color: var(--white); flex: 1; }
+  .admin-logout { font-size: 12px; color: var(--ocean-light); cursor: pointer; border: 1px solid var(--ocean-light); padding: 4px 10px; border-radius: 100px; background: none; font-family: inherit; }
+
+  .admin-section { margin: 20px 20px 0; }
+  .admin-section-title { font-family: 'Unbounded', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; }
+
+  .admin-card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 10px; }
+
+  /* Species picker */
+  .admin-select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--white); outline: none; cursor: pointer; }
+  .admin-select:focus { border-color: var(--ocean-light); }
+
+  /* Form fields */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--ocean-light); background: var(--white); }
+  .form-textarea { padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); background: var(--bg); outline: none; resize: vertical; min-height: 80px; transition: border-color 0.2s; width: 100%; }
+  .form-textarea:focus { border-color: var(--ocean-light); background: var(--white); }
+
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 14px; color: var(--text); }
+  .toggle { position: relative; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: 0.3s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+  .toggle input:checked + .toggle-slider { background: var(--ocean); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  /* Buttons */
+  .btn { padding: 13px 20px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: var(--ocean); color: var(--white); width: 100%; margin-top: 14px; }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-danger { background: #fde8e8; color: var(--danger); width: 100%; margin-top: 8px; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+  .btn-success { background: #e8f5ee; color: #1a6b3a; width: 100%; margin-top: 14px; }
+
+  /* Save feedback */
+  .save-toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1a6b3a; color: white; padding: 12px 24px; border-radius: 100px; font-size: 14px; font-weight: 500; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .save-toast.show { opacity: 1; }
+
+  /* Image preview */
+  .img-preview { width: 100%; height: 120px; border-radius: var(--radius-sm); object-fit: cover; margin-top: 8px; border: 1.5px solid var(--border); display: none; }
+  .img-preview.visible { display: block; }
+
+  /* Closure card */
+  .closure-item { background: #fdf0e0; border: 1.5px solid #f0a500; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; }
+  .closure-item-title { font-weight: 500; font-size: 14px; color: #7a4f00; margin-bottom: 4px; }
+  .closure-item-sub { font-size: 12px; color: #a06000; margin-bottom: 10px; }
+
+  /* Google login */
+  .login-screen { display: none; position: fixed; inset: 0; background: var(--ocean); z-index: 500; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+  .login-screen.visible { display: flex; }
+  .login-title { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 900; color: var(--white); text-align: center; }
+  .login-title span { color: var(--kelp-light); }
+  .login-sub { font-size: 14px; color: var(--ocean-light); text-align: center; max-width: 280px; line-height: 1.6; }
+  .google-btn { display: flex; align-items: center; gap: 12px; background: var(--white); border: none; border-radius: 12px; padding: 14px 24px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s; }
+  .google-btn:active { transform: scale(0.97); }
+  .google-logo { width: 20px; height: 20px; }
+  .admin-hint { font-size: 11px; color: var(--ocean-light); opacity: 0.7; text-align: center; }
+
+  /* Tabs inside admin */
+  .admin-tabs { display: flex; gap: 8px; padding: 16px 20px 0; overflow-x: auto; scrollbar-width: none; }
+  .admin-tabs::-webkit-scrollbar { display: none; }
+  .admin-tab { flex-shrink: 0; padding: 8px 16px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--white); font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+  .admin-tab.active { background: var(--ocean); border-color: var(--ocean); color: var(--white); }
+  .admin-panel { display: none; }
+  .admin-panel.active { display: block; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-wave"></div>
-  <div class="header-content">
-    <div class="app-title">California</div>
-    <div class="app-name">Fish <span>Regs</span></div>
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input id="search" type="text" placeholder="Search species, e.g. rockfish, bass…" autocomplete="off">
+<!-- GOOGLE LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-title">Fish <span>Regs</span><br>Admin</div>
+  <div class="login-sub">Sign in with your Google account to access the admin panel</div>
+  <button class="google-btn" onclick="signInWithGoogle()">
+    <svg class="google-logo" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    Sign in with Google
+  </button>
+  <div class="admin-hint">Only authorized Google accounts can access admin</div>
+</div>
+
+<!-- SAVE TOAST -->
+<div class="save-toast" id="saveToast">✓ Saved successfully</div>
+
+<!-- MAIN APP VIEW -->
+<div id="mainView">
+  <div class="header">
+    <div class="header-wave"></div>
+    <div class="header-content">
+      <div class="app-title">California</div>
+      <div class="app-name">Fish <span>Regs</span></div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input id="search" type="text" placeholder="Search species, e.g. rockfish, bass…" autocomplete="off">
+      </div>
     </div>
   </div>
-</div>
-
-<!-- FILTER TABS -->
-<div class="tabs">
-  <button class="tab active" data-filter="all">All Species</button>
-  <button class="tab" data-filter="saltwater">🌊 Saltwater</button>
-  <button class="tab" data-filter="freshwater">🏞 Freshwater</button>
-  <button class="tab" data-filter="open">Open Now</button>
-  <button class="tab" data-filter="caution">Check Dates</button>
-</div>
-
-<!-- GPS BANNER -->
-<div class="gps-banner" id="gpsBanner" onclick="getLocation()">
-  <span style="font-size:20px">📍</span>
-  <div class="gps-text">
-    <strong>Get regulations for your location</strong>
-    Tap to use GPS and see rules for where you are
+  <div class="tabs">
+    <button class="tab active" data-filter="all">All Species</button>
+    <button class="tab" data-filter="saltwater">🌊 Saltwater</button>
+    <button class="tab" data-filter="freshwater">🏞 Freshwater</button>
+    <button class="tab" data-filter="open">Open Now</button>
+    <button class="tab" data-filter="caution">Check Dates</button>
   </div>
-  <span style="font-size:16px;color:var(--ocean-light)">→</span>
-</div>
-
-<!-- ALERT BANNER -->
-<div class="alert-banner" id="alertBanner" style="display:none">
-  <div class="alert-icon">⚠️</div>
-  <div class="alert-text" id="alertText">
-    <strong>Active Closure</strong>
-    Loading...
+  <div class="gps-banner" id="gpsBanner" onclick="getLocation()">
+    <span style="font-size:20px">📍</span>
+    <div class="gps-text"><strong>Get regulations for your location</strong>Tap to use GPS</div>
+    <span style="font-size:16px;color:var(--ocean-light)">→</span>
+  </div>
+  <div class="alert-banner" id="alertBanner" style="display:none">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-text" id="alertText"><strong>Active Closure</strong>Loading...</div>
+  </div>
+  <div class="data-status" id="dataStatus"></div>
+  <div class="section-label" style="margin-top:12px">SPECIES REGULATIONS</div>
+  <div class="species-list" id="speciesList">
+    <div class="loading-state"><div class="spinner"></div><div>Loading California regulations…</div></div>
   </div>
 </div>
 
-<!-- DATA STATUS -->
-<div class="data-status" id="dataStatus"></div>
+<!-- ADMIN VIEW -->
+<div id="adminView">
+  <div class="admin-header">
+    <div class="admin-header-wave"></div>
+    <div class="admin-title">Fish <span>Regs</span> Admin</div>
+    <div class="admin-subtitle">Manage regulations, closures & species</div>
+    <div class="admin-user-row">
+      <img id="adminAvatar" class="admin-avatar" src="" alt="">
+      <span id="adminName" class="admin-user-name"></span>
+      <button class="admin-logout" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
 
-<!-- SPECIES LIST -->
-<div class="section-label" style="margin-top:12px">SPECIES REGULATIONS</div>
-<div class="species-list" id="speciesList">
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <div>Loading California regulations…</div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-panel="regulations">Edit Regulations</button>
+    <button class="admin-tab" data-panel="closures">Emergency Closures</button>
+    <button class="admin-tab" data-panel="newspecies">Add Species</button>
+  </div>
+
+  <!-- PANEL 1: EDIT REGULATIONS -->
+  <div class="admin-panel active" id="panel-regulations">
+    <div class="admin-section">
+      <div class="admin-section-title">Select Species to Edit</div>
+      <div class="admin-card">
+        <select class="admin-select" id="adminSpeciesPicker" onchange="loadSpeciesForEdit()">
+          <option value="">— Pick a species —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-section" id="editForm" style="display:none">
+      <div class="admin-section-title">Regulation Details</div>
+      <div class="admin-card">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Daily Bag Limit</label>
+            <input class="form-input" id="edit_bag_limit" type="number" placeholder="e.g. 5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Possession Limit</label>
+            <input class="form-input" id="edit_possession_limit" type="number" placeholder="e.g. 10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Min Size (inches)</label>
+            <input class="form-input" id="edit_size_min" type="number" step="0.5" placeholder="e.g. 12">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Size (inches)</label>
+            <input class="form-input" id="edit_size_max" type="number" step="0.5" placeholder="Optional">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Season Opens</label>
+            <input class="form-input" id="edit_season_open" type="text" placeholder="e.g. Apr 1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Season Closes</label>
+            <input class="form-input" id="edit_season_close" type="text" placeholder="e.g. Dec 31">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Bag Limit Note</label>
+            <input class="form-input" id="edit_bag_note" type="text" placeholder="e.g. Combined RCG complex">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Size Note</label>
+            <input class="form-input" id="edit_size_note" type="text" placeholder="e.g. Total length">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Gear Restrictions</label>
+            <input class="form-input" id="edit_gear" type="text" placeholder="e.g. Hook and line only">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Special Notes</label>
+            <textarea class="form-textarea" id="edit_notes" placeholder="Important notes anglers need to know…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">CCR Section</label>
+            <input class="form-input" id="edit_ccr" type="text" placeholder="e.g. CCR Title 14, Section 28.55">
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="toggle-row">
+            <span class="toggle-label">Report card required</span>
+            <label class="toggle"><input type="checkbox" id="edit_report_card"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Catch & release only</span>
+            <label class="toggle"><input type="checkbox" id="edit_catch_release"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="saveRegBtn" onclick="saveRegulation()">💾 Save Regulation</button>
+      </div>
+
+      <div class="admin-section-title" style="margin-top:16px">Species Info & Photo</div>
+      <div class="admin-card">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Species Description</label>
+            <textarea class="form-textarea" id="edit_description" placeholder="Plain-language description for anglers…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Identification Tips</label>
+            <textarea class="form-textarea" id="edit_id_tips" placeholder="How to identify this species…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Photo URL</label>
+            <input class="form-input" id="edit_image_url" type="url" placeholder="https://example.com/fish.jpg" oninput="previewImage('edit_image_url','edit_img_preview')">
+            <img id="edit_img_preview" class="img-preview" src="" alt="Preview">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSpeciesInfo()">💾 Save Species Info</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: EMERGENCY CLOSURES -->
+  <div class="admin-panel" id="panel-closures">
+    <div class="admin-section">
+      <div class="admin-section-title">Active Closures</div>
+      <div id="closuresList">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+
+      <div class="admin-section-title" style="margin-top:16px">Add New Closure</div>
+      <div class="admin-card">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Closure Title</label>
+            <input class="form-input" id="new_closure_title" type="text" placeholder="e.g. White Sturgeon: Catch & Release Only">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="new_closure_desc" placeholder="Full details of the closure…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Effective Date</label>
+            <input class="form-input" id="new_closure_start" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expiration Date</label>
+            <input class="form-input" id="new_closure_end" type="date">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Affected Species</label>
+            <select class="admin-select" id="new_closure_species">
+              <option value="">— All species / General —</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Source URL (optional)</label>
+            <input class="form-input" id="new_closure_url" type="url" placeholder="https://wildlife.ca.gov/...">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addClosure()">+ Add Emergency Closure</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 3: ADD NEW SPECIES -->
+  <div class="admin-panel" id="panel-newspecies">
+    <div class="admin-section">
+      <div class="admin-section-title">Add New Species</div>
+      <div class="admin-card">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Common Name</label>
+            <input class="form-input" id="new_name" type="text" placeholder="e.g. Kelp Bass">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Scientific Name</label>
+            <input class="form-input" id="new_scientific" type="text" placeholder="e.g. Paralabrax clathratus">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Water Type</label>
+            <select class="admin-select" id="new_water_type">
+              <option value="saltwater">Saltwater</option>
+              <option value="freshwater">Freshwater</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <input class="form-input" id="new_category" type="text" placeholder="e.g. Bass, Trout, Shellfish">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="new_description" placeholder="Plain-language description for anglers…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Identification Tips</label>
+            <textarea class="form-textarea" id="new_id_tips" placeholder="How to identify this species…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Photo URL</label>
+            <input class="form-input" id="new_image_url" type="url" placeholder="https://example.com/fish.jpg" oninput="previewImage('new_image_url','new_img_preview')">
+            <img id="new_img_preview" class="img-preview" src="" alt="Preview">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addNewSpecies()">+ Add Species</button>
+      </div>
+
+      <div class="admin-section-title" style="margin-top:16px">Then Add Its Regulations</div>
+      <div class="admin-card" style="background:#f0f4f8;border:1.5px dashed var(--border)">
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
+          After saving the new species, go to the <strong>Edit Regulations</strong> tab, find the species in the dropdown, and fill in the regulation details.
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -408,8 +479,8 @@
 </div>
 
 <!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <div class="nav-item active">
+<div class="bottom-nav" id="bottomNav">
+  <div class="nav-item active" id="nav-species" onclick="showMain()">
     <span class="nav-icon">🐟</span><span>Species</span>
   </div>
   <div class="nav-item" onclick="getLocation()">
@@ -418,160 +489,433 @@
   <div class="nav-item" onclick="showAlerts()">
     <span class="nav-icon">🔔</span><span>Alerts</span>
   </div>
-  <div class="nav-item" onclick="showSaved()">
+  <div class="nav-item" id="nav-admin" onclick="handleAdminTap()">
     <span class="nav-icon">⭐</span><span>Saved</span>
   </div>
 </div>
 
 <script>
 // ============================================================
-// SUPABASE CONFIG — your live database
+// SUPABASE CONFIG
 // ============================================================
 const SUPABASE_URL = 'https://maqffkhgynuzbvpbueds.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3Lh4gmjt2Wvvp0u76qqkrQ_3h-DqVwY';
+const SUPABASE_ANON_KEY = 'sb_publishable_3Lh4gmjt2Wvvp0u76qqkrQ_3h-DqVwY';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
-// SUPABASE FETCH HELPER
+// ADMIN AUTH — secret tap pattern (tap saved icon 5 times)
 // ============================================================
-async function supabase(table, params = '') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!res.ok) throw new Error(`DB error: ${res.status}`);
-  return res.json();
-}
+let adminTapCount = 0;
+let adminTapTimer = null;
+let currentUser = null;
+let isAdminMode = false;
 
-// ============================================================
-// EMOJI MAP — species name to emoji
-// ============================================================
-const EMOJI_MAP = {
-  'rockfish': '🐠', 'lingcod': '🎣', 'halibut': '🫓',
-  'yellowtail': '🐟', 'seabass': '🐡', 'salmon': '🐟',
-  'crab': '🦀', 'lobster': '🦞', 'abalone': '🐚',
-  'tuna': '🐟', 'striped bass': '🐟', 'largemouth': '🐟',
-  'smallmouth': '🐟', 'rainbow trout': '🌈', 'brown trout': '🐠',
-  'brook trout': '🎨', 'kokanee': '🐡', 'catfish': '😺',
-  'bluegill': '🔵', 'crappie': '🐟', 'sturgeon': '🦈',
-  'surfperch': '🌊', 'dorado': '🌈', 'mahi': '🌈',
-  'albacore': '🐟', 'yellowfin': '🐟', 'bass': '🐟',
-  'trout': '🌈', 'carp': '🐟', 'default': '🐟'
-};
-
-function getEmoji(name) {
-  const n = name.toLowerCase();
-  for (const [key, emoji] of Object.entries(EMOJI_MAP)) {
-    if (n.includes(key)) return emoji;
+function handleAdminTap() {
+  if (isAdminMode) return;
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  if (adminTapCount >= 5) {
+    adminTapCount = 0;
+    enterAdminMode();
+  } else {
+    adminTapTimer = setTimeout(() => {
+      // Normal saved behavior if not 5 taps
+      if (adminTapCount < 5) showSaved();
+      adminTapCount = 0;
+    }, 800);
   }
-  return EMOJI_MAP.default;
+}
+
+async function enterAdminMode() {
+  // Check if already signed in
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showAdminPanel();
+  } else {
+    document.getElementById('loginScreen').classList.add('visible');
+  }
+}
+
+async function signInWithGoogle() {
+  const { error } = await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) alert('Sign in failed: ' + error.message);
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  currentUser = null;
+  isAdminMode = false;
+  document.getElementById('adminView').classList.remove('visible');
+  document.getElementById('mainView').style.display = 'block';
+  document.getElementById('nav-admin').querySelector('span:last-child').textContent = 'Saved';
+  document.getElementById('nav-admin').querySelector('.nav-icon').textContent = '⭐';
+}
+
+function showAdminPanel() {
+  isAdminMode = true;
+  document.getElementById('loginScreen').classList.remove('visible');
+  document.getElementById('mainView').style.display = 'none';
+  document.getElementById('adminView').classList.add('visible');
+  document.getElementById('nav-admin').querySelector('span:last-child').textContent = 'Admin';
+  document.getElementById('nav-admin').querySelector('.nav-icon').textContent = '⚙️';
+
+  if (currentUser) {
+    document.getElementById('adminAvatar').src = currentUser.user_metadata?.avatar_url || '';
+    document.getElementById('adminName').textContent = currentUser.user_metadata?.full_name || currentUser.email;
+  }
+
+  loadAdminData();
+}
+
+// Check for Google OAuth redirect on page load
+async function checkAuthRedirect() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session && window.location.hash.includes('access_token')) {
+    currentUser = session.user;
+    showAdminPanel();
+  }
 }
 
 // ============================================================
-// DERIVE STATUS from regulation data
+// ADMIN DATA LOADING
 // ============================================================
+async function loadAdminData() {
+  // Populate species pickers
+  const { data: species } = await db.from('species').select('id, name, water_type').order('name');
+  if (!species) return;
+
+  const picker = document.getElementById('adminSpeciesPicker');
+  const closurePicker = document.getElementById('new_closure_species');
+
+  species.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} (${s.water_type})`;
+    picker.appendChild(opt.cloneNode(true));
+    closurePicker.appendChild(opt);
+  });
+
+  loadClosures();
+}
+
+async function loadSpeciesForEdit() {
+  const speciesId = document.getElementById('adminSpeciesPicker').value;
+  if (!speciesId) { document.getElementById('editForm').style.display = 'none'; return; }
+
+  document.getElementById('editForm').style.display = 'block';
+
+  // Load species info
+  const { data: s } = await db.from('species').select('*').eq('id', speciesId).single();
+  if (s) {
+    document.getElementById('edit_description').value = s.description || '';
+    document.getElementById('edit_id_tips').value = s.identification_tips || '';
+    document.getElementById('edit_image_url').value = s.image_url || '';
+    if (s.image_url) {
+      const prev = document.getElementById('edit_img_preview');
+      prev.src = s.image_url;
+      prev.classList.add('visible');
+    } else {
+      document.getElementById('edit_img_preview').classList.remove('visible');
+    }
+  }
+
+  // Load regulation
+  const { data: reg } = await db.from('regulations').select('*').eq('species_id', speciesId).limit(1).single();
+  if (reg) {
+    document.getElementById('edit_bag_limit').value = reg.bag_limit ?? '';
+    document.getElementById('edit_possession_limit').value = reg.possession_limit ?? '';
+    document.getElementById('edit_size_min').value = reg.size_min_inches ?? '';
+    document.getElementById('edit_size_max').value = reg.size_max_inches ?? '';
+    document.getElementById('edit_bag_note').value = reg.bag_limit_note || '';
+    document.getElementById('edit_size_note').value = reg.size_note || '';
+    document.getElementById('edit_gear').value = reg.gear_restricted || '';
+    document.getElementById('edit_notes').value = reg.special_notes || '';
+    document.getElementById('edit_ccr').value = reg.ccr_section || '';
+    document.getElementById('edit_report_card').checked = reg.report_card_required || false;
+    document.getElementById('edit_catch_release').checked = reg.catch_release_only || false;
+
+    // Format season display
+    const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (reg.season_open_month) {
+      document.getElementById('edit_season_open').value = `${months[reg.season_open_month]} ${reg.season_open_day}`;
+      document.getElementById('edit_season_close').value = `${months[reg.season_close_month]} ${reg.season_close_day}`;
+    } else {
+      document.getElementById('edit_season_open').value = 'Year-round';
+      document.getElementById('edit_season_close').value = '';
+    }
+  } else {
+    // Clear form for new regulation
+    ['edit_bag_limit','edit_possession_limit','edit_size_min','edit_size_max',
+     'edit_bag_note','edit_size_note','edit_gear','edit_notes','edit_ccr',
+     'edit_season_open','edit_season_close'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('edit_report_card').checked = false;
+    document.getElementById('edit_catch_release').checked = false;
+  }
+}
+
+async function saveRegulation() {
+  const speciesId = parseInt(document.getElementById('adminSpeciesPicker').value);
+  if (!speciesId) return;
+
+  const btn = document.getElementById('saveRegBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const data = {
+    species_id: speciesId,
+    bag_limit: parseInt(document.getElementById('edit_bag_limit').value) || null,
+    possession_limit: parseInt(document.getElementById('edit_possession_limit').value) || null,
+    size_min_inches: parseFloat(document.getElementById('edit_size_min').value) || null,
+    size_max_inches: parseFloat(document.getElementById('edit_size_max').value) || null,
+    bag_limit_note: document.getElementById('edit_bag_note').value || null,
+    size_note: document.getElementById('edit_size_note').value || null,
+    gear_restricted: document.getElementById('edit_gear').value || null,
+    special_notes: document.getElementById('edit_notes').value || null,
+    ccr_section: document.getElementById('edit_ccr').value || null,
+    report_card_required: document.getElementById('edit_report_card').checked,
+    catch_release_only: document.getElementById('edit_catch_release').checked,
+    last_verified: new Date().toISOString().split('T')[0],
+    is_active: true
+  };
+
+  // Check if regulation exists
+  const { data: existing } = await db.from('regulations').select('id').eq('species_id', speciesId).limit(1).single();
+
+  let error;
+  if (existing) {
+    ({ error } = await db.from('regulations').update(data).eq('species_id', speciesId));
+  } else {
+    ({ error } = await db.from('regulations').insert(data));
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💾 Save Regulation';
+
+  if (error) { alert('Error saving: ' + error.message); return; }
+  showToast('✓ Regulation saved!');
+  // Reload main app data in background
+  loadData();
+}
+
+async function saveSpeciesInfo() {
+  const speciesId = document.getElementById('adminSpeciesPicker').value;
+  if (!speciesId) return;
+
+  const { error } = await db.from('species').update({
+    description: document.getElementById('edit_description').value || null,
+    identification_tips: document.getElementById('edit_id_tips').value || null,
+    image_url: document.getElementById('edit_image_url').value || null,
+  }).eq('id', speciesId);
+
+  if (error) { alert('Error saving: ' + error.message); return; }
+  showToast('✓ Species info saved!');
+  loadData();
+}
+
+// ============================================================
+// CLOSURES
+// ============================================================
+async function loadClosures() {
+  const { data: closures } = await db.from('emergency_closures').select('*, species(name)').eq('is_active', true).order('created_at', { ascending: false });
+  const list = document.getElementById('closuresList');
+
+  if (!closures || closures.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">No active closures</div>';
+    return;
+  }
+
+  list.innerHTML = closures.map(c => `
+    <div class="closure-item">
+      <div class="closure-item-title">${c.title}</div>
+      <div class="closure-item-sub">${c.effective_date} ${c.expiration_date ? '→ ' + c.expiration_date : '(no end date)'} · ${c.species?.name || 'All species'}</div>
+      <div style="font-size:13px;color:#7a4f00;margin-bottom:10px">${c.description}</div>
+      <button class="btn btn-danger" style="margin-top:0;padding:8px 14px;font-size:12px" onclick="deactivateClosure(${c.id})">Remove Closure</button>
+    </div>
+  `).join('');
+}
+
+async function addClosure() {
+  const title = document.getElementById('new_closure_title').value.trim();
+  const desc = document.getElementById('new_closure_desc').value.trim();
+  const start = document.getElementById('new_closure_start').value;
+
+  if (!title || !desc || !start) { alert('Please fill in title, description, and effective date.'); return; }
+
+  const { error } = await db.from('emergency_closures').insert({
+    title,
+    description: desc,
+    effective_date: start,
+    expiration_date: document.getElementById('new_closure_end').value || null,
+    species_id: document.getElementById('new_closure_species').value || null,
+    source_url: document.getElementById('new_closure_url').value || null,
+    is_active: true
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+
+  ['new_closure_title','new_closure_desc','new_closure_start','new_closure_end','new_closure_url'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('new_closure_species').value = '';
+  showToast('✓ Closure added!');
+  loadClosures();
+  loadData();
+}
+
+async function deactivateClosure(id) {
+  if (!confirm('Remove this closure?')) return;
+  await db.from('emergency_closures').update({ is_active: false }).eq('id', id);
+  showToast('✓ Closure removed');
+  loadClosures();
+  loadData();
+}
+
+// ============================================================
+// ADD NEW SPECIES
+// ============================================================
+async function addNewSpecies() {
+  const name = document.getElementById('new_name').value.trim();
+  if (!name) { alert('Please enter a species name.'); return; }
+
+  const { data, error } = await db.from('species').insert({
+    name,
+    scientific_name: document.getElementById('new_scientific').value || null,
+    water_type: document.getElementById('new_water_type').value,
+    category: document.getElementById('new_category').value || null,
+    description: document.getElementById('new_description').value || null,
+    identification_tips: document.getElementById('new_id_tips').value || null,
+    image_url: document.getElementById('new_image_url').value || null,
+  }).select();
+
+  if (error) { alert('Error: ' + error.message); return; }
+
+  ['new_name','new_scientific','new_category','new_description','new_id_tips','new_image_url'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('new_img_preview').classList.remove('visible');
+  showToast('✓ Species added! Now add its regulations.');
+
+  // Switch to regulations tab and refresh picker
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-panel="regulations"]').classList.add('active');
+  document.getElementById('panel-regulations').classList.add('active');
+
+  // Reload species picker
+  const picker = document.getElementById('adminSpeciesPicker');
+  const closurePicker = document.getElementById('new_closure_species');
+  picker.innerHTML = '<option value="">— Pick a species —</option>';
+  closurePicker.innerHTML = '<option value="">— All species / General —</option>';
+  const { data: species } = await db.from('species').select('id, name, water_type').order('name');
+  species.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} (${s.water_type})`;
+    picker.appendChild(opt.cloneNode(true));
+    closurePicker.appendChild(opt);
+  });
+
+  // Select new species
+  if (data && data[0]) {
+    picker.value = data[0].id;
+    loadSpeciesForEdit();
+  }
+
+  loadData();
+}
+
+// ============================================================
+// IMAGE PREVIEW
+// ============================================================
+function previewImage(inputId, previewId) {
+  const url = document.getElementById(inputId).value;
+  const prev = document.getElementById(previewId);
+  if (url) { prev.src = url; prev.classList.add('visible'); }
+  else { prev.classList.remove('visible'); }
+}
+
+// ============================================================
+// TOAST NOTIFICATION
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('saveToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// ADMIN TAB SWITCHING
+// ============================================================
+document.querySelectorAll('.admin-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'closures') loadClosures();
+  });
+});
+
+// ============================================================
+// MAIN APP — SUPABASE DATA LOADING
+// ============================================================
+let allSpecies = [], allRegulations = [];
+let currentFilter = 'all', currentSearch = '';
+let savedIds = JSON.parse(localStorage.getItem('savedSpecies') || '[]');
+
+async function loadData() {
+  try {
+    const [{ data: species }, { data: regulations }, { data: closures }] = await Promise.all([
+      db.from('species').select('*').order('name'),
+      db.from('regulations').select('*').eq('is_active', true),
+      db.from('emergency_closures').select('*').eq('is_active', true)
+    ]);
+
+    allSpecies = species || [];
+    allRegulations = regulations || [];
+
+    if (closures && closures.length > 0) {
+      document.getElementById('alertBanner').style.display = 'flex';
+      document.getElementById('alertText').innerHTML = `<strong>${closures[0].title}</strong>${closures[0].description}`;
+    } else {
+      document.getElementById('alertBanner').style.display = 'none';
+    }
+
+    const statusEl = document.getElementById('dataStatus');
+    statusEl.textContent = `● Live · ${allSpecies.length} species`;
+    statusEl.className = 'data-status live';
+    renderList();
+  } catch(e) {
+    document.getElementById('dataStatus').textContent = '⚠ Connection error';
+    document.getElementById('speciesList').innerHTML = '<div class="no-results"><div class="no-results-icon">📡</div><h3>Connection error</h3><p>Check your internet and try again</p></div>';
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+const EMOJI_MAP = { 'rockfish':'🐠','lingcod':'🎣','halibut':'🫓','yellowtail':'🐟','seabass':'🐡','salmon':'🐟','crab':'🦀','lobster':'🦞','abalone':'🐚','tuna':'🐟','bass':'🐟','trout':'🌈','catfish':'😺','bluegill':'🔵','crappie':'🐟','sturgeon':'🦈','surfperch':'🌊','dorado':'🌈','mahi':'🌈','carp':'🐟','default':'🐟' };
+function getEmoji(name) { const n = name.toLowerCase(); for (const [k,v] of Object.entries(EMOJI_MAP)) if (n.includes(k)) return v; return '🐟'; }
+
 function deriveStatus(reg) {
   if (!reg) return 'open';
-  if (reg.catch_release_only) return 'closed';
-  if (reg.bag_limit === 0) return 'closed';
+  if (reg.catch_release_only || reg.bag_limit === 0) return 'closed';
   if (reg.season_open_month) return 'seasonal';
   return 'open';
 }
-
-function getStatusLabel(status) {
-  switch(status) {
-    case 'open': return 'Open';
-    case 'closed': return 'Closed';
-    case 'seasonal': return 'Seasonal';
-    default: return 'Check Dates';
-  }
-}
-
-function getBadgeClass(status) {
-  switch(status) {
-    case 'open': return 'badge-open';
-    case 'closed': return 'badge-closed';
-    case 'seasonal': return 'badge-seasonal';
-    default: return 'badge-caution';
-  }
-}
-
-// Month name helper
+function getStatusLabel(s) { return s === 'open' ? 'Open' : s === 'closed' ? 'Closed' : 'Seasonal'; }
+function getBadgeClass(s) { return s === 'open' ? 'badge-open' : s === 'closed' ? 'badge-closed' : 'badge-seasonal'; }
 const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
 function formatSeason(reg) {
   if (!reg) return 'Year-round';
   if (reg.catch_release_only) return 'Catch & Release Only';
   if (reg.bag_limit === 0) return 'CLOSED';
   if (!reg.season_open_month) return 'Year-round';
-  if (reg.season_note) return reg.season_note;
   return `${MONTHS[reg.season_open_month]} ${reg.season_open_day} – ${MONTHS[reg.season_close_month]} ${reg.season_close_day}`;
 }
-
-// ============================================================
-// APP STATE
-// ============================================================
-let allSpecies = [];
-let allRegulations = [];
-let currentFilter = 'all';
-let currentSearch = '';
-let userLocation = null;
-let savedIds = JSON.parse(localStorage.getItem('savedSpecies') || '[]');
-
-// ============================================================
-// LOAD DATA FROM SUPABASE
-// ============================================================
-async function loadData() {
-  try {
-    // Load species and regulations in parallel
-    const [species, regulations, closures] = await Promise.all([
-      supabase('species', 'select=*&order=name'),
-      supabase('regulations', 'select=*&is_active=eq.true'),
-      supabase('emergency_closures', 'select=*&is_active=eq.true')
-    ]);
-
-    allSpecies = species;
-    allRegulations = regulations;
-
-    // Show emergency closure banner if any active
-    if (closures && closures.length > 0) {
-      const c = closures[0];
-      document.getElementById('alertBanner').style.display = 'flex';
-      document.getElementById('alertText').innerHTML = `
-        <strong>${c.title}</strong>${c.description}
-      `;
-    }
-
-    // Update data status
-    const statusEl = document.getElementById('dataStatus');
-    statusEl.textContent = `● Live data from CDFW database · ${species.length} species loaded`;
-    statusEl.className = 'data-status live';
-
-    renderList();
-
-  } catch (err) {
-    console.error('Failed to load from Supabase:', err);
-    // Fallback message
-    document.getElementById('dataStatus').textContent = '⚠ Could not connect to database — check your connection';
-    document.getElementById('dataStatus').className = 'data-status cached';
-    document.getElementById('speciesList').innerHTML = `
-      <div class="no-results">
-        <div class="no-results-icon">📡</div>
-        <h3>Connection error</h3>
-        <p>Could not load regulations. Please check your internet connection and try again.</p>
-      </div>
-    `;
-  }
-}
-
-// ============================================================
-// GET REGULATION FOR SPECIES
-// ============================================================
-function getRegForSpecies(speciesId) {
-  return allRegulations.find(r => r.species_id === speciesId) || null;
-}
+function getRegForSpecies(id) { return allRegulations.find(r => r.species_id === id) || null; }
 
 // ============================================================
 // RENDER LIST
@@ -580,163 +924,84 @@ function renderList() {
   const list = document.getElementById('speciesList');
   let filtered = [...allSpecies];
 
-  // Search filter
   if (currentSearch) {
     const q = currentSearch.toLowerCase();
-    filtered = filtered.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.category || '').toLowerCase().includes(q) ||
-      (s.scientific_name || '').toLowerCase().includes(q)
-    );
+    filtered = filtered.filter(s => s.name.toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
   }
+  if (currentFilter === 'saltwater') filtered = filtered.filter(s => s.water_type === 'saltwater' || s.water_type === 'both');
+  else if (currentFilter === 'freshwater') filtered = filtered.filter(s => s.water_type === 'freshwater' || s.water_type === 'both');
+  else if (currentFilter === 'open') filtered = filtered.filter(s => deriveStatus(getRegForSpecies(s.id)) === 'open');
+  else if (currentFilter === 'caution') filtered = filtered.filter(s => { const st = deriveStatus(getRegForSpecies(s.id)); return st === 'seasonal'; });
 
-  // Type filter
-  if (currentFilter === 'saltwater') {
-    filtered = filtered.filter(s => s.water_type === 'saltwater' || s.water_type === 'both');
-  } else if (currentFilter === 'freshwater') {
-    filtered = filtered.filter(s => s.water_type === 'freshwater' || s.water_type === 'both');
-  } else if (currentFilter === 'open') {
-    filtered = filtered.filter(s => {
-      const reg = getRegForSpecies(s.id);
-      return deriveStatus(reg) === 'open';
-    });
-  } else if (currentFilter === 'caution') {
-    filtered = filtered.filter(s => {
-      const reg = getRegForSpecies(s.id);
-      const st = deriveStatus(reg);
-      return st === 'seasonal' || st === 'caution';
-    });
-  }
-
-  if (filtered.length === 0) {
-    list.innerHTML = `<div class="no-results">
-      <div class="no-results-icon">🔍</div>
-      <h3>No species found</h3>
-      <p>Try a different search term or filter</p>
-    </div>`;
-    return;
-  }
+  if (!filtered.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">🔍</div><h3>No species found</h3><p>Try a different search or filter</p></div>'; return; }
 
   list.innerHTML = filtered.map(s => {
     const reg = getRegForSpecies(s.id);
     const status = deriveStatus(reg);
-    const emoji = getEmoji(s.name);
-    const typeBg = s.water_type || 'both';
-    const typeLabel = s.water_type === 'both' ? 'Fresh + Salt' :
-                      s.water_type === 'saltwater' ? 'Saltwater' : 'Freshwater';
-    const isSaved = savedIds.includes(s.id);
-
+    const typeLabel = s.water_type === 'both' ? 'Fresh + Salt' : s.water_type === 'saltwater' ? 'Saltwater' : 'Freshwater';
+    const imgEl = s.image_url
+      ? `<img class="species-img" src="${s.image_url}" alt="${s.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+      : '';
+    const emojiEl = `<div class="species-emoji ${s.water_type||'both'}" ${s.image_url ? 'style="display:none"' : ''}>${getEmoji(s.name)}</div>`;
     return `
       <div class="species-card ${status}" onclick="openDrawer(${s.id})">
-        <div class="species-emoji ${typeBg}">${emoji}</div>
+        ${imgEl}${emojiEl}
         <div class="species-info">
-          <div class="species-name">${s.name} ${isSaved ? '⭐' : ''}</div>
-          <div class="species-sub">${s.category || 'Fish'} · ${typeLabel}</div>
+          <div class="species-name">${s.name}</div>
+          <div class="species-sub">${s.category||'Fish'} · ${typeLabel}</div>
         </div>
         <span class="species-badge ${getBadgeClass(status)}">${getStatusLabel(status)}</span>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
 // ============================================================
-// OPEN DETAIL DRAWER
+// DRAWER
 // ============================================================
 function openDrawer(id) {
-  const s = allSpecies.find(x => x.id === id);
-  if (!s) return;
-
+  const s = allSpecies.find(x => x.id === id); if (!s) return;
   const reg = getRegForSpecies(id);
   const status = deriveStatus(reg);
-  const emoji = getEmoji(s.name);
-  const typeBg = s.water_type || 'both';
   const isSaved = savedIds.includes(id);
-
   const season = formatSeason(reg);
-  const bagLimit = reg ? (reg.bag_limit === 0 ? '0' : reg.bag_limit || '—') : '—';
-  const sizeMin = reg ? (reg.size_min_inches ? `${reg.size_min_inches}"` : 'None') : '—';
-  const possession = reg ? (reg.possession_limit || '—') : '—';
-  const bagColor = status === 'closed' ? 'danger' : '';
-  const noteType = status === 'closed' ? 'danger-note' : reg?.season_open_month ? 'warning' : '';
+  const bag = reg ? (reg.bag_limit === 0 ? '0' : reg.bag_limit ?? '—') : '—';
+  const size = reg?.size_min_inches ? `${reg.size_min_inches}"` : 'None';
+  const pos = reg?.possession_limit ?? '—';
+  const noteClass = status === 'closed' ? 'danger-note' : reg?.season_open_month ? 'warning' : '';
+
+  const imgEl = s.image_url
+    ? `<img class="drawer-img ${s.water_type||'both'}" src="${s.image_url}" alt="${s.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">` : '';
+  const emojiEl = `<div class="drawer-emoji ${s.water_type||'both'}" ${s.image_url ? 'style="display:none"' : ''}>${getEmoji(s.name)}</div>`;
 
   document.getElementById('drawerContent').innerHTML = `
     <div class="drawer-header">
       <div class="drawer-species-row">
-        <div class="drawer-emoji ${typeBg}">${emoji}</div>
-        <div>
-          <div class="drawer-title">${s.name}</div>
-          <div class="drawer-scientific">${s.scientific_name || ''}</div>
-        </div>
+        ${imgEl}${emojiEl}
+        <div><div class="drawer-title">${s.name}</div><div class="drawer-scientific">${s.scientific_name||''}</div></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div class="drawer-status ${status}">
-          <span class="status-dot"></span>
-          ${getStatusLabel(status)}
-        </div>
-        <button onclick="toggleSave(${id})" id="saveBtn${id}"
-          style="background:${isSaved ? '#fff8e1' : 'var(--bg)'};border:1.5px solid ${isSaved ? '#f0a500' : 'var(--border)'};
-          border-radius:100px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit">
-          ${isSaved ? '⭐ Saved' : '☆ Save'}
+        <div class="drawer-status ${status}"><span class="status-dot"></span>${getStatusLabel(status)}</div>
+        <button onclick="toggleSave(${id})" id="saveBtn${id}" style="background:${isSaved?'#fff8e1':'var(--bg)'};border:1.5px solid ${isSaved?'#f0a500':'var(--border)'};border-radius:100px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit">
+          ${isSaved?'⭐ Saved':'☆ Save'}
         </button>
       </div>
     </div>
-
     <div class="reg-section">
       <div class="reg-section-title">Season & Limits</div>
       <div class="reg-grid">
-        <div class="reg-tile">
-          <div class="reg-tile-label">Season</div>
-          <div class="reg-tile-value ${status === 'closed' ? 'danger' : ''}"
-            style="font-size:${season.length > 10 ? '12px' : '16px'};margin-top:2px;line-height:1.3">${season}</div>
-        </div>
-        <div class="reg-tile">
-          <div class="reg-tile-label">Daily bag limit</div>
-          <div class="reg-tile-value ${bagColor}">${bagLimit}</div>
-          <div class="reg-tile-sub">${reg?.bag_limit_note || 'Per person per day'}</div>
-        </div>
-        <div class="reg-tile">
-          <div class="reg-tile-label">Minimum size</div>
-          <div class="reg-tile-value">${sizeMin}</div>
-          <div class="reg-tile-sub">${reg?.size_note || ''}</div>
-        </div>
-        <div class="reg-tile">
-          <div class="reg-tile-label">Possession limit</div>
-          <div class="reg-tile-value">${possession}</div>
-          <div class="reg-tile-sub">Max you can have</div>
-        </div>
+        <div class="reg-tile"><div class="reg-tile-label">Season</div><div class="reg-tile-value ${status==='closed'?'danger':''}" style="font-size:${season.length>10?'12px':'16px'};margin-top:2px;line-height:1.3">${season}</div></div>
+        <div class="reg-tile"><div class="reg-tile-label">Daily bag limit</div><div class="reg-tile-value ${status==='closed'?'danger':''}">${bag}</div><div class="reg-tile-sub">${reg?.bag_limit_note||'Per person per day'}</div></div>
+        <div class="reg-tile"><div class="reg-tile-label">Minimum size</div><div class="reg-tile-value">${size}</div><div class="reg-tile-sub">${reg?.size_note||''}</div></div>
+        <div class="reg-tile"><div class="reg-tile-label">Possession limit</div><div class="reg-tile-value">${pos}</div><div class="reg-tile-sub">Max you can have</div></div>
       </div>
-
-      ${reg?.gear_restricted ? `
-        <div class="reg-section-title">Gear Rules</div>
-        <div class="reg-note" style="margin-bottom:16px">${reg.gear_restricted}</div>
-      ` : ''}
-
-      ${reg?.special_notes ? `
-        <div class="reg-section-title">Important Notes</div>
-        <div class="reg-note ${noteType}">${reg.special_notes}</div>
-      ` : ''}
-
-      ${reg?.report_card_required ? `
-        <div class="reg-note warning">📋 Report card required: ${reg.report_card_name || 'Check CDFW for details'}</div>
-      ` : ''}
-
-      ${s.description ? `
-        <div class="reg-section-title" style="margin-top:8px">About this species</div>
-        <div class="reg-note">${s.description}</div>
-      ` : ''}
-
-      ${s.identification_tips ? `
-        <div class="reg-section-title" style="margin-top:8px">How to identify</div>
-        <div class="reg-note">${s.identification_tips}</div>
-      ` : ''}
+      ${reg?.gear_restricted?`<div class="reg-section-title">Gear Rules</div><div class="reg-note" style="margin-bottom:16px">${reg.gear_restricted}</div>`:''}
+      ${reg?.special_notes?`<div class="reg-section-title">Important Notes</div><div class="reg-note ${noteClass}">${reg.special_notes}</div>`:''}
+      ${reg?.report_card_required?`<div class="reg-note warning">📋 Report card required${reg.report_card_name?': '+reg.report_card_name:''}</div>`:''}
+      ${s.description?`<div class="reg-section-title" style="margin-top:8px">About</div><div class="reg-note">${s.description}</div>`:''}
+      ${s.identification_tips?`<div class="reg-section-title" style="margin-top:8px">How to identify</div><div class="reg-note">${s.identification_tips}</div>`:''}
     </div>
-
-    <div class="source-line">
-      📋 ${reg?.ccr_section || 'CCR Title 14'} · Last verified ${reg?.last_verified || 'See CDFW'}
-    </div>
-    <div class="source-line" style="margin-top:4px;padding-bottom:8px">
-      ⚠️ Always verify current rules at <strong>wildlife.ca.gov</strong> before fishing
-    </div>
+    <div class="source-line">📋 ${reg?.ccr_section||'CCR Title 14'} · Verified ${reg?.last_verified||'See CDFW'}</div>
+    <div class="source-line" style="margin-top:4px;padding-bottom:8px">⚠️ Always verify at <strong>wildlife.ca.gov</strong> before fishing</div>
   `;
 
   document.getElementById('overlay').classList.add('open');
@@ -750,136 +1015,66 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
-// ============================================================
-// SAVE / UNSAVE SPECIES
-// ============================================================
 function toggleSave(id) {
   const idx = savedIds.indexOf(id);
-  if (idx === -1) {
-    savedIds.push(id);
-  } else {
-    savedIds.splice(idx, 1);
-  }
+  if (idx === -1) savedIds.push(id); else savedIds.splice(idx,1);
   localStorage.setItem('savedSpecies', JSON.stringify(savedIds));
   const btn = document.getElementById(`saveBtn${id}`);
   const isSaved = savedIds.includes(id);
-  if (btn) {
-    btn.textContent = isSaved ? '⭐ Saved' : '☆ Save';
-    btn.style.background = isSaved ? '#fff8e1' : 'var(--bg)';
-    btn.style.borderColor = isSaved ? '#f0a500' : 'var(--border)';
-  }
+  if (btn) { btn.textContent = isSaved?'⭐ Saved':'☆ Save'; btn.style.background = isSaved?'#fff8e1':'var(--bg)'; btn.style.borderColor = isSaved?'#f0a500':'var(--border)'; }
   renderList();
 }
 
 // ============================================================
-// GPS LOCATION
+// NAV ACTIONS
 // ============================================================
-function getLocation() {
-  const banner = document.getElementById('gpsBanner');
-  banner.innerHTML = `
-    <span style="font-size:20px">📍</span>
-    <div class="gps-text"><strong>Getting your location…</strong>Please allow location access</div>
-  `;
-  if (!navigator.geolocation) {
-    banner.innerHTML = `<span>❌</span><div class="gps-text"><strong>GPS not available</strong>Your browser doesn't support location</div>`;
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos => {
-    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    const zone = detectZone(userLocation.lat, userLocation.lng);
-    banner.innerHTML = `
-      <span style="font-size:20px">✅</span>
-      <div class="gps-text">
-        <strong>Location detected</strong>
-        You're in: ${zone} · Showing relevant regulations
-      </div>
-    `;
-    // Filter to relevant water type based on zone
-    if (zone.includes('Ocean') || zone.includes('Bay')) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector('[data-filter="saltwater"]').classList.add('active');
-      currentFilter = 'saltwater';
-      renderList();
-    }
-  }, () => {
-    banner.innerHTML = `
-      <span style="font-size:20px">📍</span>
-      <div class="gps-text"><strong>Location access denied</strong>Enable location in browser settings</div>
-    `;
-  });
+function showMain() {
+  if (isAdminMode) return;
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===0));
+  renderList();
 }
 
-function detectZone(lat, lng) {
-  // Simple California zone detection based on lat/lng
-  if (lng < -116 && lat < 35) return 'Southern California Ocean';
-  if (lat > 37.5 && lng < -122) return 'Northern California Ocean';
-  if (lat > 37 && lat < 38 && lng > -122.5 && lng < -121.5) return 'SF Bay / Delta';
-  if (lat > 36 && lat < 38 && lng > -121) return 'Central Valley';
-  if (lat > 38 && lng > -121) return 'Northern California Rivers';
-  if (lat > 36.5 && lng > -119.5) return 'Sierra Nevada';
-  return 'California Waters';
-}
-
-// ============================================================
-// SHOW ALERTS VIEW
-// ============================================================
 async function showAlerts() {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  try {
-    const closures = await supabase('emergency_closures', 'select=*&is_active=eq.true');
-    const list = document.getElementById('speciesList');
-    if (!closures || closures.length === 0) {
-      list.innerHTML = `<div class="no-results">
-        <div class="no-results-icon">✅</div>
-        <h3>No active closures</h3>
-        <p>No emergency regulations in effect right now</p>
-      </div>`;
-      return;
-    }
-    list.innerHTML = closures.map(c => `
-      <div class="species-card caution" style="flex-direction:column;align-items:flex-start;gap:8px">
-        <div style="display:flex;gap:10px;align-items:center;width:100%">
-          <span style="font-size:24px">⚠️</span>
-          <div>
-            <div class="species-name">${c.title}</div>
-            <div class="species-sub">Effective ${c.effective_date}${c.expiration_date ? ' · Expires ' + c.expiration_date : ''}</div>
-          </div>
-        </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5;padding-left:34px">${c.description}</div>
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===2));
+  const { data: closures } = await db.from('emergency_closures').select('*').eq('is_active', true);
+  const list = document.getElementById('speciesList');
+  if (!closures?.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">✅</div><h3>No active closures</h3><p>No emergency regulations right now</p></div>'; return; }
+  list.innerHTML = closures.map(c => `
+    <div class="species-card caution" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div style="display:flex;gap:10px;align-items:center;width:100%">
+        <span style="font-size:24px">⚠️</span>
+        <div><div class="species-name">${c.title}</div><div class="species-sub">Effective ${c.effective_date}${c.expiration_date?' · Expires '+c.expiration_date:''}</div></div>
       </div>
-    `).join('');
-  } catch(e) {
-    console.error(e);
-  }
+      <div style="font-size:13px;color:var(--text);line-height:1.5">${c.description}</div>
+    </div>`).join('');
 }
 
-// ============================================================
-// SHOW SAVED VIEW
-// ============================================================
 function showSaved() {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===3));
   const saved = allSpecies.filter(s => savedIds.includes(s.id));
   const list = document.getElementById('speciesList');
-  if (saved.length === 0) {
-    list.innerHTML = `<div class="no-results">
-      <div class="no-results-icon">⭐</div>
-      <h3>No saved species yet</h3>
-      <p>Tap any species, then tap "Save" to add it here</p>
-    </div>`;
-    return;
-  }
-  const prev = currentFilter;
-  currentFilter = 'all';
-  const prevSearch = currentSearch;
-  currentSearch = '';
-  const prevSpecies = allSpecies;
+  if (!saved.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">⭐</div><h3>No saved species yet</h3><p>Tap any species, then tap Save</p></div>'; return; }
+  const prev = allSpecies;
   allSpecies = saved;
   renderList();
-  allSpecies = prevSpecies;
-  currentFilter = prev;
-  currentSearch = prevSearch;
+  allSpecies = prev;
+}
+
+function getLocation() {
+  const banner = document.getElementById('gpsBanner');
+  banner.innerHTML = '<span style="font-size:20px">📍</span><div class="gps-text"><strong>Getting your location…</strong>Please allow location access</div>';
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    const zones = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    const zone = pos.coords.latitude > 37.5 && pos.coords.longitude < -122 ? 'Northern CA Ocean' :
+                 pos.coords.latitude > 37 && pos.coords.latitude < 38 ? 'SF Bay / Delta' : 'Southern CA Ocean';
+    banner.innerHTML = `<span style="font-size:20px">✅</span><div class="gps-text"><strong>Location detected</strong>You're near: ${zone}</div>`;
+    currentFilter = 'saltwater';
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.filter==='saltwater'));
+    renderList();
+  }, () => {
+    banner.innerHTML = '<span style="font-size:20px">📍</span><div class="gps-text"><strong>Location access denied</strong>Enable in browser settings</div>';
+  });
 }
 
 // ============================================================
@@ -890,31 +1085,21 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentFilter = tab.dataset.filter;
-    // Reset nav highlight back to species
-    document.querySelectorAll('.nav-item').forEach((n,i) => {
-      n.classList.toggle('active', i === 0);
-    });
+    document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===0));
     renderList();
   });
 });
 
-document.getElementById('search').addEventListener('input', e => {
-  currentSearch = e.target.value.trim();
-  renderList();
-});
+document.getElementById('search').addEventListener('input', e => { currentSearch = e.target.value.trim(); renderList(); });
 
-// Swipe down to close drawer
 let touchStartY = 0;
-document.getElementById('drawer').addEventListener('touchstart', e => {
-  touchStartY = e.touches[0].clientY;
-});
-document.getElementById('drawer').addEventListener('touchend', e => {
-  if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer();
-});
+document.getElementById('drawer').addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; });
+document.getElementById('drawer').addEventListener('touchend', e => { if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer(); });
 
 // ============================================================
-// INIT — load live data on page open
+// INIT
 // ============================================================
+checkAuthRedirect();
 loadData();
 </script>
 </body>
