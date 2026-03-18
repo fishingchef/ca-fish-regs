@@ -1,12 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/api/identify", "destination": "/api/identify.js" },
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/manifest.json", "destination": "/manifest.json" },
-    { "source": "/map.html", "destination": "/map.html" },
-    { "source": "/index.html", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
   "headers": [
     {
       "source": "/sw.js",
@@ -21,5 +13,8 @@
         { "key": "Content-Type", "value": "application/manifest+json" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

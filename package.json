@@ -2,9 +2,10 @@
   "name": "ca-fish-regs",
   "version": "1.0.0",
   "description": "California Fishing Regulations App",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
-    "dev": "npx serve .",
-    "build": "echo 'No build step needed'",
-    "start": "npx serve ."
+    "build": "echo 'No build step'"
   }
 }
