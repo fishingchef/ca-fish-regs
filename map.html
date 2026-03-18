@@ -273,8 +273,8 @@ async function loadMPAs() {
   try {
     // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
     const res = await fetch(
-      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/ds582_v2_MPA/FeatureServer/0/query' +
-      '?where=1%3D1&outFields=FULLNAME,TYPE,SHORTNAME&outSR=4326&f=geojson&resultRecordCount=200'
+      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds582_fpu/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=NAME,TYPE,SHORTNAME&outSR=4326&f=geojson&resultRecordCount=200'
     );
 
     if (!res.ok) throw new Error('CDFW API error');
@@ -288,10 +288,9 @@ async function loadMPAs() {
         const props = f.properties;
         const type = (props.TYPE || '').includes('Reserve') ? 'SMR' :
                      (props.TYPE || '').includes('Conservation') ? 'SMCA' : 'SMCA';
-        // Calculate centroid from bbox
         const bbox = getBBox(f.geometry);
         return {
-          name: props.FULLNAME || props.SHORTNAME || 'MPA',
+          name: props.NAME || props.SHORTNAME || 'MPA',
           type,
           lat: (bbox.minLat + bbox.maxLat) / 2,
           lng: (bbox.minLng + bbox.maxLng) / 2,
@@ -391,7 +390,6 @@ async function loadMPAs() {
   locateUser();
 }
 
-// Draw actual polygon boundaries from GeoJSON
 function drawMPAPolygons(geojson) {
   const geoLayer = L.geoJSON(geojson, {
     style: feature => {
@@ -399,7 +397,7 @@ function drawMPAPolygons(geojson) {
       return {
         color: type === 'SMR' ? '#cc0000' : '#ff8800',
         fillColor: type === 'SMR' ? '#cc0000' : '#ff8800',
-        fillOpacity: type === 'SMR' ? 0.25 : 0.18,
+        fillOpacity: type === 'SMR' ? 0.3 : 0.2,
         weight: 2
       };
     },
@@ -407,16 +405,19 @@ function drawMPAPolygons(geojson) {
       const props = feature.properties;
       const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
       const mpa = {
-        name: props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
+        name: props.NAME || props.SHORTNAME || 'Marine Protected Area',
         type,
         restrictions: getRestrictions(type),
         ccr: 'CCR Title 14, Section 632'
       };
-      layer.on('click', () => showMPADetail(mpa));
-      // Store layer for proximity check
+      layer.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        showMPADetail(mpa);
+      });
       mpaLayers.push({ layer, mpa, isPolygon: true });
     }
   }).addTo(map);
+  console.log('Drew MPA polygons from CDFW GeoJSON');
 }
 
 // GPS proximity check using actual polygon containment when available
@@ -429,7 +430,7 @@ function checkPointInPolygon(lat, lng) {
         const props = feature.properties;
         const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
         return {
-          name: props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
+          name: props.NAME || props.SHORTNAME || 'Marine Protected Area',
           type,
           restrictions: getRestrictions(type),
           ccr: 'CCR Title 14, Section 632'
