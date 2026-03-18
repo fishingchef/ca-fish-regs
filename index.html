@@ -1306,13 +1306,12 @@ document.getElementById('drawer').addEventListener('touchend', e => { if (e.chan
 checkAuthRedirect();
 loadData();
 
-// ============================================================
-// SERVICE WORKER — offline support
-// ============================================================
+// Service worker disabled to prevent caching issues
+// Will re-enable once Fish ID is working
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(() => {
-    console.log('✓ Service worker registered — app works offline');
-  }).catch(e => console.log('SW registration failed:', e));
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(reg => reg.unregister());
+  });
 }
 
 // ============================================================
@@ -1403,6 +1402,7 @@ Respond ONLY with a JSON object — no markdown, no backticks, no extra text:
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      console.error('Gemini error:', response.status, JSON.stringify(err));
       throw new Error(err.error?.message || `API error ${response.status}`);
     }
 
