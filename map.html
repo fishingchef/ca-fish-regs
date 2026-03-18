@@ -235,7 +235,15 @@ const MPAS_FALLBACK = [
   { name: "Bodega Head SMR", type: "SMR", lat: 38.31, lng: -123.07, radius: 3500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(27)" },
   { name: "Farallon Islands SMR", type: "SMR", lat: 37.70, lng: -123.00, radius: 12000, restrictions: "No take of any living or non-living marine resource. Includes all Farallon Islands.", ccr: "CCR Title 14 §632(b)(32)" },
   { name: "Point Reyes Headlands SMR", type: "SMR", lat: 37.99, lng: -123.02, radius: 6000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(29)" },
-  { name: "Año Nuevo SMR", type: "SMR", lat: 37.11, lng: -122.34, radius: 5500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(37)" },
+  { name: "Point Lobos SMR", type: "SMR", lat: 36.52, lng: -121.95, radius: 4500, restrictions: "No take of any living or non-living marine resource. One of California's most protected marine areas. Absolutely no fishing of any kind.", ccr: "CCR Title 14 §632(b)(41)" },
+  { name: "Carmel Bay SMCA", type: "SMCA", lat: 36.55, lng: -121.94, radius: 4000, restrictions: "No take of most species. Some recreational pelagic fishing may be allowed outside core zones. Check specific rules before fishing.", ccr: "CCR Title 14 §632(b)(42)" },
+  { name: "Carmel Pinnacles SMR", type: "SMR", lat: 36.57, lng: -121.98, radius: 3500, restrictions: "No take of any living or non-living marine resource. No fishing of any kind within this reserve.", ccr: "CCR Title 14 §632(b)(40)" },
+  { name: "Lovers Point - Julia Platt SMR", type: "SMR", lat: 36.63, lng: -121.92, radius: 2000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(38)" },
+  { name: "Pacific Grove Marine Gardens SMCA", type: "SMCA", lat: 36.62, lng: -121.91, radius: 1800, restrictions: "No take of most species. Check specific recreational allowances.", ccr: "CCR Title 14 §632(b)(39)" },
+  { name: "Asilomar SMR", type: "SMR", lat: 36.62, lng: -121.94, radius: 1500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(38)" },
+  { name: "Natural Bridges SMR", type: "SMR", lat: 36.95, lng: -122.06, radius: 1800, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(36)" },
+  { name: "Soquel Canyon SMCA", type: "SMCA", lat: 36.78, lng: -121.92, radius: 5000, restrictions: "No take of most species. Check current rules for any recreational allowances.", ccr: "CCR Title 14 §632(b)(35)" },
+  { name: "Monterey State Beach SMR", type: "SMR", lat: 36.60, lng: -121.88, radius: 1500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632" },
   { name: "Point Sur SMR", type: "SMR", lat: 36.31, lng: -121.90, radius: 7000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(44)" },
   { name: "Big Creek SMR", type: "SMR", lat: 36.07, lng: -121.60, radius: 4000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(46)" },
   { name: "Piedras Blancas SMR", type: "SMR", lat: 35.66, lng: -121.28, radius: 5000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(48)" },
@@ -253,31 +261,238 @@ const MPAS_FALLBACK = [
 ];
 
 // ============================================================
-// LOAD MPAS — from Supabase DB, fallback to hardcoded list
+// LOAD MPAS — directly from CDFW ArcGIS API (all official MPAs)
+// Polygon boundaries dataset ds582
+// Coordinate points dataset ds3207 (used as fallback for center points)
 // ============================================================
 let MPAS = [];
+let mpaGeoJSON = null; // stores actual polygon shapes
 
 async function loadMPAs() {
+  setGPSStatus('searching', 'Loading official CDFW MPA boundaries…', '');
   try {
-    const dbMPAs = await fetchMPAs();
-    if (dbMPAs && dbMPAs.length > 0) {
-      MPAS = dbMPAs.map(m => ({
-        name: m.name,
-        type: m.mpa_type && m.mpa_type.includes('Reserve') ? 'SMR' : 'SMCA',
-        lat: m.lat_center,
-        lng: m.lng_center,
-        radius: m.mpa_type && m.mpa_type.includes('Reserve') ? 5000 : 4000,
-        restrictions: m.restrictions,
-        ccr: m.ccr_section || ''
-      })).filter(m => m.lat && m.lng);
-      console.log(`Loaded ${MPAS.length} MPAs from database`);
-    } else {
-      MPAS = MPAS_FALLBACK;
+    // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
+    const res = await fetch(
+      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/ds582_v2_MPA/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=FULLNAME,TYPE,SHORTNAME&outSR=4326&f=geojson&resultRecordCount=200'
+    );
+
+    if (!res.ok) throw new Error('CDFW API error');
+    const data = await res.json();
+
+    if (data.features && data.features.length > 0) {
+      mpaGeoJSON = data;
+      drawMPAPolygons(data);
+      // Also build MPAS array for GPS proximity checks (using feature centroids)
+      MPAS = data.features.map(f => {
+        const props = f.properties;
+        const type = (props.TYPE || '').includes('Reserve') ? 'SMR' :
+                     (props.TYPE || '').includes('Conservation') ? 'SMCA' : 'SMCA';
+        // Calculate centroid from bbox
+        const bbox = getBBox(f.geometry);
+        return {
+          name: props.FULLNAME || props.SHORTNAME || 'MPA',
+          type,
+          lat: (bbox.minLat + bbox.maxLat) / 2,
+          lng: (bbox.minLng + bbox.maxLng) / 2,
+          radius: estimateRadius(bbox),
+          restrictions: getRestrictions(type),
+          ccr: 'CCR Title 14, Section 632',
+          geometry: f.geometry
+        };
+      }).filter(m => m.lat && m.lng && !isNaN(m.lat));
+
+      console.log(`✓ Loaded ${MPAS.length} official CDFW MPAs`);
+      setGPSStatus('searching', 'Getting your location…', '');
+      locateUser();
+      return;
     }
   } catch(e) {
-    console.log('Using fallback MPA data');
-    MPAS = MPAS_FALLBACK;
+    console.warn('CDFW API failed, trying coordinate points API…', e);
   }
+
+  // Fallback: use coordinate points dataset ds3207
+  try {
+    const res = await fetch(
+      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds3207_fmu/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=MPA_Name,Type,Regulation&outSR=4326&f=geojson&resultRecordCount=500'
+    );
+    const data = await res.json();
+
+    if (data.features && data.features.length > 0) {
+      // Group by MPA name to get unique MPAs
+      const mpaMap = {};
+      data.features.forEach(f => {
+        const name = f.properties.MPA_Name;
+        const type = (f.properties.Type || '').includes('Reserve') ? 'SMR' : 'SMCA';
+        const coords = f.geometry?.coordinates;
+        if (!name || !coords) return;
+        if (!mpaMap[name]) {
+          mpaMap[name] = {
+            name, type, lats: [], lngs: [],
+            ccr: f.properties.Regulation || 'CCR Title 14, Section 632'
+          };
+        }
+        mpaMap[name].lats.push(coords[1]);
+        mpaMap[name].lngs.push(coords[0]);
+      });
+
+      MPAS = Object.values(mpaMap).map(m => {
+        const lat = m.lats.reduce((a,b) => a+b, 0) / m.lats.length;
+        const lng = m.lngs.reduce((a,b) => a+b, 0) / m.lngs.length;
+        const latSpread = Math.max(...m.lats) - Math.min(...m.lats);
+        const lngSpread = Math.max(...m.lngs) - Math.min(...m.lngs);
+        const radius = Math.max(1000, Math.min(15000,
+          Math.max(latSpread, lngSpread) * 111000 * 0.6
+        ));
+        return {
+          name: m.name, type: m.type, lat, lng, radius,
+          restrictions: getRestrictions(m.type),
+          ccr: m.ccr
+        };
+      });
+
+      // Draw circles for coordinate-based fallback
+      MPAS.forEach(mpa => {
+        const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+        const circle = L.circle([mpa.lat, mpa.lng], {
+          radius: mpa.radius, color,
+          fillColor: color,
+          fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
+          weight: 2
+        }).addTo(map);
+        circle.on('click', () => showMPADetail(mpa));
+        mpaLayers.push({ circle, mpa });
+      });
+
+      console.log(`✓ Loaded ${MPAS.length} MPAs from coordinate points API`);
+      setGPSStatus('searching', 'Getting your location…', '');
+      locateUser();
+      return;
+    }
+  } catch(e) {
+    console.warn('Both CDFW APIs failed, using fallback data', e);
+  }
+
+  // Final fallback — use hardcoded list
+  MPAS = MPAS_FALLBACK;
+  MPAS.forEach(mpa => {
+    const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+    const circle = L.circle([mpa.lat, mpa.lng], {
+      radius: mpa.radius, color,
+      fillColor: color,
+      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
+      weight: 2
+    }).addTo(map);
+    circle.on('click', () => showMPADetail(mpa));
+    mpaLayers.push({ circle, mpa });
+  });
+  setGPSStatus('searching', 'Getting your location…', '');
+  locateUser();
+}
+
+// Draw actual polygon boundaries from GeoJSON
+function drawMPAPolygons(geojson) {
+  const geoLayer = L.geoJSON(geojson, {
+    style: feature => {
+      const type = (feature.properties.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+      return {
+        color: type === 'SMR' ? '#cc0000' : '#ff8800',
+        fillColor: type === 'SMR' ? '#cc0000' : '#ff8800',
+        fillOpacity: type === 'SMR' ? 0.25 : 0.18,
+        weight: 2
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const props = feature.properties;
+      const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+      const mpa = {
+        name: props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
+        type,
+        restrictions: getRestrictions(type),
+        ccr: 'CCR Title 14, Section 632'
+      };
+      layer.on('click', () => showMPADetail(mpa));
+      // Store layer for proximity check
+      mpaLayers.push({ layer, mpa, isPolygon: true });
+    }
+  }).addTo(map);
+}
+
+// GPS proximity check using actual polygon containment when available
+function checkPointInPolygon(lat, lng) {
+  if (!mpaGeoJSON) return null;
+  const pt = turf_point([lng, lat]);
+  for (const feature of mpaGeoJSON.features) {
+    try {
+      if (isPointInGeoJSON(lat, lng, feature.geometry)) {
+        const props = feature.properties;
+        const type = (props.TYPE || '').includes('Reserve') ? 'SMR' : 'SMCA';
+        return {
+          name: props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
+          type,
+          restrictions: getRestrictions(type),
+          ccr: 'CCR Title 14, Section 632'
+        };
+      }
+    } catch(e) {}
+  }
+  return null;
+}
+
+// Simple point-in-polygon check (ray casting)
+function isPointInGeoJSON(lat, lng, geometry) {
+  if (!geometry) return false;
+  const coords = geometry.type === 'Polygon' ? [geometry.coordinates] :
+                 geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
+  for (const poly of coords) {
+    for (const ring of poly) {
+      if (pointInRing(lng, lat, ring)) return true;
+    }
+  }
+  return false;
+}
+
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Helper: get bounding box of a GeoJSON geometry
+function getBBox(geometry) {
+  const coords = [];
+  function extract(c) {
+    if (typeof c[0] === 'number') coords.push(c);
+    else c.forEach(extract);
+  }
+  extract(geometry.coordinates);
+  const lngs = coords.map(c => c[0]);
+  const lats = coords.map(c => c[1]);
+  return {
+    minLat: Math.min(...lats), maxLat: Math.max(...lats),
+    minLng: Math.min(...lngs), maxLng: Math.max(...lngs)
+  };
+}
+
+// Helper: estimate circle radius from bounding box
+function estimateRadius(bbox) {
+  const latSpan = (bbox.maxLat - bbox.minLat) * 111000;
+  const lngSpan = (bbox.maxLng - bbox.minLng) * 111000 * Math.cos(bbox.minLat * Math.PI / 180);
+  return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
+}
+
+// Helper: get restriction text based on MPA type
+function getRestrictions(type) {
+  if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
+  if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
+  return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
 }
 
 // ============================================================
@@ -439,41 +654,15 @@ function initMap() {
       attribution: '© OpenStreetMap', maxZoom: 18
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
-
     map.on('click', (e) => {
-      if (pinMode) {
-        dropPin(e.latlng.lat, e.latlng.lng);
-      } else {
-        closeMPADrawer();
-      }
+      if (pinMode) dropPin(e.latlng.lat, e.latlng.lng);
+      else closeMPADrawer();
     });
-
-    // Load MPAs from DB then draw them
-    loadMPAs().then(() => {
-      drawMPAs();
-      locateUser();
-    });
-
+    // loadMPAs handles drawing + locateUser internally
+    loadMPAs();
   } catch(e) {
     document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;color:#666">Map failed to load. Check internet connection.</div>';
   }
-}
-
-function drawMPAs() {
-  mpaLayers = [];
-  MPAS.forEach(mpa => {
-    if (!mpa.lat || !mpa.lng) return;
-    const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-    const circle = L.circle([mpa.lat, mpa.lng], {
-      radius: mpa.radius || 5000,
-      color, fillColor: color,
-      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
-      weight: 2
-    }).addTo(map);
-    circle.on('click', (e) => { L.DomEvent.stopPropagation(e); showMPADetail(mpa); });
-    mpaLayers.push({ circle, mpa });
-  });
-  console.log(`Drew ${mpaLayers.length} MPA boundaries`);
 }
 
 // ============================================================
@@ -539,21 +728,52 @@ function setGPSStatus(type, title, detail) {
 // MPA PROXIMITY
 // ============================================================
 function checkMPAProximity(lat, lng) {
+  // First try exact polygon containment (when CDFW polygons loaded)
+  if (mpaGeoJSON) {
+    const inside = checkPointInPolygon(lat, lng);
+    if (inside) {
+      const t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
+      setGPSStatus('warning', `⚠️ INSIDE ${t}!`,
+        `${inside.name} — ${inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}`);
+      showMPADetail(inside);
+      return;
+    }
+    // Check proximity to polygon edges
+    let nearestName = null, nearestDist = Infinity;
+    for (const feature of mpaGeoJSON.features) {
+      const bbox = getBBox(feature.geometry);
+      const centerLat = (bbox.minLat + bbox.maxLat) / 2;
+      const centerLng = (bbox.minLng + bbox.maxLng) / 2;
+      const dist = L.latLng(lat, lng).distanceTo(L.latLng(centerLat, centerLng));
+      const size = estimateRadius(bbox);
+      if (dist < size * 1.3 && dist < nearestDist) {
+        nearestDist = dist;
+        nearestName = feature.properties.FULLNAME || feature.properties.SHORTNAME;
+      }
+    }
+    if (nearestName) {
+      setGPSStatus('caution', `Approaching MPA`, `${nearestName} is nearby — check boundaries before fishing`);
+    } else {
+      setGPSStatus('safe', '✓ Clear — no MPA nearby', 'GPS active');
+    }
+    return;
+  }
+
+  // Fallback: circle-based proximity check
   const userPt = L.latLng(lat, lng);
   let inside = null, nearest = null, nearestDist = Infinity;
-
-  mpaLayers.forEach(({ mpa }) => {
+  mpaLayers.forEach(({ mpa, circle }) => {
+    if (!circle) return;
     const dist = userPt.distanceTo(L.latLng(mpa.lat, mpa.lng));
     if (dist <= mpa.radius) { inside = mpa; }
     else if (dist <= mpa.radius * 1.2 && dist < nearestDist) { nearestDist = dist; nearest = mpa; }
   });
-
   if (inside) {
     const t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
     setGPSStatus('warning', `⚠️ INSIDE ${t}!`, `${inside.name} — ${inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}`);
     showMPADetail(inside);
   } else if (nearest) {
-    setGPSStatus('caution', `Approaching MPA`, `${nearest.name} is nearby — tap the boundary for rules`);
+    setGPSStatus('caution', `Approaching MPA`, `${nearest.name} is nearby — tap boundary for rules`);
   } else {
     setGPSStatus('safe', '✓ Clear — no MPA nearby', 'GPS active');
   }
