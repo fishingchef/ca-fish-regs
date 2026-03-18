@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CA Fish Regs</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fish Regs">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -127,7 +133,50 @@
   .no-results-icon { font-size: 48px; margin-bottom: 12px; }
   .no-results h3 { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
 
-  /* ===================== ADMIN STYLES ===================== */
+  /* ===================== FISH ID STYLES ===================== */
+  #fishIdView { display: none; padding-bottom: 100px; }
+  #fishIdView.visible { display: block; }
+  .fishid-header { background: linear-gradient(155deg, #0a3d62 0%, #0d5a8a 55%, #1a7abf 100%); padding: 56px 20px 28px; position: relative; overflow: hidden; }
+  .fishid-header::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 28px; background: var(--bg); border-radius: 28px 28px 0 0; }
+  .fishid-header-wave { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.04; background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(82,183,136,0.3) 0%, transparent 50%); }
+  .fishid-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 900; color: white; position: relative; z-index: 1; line-height: 1.2; }
+  .fishid-title span { color: var(--kelp-light); }
+  .fishid-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; position: relative; z-index: 1; }
+
+  .fishid-upload-zone { margin: 20px 16px 0; background: var(--white); border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .fishid-upload-zone:active { background: var(--foam); border-color: var(--ocean-light); }
+  .fishid-upload-zone.has-image { padding: 0; border-style: solid; border-color: var(--ocean-light); overflow: hidden; }
+  .fishid-preview { width: 100%; max-height: 280px; object-fit: cover; display: block; border-radius: 14px; }
+  .fishid-upload-icon { font-size: 48px; margin-bottom: 12px; }
+  .fishid-upload-text { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .fishid-upload-sub { font-size: 13px; color: var(--text-muted); }
+
+  .fishid-actions { display: flex; gap: 10px; margin: 12px 16px 0; }
+  .fishid-btn { flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .fishid-btn:active { transform: scale(0.97); }
+  .fishid-btn-camera { background: var(--ocean); color: white; }
+  .fishid-btn-gallery { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+  .fishid-btn-identify { background: var(--kelp); color: white; width: 100%; margin: 0 16px; }
+  .fishid-identify-wrap { margin: 12px 16px 0; }
+
+  .fishid-result { margin: 16px 16px 0; background: var(--white); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .fishid-result-header { background: linear-gradient(135deg, var(--ocean), var(--ocean-mid)); padding: 16px 20px; }
+  .fishid-result-name { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: white; }
+  .fishid-result-sci { font-size: 12px; color: rgba(255,255,255,0.65); font-style: italic; margin-top: 3px; }
+  .fishid-result-body { padding: 16px 20px; }
+  .fishid-confidence { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
+  .fishid-confidence.high { background: #e8f5ee; color: #1a6b3a; }
+  .fishid-confidence.medium { background: #fef3cd; color: #7a5800; }
+  .fishid-confidence.low { background: #fde8e8; color: #a31d1d; }
+
+  .fishid-legal-banner { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 600; }
+  .fishid-legal-banner.legal { background: #e8f5ee; color: #1a6b3a; }
+  .fishid-legal-banner.check { background: #fef3cd; color: #7a5800; }
+  .fishid-legal-banner.protected { background: #fde8e8; color: #a31d1d; }
+
+  .fishid-loading { margin: 20px 16px 0; background: var(--white); border-radius: var(--radius); padding: 32px 20px; text-align: center; box-shadow: var(--shadow-sm); }
+  .fishid-loading-text { font-size: 14px; font-weight: 500; color: var(--text); margin-top: 16px; }
+  .fishid-loading-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
   #adminView { display: none; padding-bottom: 100px; }
   #adminView.visible { display: block; }
 
@@ -267,6 +316,47 @@
   <div class="section-label" style="margin-top:12px">SPECIES REGULATIONS</div>
   <div class="species-list" id="speciesList">
     <div class="loading-state"><div class="spinner"></div><div>Loading California regulations…</div></div>
+  </div>
+</div>
+
+<!-- FISH ID VIEW -->
+<div id="fishIdView">
+  <div class="fishid-header">
+    <div class="fishid-header-wave"></div>
+    <div class="fishid-title">Fish <span>ID</span></div>
+    <div class="fishid-sub">Take a photo — AI identifies your catch instantly</div>
+  </div>
+
+  <input type="file" id="fishIdFileInput" accept="image/*" style="display:none" onchange="handleFishIdFile(event)">
+  <input type="file" id="fishIdCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleFishIdFile(event)">
+
+  <div class="fishid-upload-zone" id="fishIdUploadZone" onclick="document.getElementById('fishIdFileInput').click()">
+    <div class="fishid-upload-icon">🐟</div>
+    <div class="fishid-upload-text">Tap to choose a photo</div>
+    <div class="fishid-upload-sub">Or use camera to photograph your catch</div>
+  </div>
+
+  <div class="fishid-actions">
+    <button class="fishid-btn fishid-btn-camera" onclick="document.getElementById('fishIdCameraInput').click()">📷 Camera</button>
+    <button class="fishid-btn fishid-btn-gallery" onclick="document.getElementById('fishIdFileInput').click()">🖼️ Gallery</button>
+  </div>
+
+  <div class="fishid-identify-wrap">
+    <button class="fishid-btn fishid-btn-identify" id="fishIdBtn" onclick="identifyFish()" style="display:none">
+      🔍 Identify This Fish
+    </button>
+  </div>
+
+  <div id="fishIdLoading" class="fishid-loading" style="display:none">
+    <div class="spinner"></div>
+    <div class="fishid-loading-text">Analyzing your catch…</div>
+    <div class="fishid-loading-sub">Checking California regulations</div>
+  </div>
+
+  <div id="fishIdResult" style="display:none"></div>
+
+  <div style="margin:20px 16px;padding:14px;background:var(--foam);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">
+    ⚠️ AI identification is a guide only. Always verify species ID and regulations at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any fish. Misidentification can result in fines.
   </div>
 </div>
 
@@ -498,6 +588,9 @@
   </div>
   <div class="nav-item" onclick="window.location.href='map.html'">
     <span class="nav-icon">🗺️</span><span>MPA Map</span>
+  </div>
+  <div class="nav-item" id="nav-fishid" onclick="showFishId()">
+    <span class="nav-icon">📷</span><span>Fish ID</span>
   </div>
   <div class="nav-item" onclick="showAlerts()">
     <span class="nav-icon">🔔</span><span>Alerts</span>
@@ -1125,12 +1218,16 @@ function toggleSave(id) {
 // ============================================================
 function showMain() {
   if (isAdminMode) return;
+  document.getElementById('mainView').style.display = 'block';
+  document.getElementById('fishIdView').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===0));
   renderList();
 }
 
 async function showAlerts() {
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===2));
+  document.getElementById('mainView').style.display = 'block';
+  document.getElementById('fishIdView').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===3));
   const { data: closures } = await db.from('emergency_closures').select('*').eq('is_active', true);
   const list = document.getElementById('speciesList');
   if (!closures?.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">✅</div><h3>No active closures</h3><p>No emergency regulations right now</p></div>'; return; }
@@ -1196,6 +1293,192 @@ document.getElementById('drawer').addEventListener('touchend', e => { if (e.chan
 // ============================================================
 checkAuthRedirect();
 loadData();
+
+// ============================================================
+// SERVICE WORKER — offline support
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    console.log('✓ Service worker registered — app works offline');
+  }).catch(e => console.log('SW registration failed:', e));
+}
+
+// ============================================================
+// FISH ID — AI-powered fish identification
+// ============================================================
+let fishIdImageBase64 = null;
+let fishIdImageType = null;
+
+function showFishId() {
+  document.getElementById('mainView').style.display = 'none';
+  document.getElementById('fishIdView').style.display = 'block';
+  document.getElementById('adminView').classList.remove('visible');
+  document.getElementById('alertsView')?.classList.remove('visible');
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===2));
+}
+
+function handleFishIdFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    fishIdImageBase64 = dataUrl.split(',')[1];
+    fishIdImageType = file.type || 'image/jpeg';
+
+    // Show preview
+    const zone = document.getElementById('fishIdUploadZone');
+    zone.classList.add('has-image');
+    zone.innerHTML = `<img src="${dataUrl}" class="fishid-preview" alt="Your catch">`;
+
+    // Show identify button
+    document.getElementById('fishIdBtn').style.display = 'block';
+    document.getElementById('fishIdResult').style.display = 'none';
+    document.getElementById('fishIdLoading').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+async function identifyFish() {
+  if (!fishIdImageBase64) return;
+
+  document.getElementById('fishIdBtn').style.display = 'none';
+  document.getElementById('fishIdLoading').style.display = 'block';
+  document.getElementById('fishIdResult').style.display = 'none';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: fishIdImageType, data: fishIdImageBase64 }
+            },
+            {
+              type: 'text',
+              text: `You are a California fishing regulations expert. Identify the fish in this photo and provide California-specific regulations.
+
+Respond ONLY with a JSON object — no markdown, no backticks, no extra text:
+{
+  "commonName": "Common name of the fish",
+  "scientificName": "Scientific name",
+  "confidence": "high|medium|low",
+  "confidenceReason": "Brief reason for confidence level",
+  "found_in_california": true or false,
+  "legalStatus": "legal|check|protected|unknown",
+  "legalStatusNote": "One sentence on legal status in CA",
+  "bagLimit": "e.g. 10 fish or No limit or CLOSED",
+  "minSize": "e.g. 22 inches or None",
+  "season": "e.g. Open year-round or April-October",
+  "identificationTips": "2-3 key visual features to confirm ID",
+  "lookAlikes": "Similar species to watch out for, or none",
+  "tips": "1-2 practical tips for this species in California"
+}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    renderFishIdResult(result);
+
+  } catch(e) {
+    document.getElementById('fishIdLoading').style.display = 'none';
+    document.getElementById('fishIdResult').style.display = 'block';
+    document.getElementById('fishIdResult').innerHTML = `
+      <div class="fishid-result" style="padding:20px;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">🐟</div>
+        <div style="font-weight:600;margin-bottom:4px">Could not identify fish</div>
+        <div style="font-size:13px;color:var(--text-muted)">Check your connection and try again</div>
+        <button onclick="identifyFish()" style="margin-top:12px;padding:10px 24px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer">Retry</button>
+      </div>`;
+    document.getElementById('fishIdBtn').style.display = 'block';
+  }
+}
+
+function renderFishIdResult(r) {
+  document.getElementById('fishIdLoading').style.display = 'none';
+  document.getElementById('fishIdBtn').style.display = 'block';
+
+  const confidenceColors = { high: 'high', medium: 'medium', low: 'low' };
+  const confidenceLabels = { high: '✓ High confidence', medium: '~ Medium confidence', low: '⚠ Low confidence' };
+  const legalColors = { legal: 'legal', check: 'check', protected: 'protected', unknown: 'check' };
+  const legalIcons = { legal: '✅', check: '⚠️', protected: '🚫', unknown: '❓' };
+
+  const result = document.getElementById('fishIdResult');
+  result.style.display = 'block';
+  result.innerHTML = `
+    <div class="fishid-result">
+      <div class="fishid-result-header">
+        <div class="fishid-result-name">${r.commonName}</div>
+        <div class="fishid-result-sci">${r.scientificName}</div>
+      </div>
+      <div class="fishid-result-body">
+        <div class="fishid-confidence ${confidenceColors[r.confidence] || 'medium'}">
+          ${confidenceLabels[r.confidence] || '~ Medium confidence'}
+        </div>
+        ${r.confidenceReason ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;margin-top:-6px">${r.confidenceReason}</div>` : ''}
+
+        <div class="fishid-legal-banner ${legalColors[r.legalStatus] || 'check'}">
+          ${legalIcons[r.legalStatus] || '❓'} ${r.legalStatusNote}
+        </div>
+
+        <div class="reg-grid">
+          <div class="reg-tile">
+            <div class="reg-tile-label">Bag Limit</div>
+            <div class="reg-tile-value" style="font-size:16px">${r.bagLimit || '—'}</div>
+          </div>
+          <div class="reg-tile">
+            <div class="reg-tile-label">Min Size</div>
+            <div class="reg-tile-value" style="font-size:16px">${r.minSize || 'None'}</div>
+          </div>
+          <div class="reg-tile" style="grid-column:1/-1">
+            <div class="reg-tile-label">Season</div>
+            <div class="reg-tile-value" style="font-size:14px;line-height:1.3">${r.season || '—'}</div>
+          </div>
+        </div>
+
+        ${r.identificationTips ? `
+        <div style="margin-bottom:12px">
+          <div class="reg-section-title">How to confirm ID</div>
+          <div class="reg-note">${r.identificationTips}</div>
+        </div>` : ''}
+
+        ${r.lookAlikes && r.lookAlikes !== 'none' ? `
+        <div style="margin-bottom:12px">
+          <div class="reg-section-title">Watch out for</div>
+          <div class="reg-note warning">⚠️ ${r.lookAlikes}</div>
+        </div>` : ''}
+
+        ${r.tips ? `
+        <div style="margin-bottom:4px">
+          <div class="reg-section-title">Fishing Tips</div>
+          <div class="reg-note">${r.tips}</div>
+        </div>` : ''}
+
+        <div style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">
+          Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any fish. AI can make mistakes.
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Scroll to result
+  result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 </script>
 </body>
 </html>
