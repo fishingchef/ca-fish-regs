@@ -1369,19 +1369,43 @@ async function identifyFish() {
 
   // Gemini free tier — key stored securely in Vercel environment variables
   try {
-    const response = await fetch('/api/identify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: fishIdImageBase64, imageType: fishIdImageType })
-    });
+    // Run twice for reliability — warn if results disagree
+    document.getElementById('fishIdLoading').querySelector('.fishid-loading-sub').textContent = 'Running double-check…';
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Server error ${response.status}`);
+    const [res1, res2] = await Promise.all([
+      fetch('/api/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: fishIdImageBase64, imageType: fishIdImageType })
+      }),
+      fetch('/api/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: fishIdImageBase64, imageType: fishIdImageType })
+      })
+    ]);
+
+    if (!res1.ok) {
+      const err = await res1.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res1.status}`);
     }
 
-    const data = await response.json();
-    const aiResult = data;
+    const data1 = await res1.json();
+    const data2 = res2.ok ? await res2.json().catch(() => null) : null;
+
+    // Check if both IDs agree on the species
+    const agreed = data2 && (
+      data1.commonName?.toLowerCase() === data2.commonName?.toLowerCase() ||
+      data1.scientificName?.toLowerCase() === data2.scientificName?.toLowerCase()
+    );
+
+    // If they disagree, lower confidence and add warning
+    if (data2 && !agreed) {
+      data1.confidence = 'low';
+      data1.confidenceReason = `Uncertain — two analyses gave different results: "${data1.commonName}" vs "${data2.commonName}". Treat with caution.`;
+    }
+
+    const aiResult = data1;
     const matchedSpecies = findSpeciesInDB(aiResult.scientificName || '', aiResult.commonName || '');
     renderFishIdResult(aiResult, matchedSpecies);
 
@@ -1549,6 +1573,9 @@ function renderFishIdResult(r, matchedSpecies) {
         <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
           Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any catch. AI identification can make mistakes.
         </div>
+        <button onclick="identifyFish()" style="width:100%;margin-top:12px;padding:11px;background:var(--bg);color:var(--ocean);border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">
+          🔄 Get Second Opinion
+        </button>
       </div>
     </div>
   `;
