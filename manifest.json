@@ -1,13 +1,21 @@
 {
-  "name": "FishID — California Fishing Regulations",
-  "short_name": "FishID",
-  "description": "Identify your catch and check California fishing regulations instantly",
+  "name": "Fish Smarter \u2014 Own Your Waters.",
+  "short_name": "Fish Smarter",
+  "description": "Smarter fishing intelligence empowering the modern angler.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a3d62",
   "theme_color": "#0a3d62",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
