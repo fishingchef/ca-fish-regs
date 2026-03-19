@@ -17,15 +17,15 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: 'Missing image' }), { status: 400 });
   }
 
-  const prompt = `Identify the California fish, crab, or shellfish in this photo. Respond ONLY with this JSON, no other text:
-{"commonName":"name","scientificName":"scientific name","confidence":"high|medium|low","confidenceReason":"brief reason","legalStatus":"legal|check|protected|closed","legalStatusNote":"one sentence","bagLimit":"e.g. 10 fish or CLOSED","minSize":"e.g. 22 inches or None","season":"e.g. Open year-round","gearAllowed":"e.g. Hook and line","identificationTips":"2-3 key features","lookAlikes":"similar species or null","tips":"1-2 fishing tips for California"}`;
+  const prompt = `You are a California fishing expert. Identify the species in this photo.
 
-  // Use gemini-2.0-flash — fast, multimodal, free tier friendly
-  const model = 'gemini-2.5-flash';
+Return ONLY a JSON object. Keep all values SHORT (under 100 chars each). No markdown, no backticks:
+
+{"commonName":"","scientificName":"","confidence":"high","confidenceReason":"","legalStatus":"legal","legalStatusNote":"","bagLimit":"","minSize":"","season":"","gearAllowed":"","identificationTips":"","lookAlikes":"","tips":""}`;
 
   try {
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -34,7 +34,11 @@ export default async function handler(req) {
             { inline_data: { mime_type: imageType, data: imageBase64 } },
             { text: prompt }
           ]}],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 800,
+            responseMimeType: 'application/json'
+          }
         })
       }
     );
@@ -50,6 +54,7 @@ export default async function handler(req) {
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (!text) return new Response(JSON.stringify({ error: 'No response from AI' }), { status: 500 });
 
+    // Robust JSON extraction
     let clean = text.replace(/```json|```/g, '').trim();
     const start = clean.indexOf('{');
     const end = clean.lastIndexOf('}');
@@ -57,8 +62,7 @@ export default async function handler(req) {
 
     const result = JSON.parse(clean);
     return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      status: 200, headers: { 'Content-Type': 'application/json' }
     });
 
   } catch(e) {
