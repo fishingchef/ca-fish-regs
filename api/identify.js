@@ -21,7 +21,7 @@ export default async function handler(req) {
 {"commonName":"name","scientificName":"scientific name","confidence":"high|medium|low","confidenceReason":"brief reason","legalStatus":"legal|check|protected|closed","legalStatusNote":"one sentence","bagLimit":"e.g. 10 fish or CLOSED","minSize":"e.g. 22 inches or None","season":"e.g. Open year-round","gearAllowed":"e.g. Hook and line","identificationTips":"2-3 key features","lookAlikes":"similar species or null","tips":"1-2 fishing tips for California"}`;
 
   // Use gemini-2.0-flash — fast, multimodal, free tier friendly
-  const model = 'gemini-2.0-flash';
+  const model = 'gemini-2.5-flash';
 
   try {
     const geminiRes = await fetch(
