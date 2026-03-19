@@ -1492,6 +1492,17 @@ function renderFishIdResult(r, matchedSpecies) {
         </div>
         ${r.confidenceReason ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${r.confidenceReason}</div>` : ''}
 
+        ${confidence === 'low' ? `
+        <div style="background:#fde8e8;border-radius:12px;padding:14px;margin-bottom:14px;border:1.5px solid #c0392b">
+          <div style="font-weight:700;color:#a31d1d;font-size:13px;margin-bottom:6px">⚠️ Low confidence — do NOT rely on this ID</div>
+          <div style="font-size:12px;color:#a31d1d;line-height:1.5">Photo may be unclear, angled, or the species may not be in our training data. Browse the species list manually to confirm, and always verify regulations at <a href="https://wildlife.ca.gov" style="color:#a31d1d;font-weight:600">wildlife.ca.gov</a> before keeping any catch.</div>
+        </div>` : ''}
+
+        ${confidence === 'medium' ? `
+        <div style="background:#fef3cd;border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1.5px solid #f0a500">
+          <div style="font-size:12px;color:#7a5800;line-height:1.5">⚠️ Medium confidence — verify this ID visually before relying on these regulations.</div>
+        </div>` : ''}
+
         <div class="fishid-legal-banner ${legalClass}">
           ${legalIcon} ${legalText}
         </div>
