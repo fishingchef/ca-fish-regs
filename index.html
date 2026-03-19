@@ -1338,21 +1338,34 @@ function handleFishIdFile(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  // Compress image before storing
   const reader = new FileReader();
   reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    fishIdImageBase64 = dataUrl.split(',')[1];
-    fishIdImageType = file.type || 'image/jpeg';
+    const img = new Image();
+    img.onload = () => {
+      // Resize to max 1024px on longest side
+      const maxSize = 1024;
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.8);
+      fishIdImageBase64 = compressed.split(',')[1];
+      fishIdImageType = 'image/jpeg';
 
-    // Show preview
-    const zone = document.getElementById('fishIdUploadZone');
-    zone.classList.add('has-image');
-    zone.innerHTML = `<img src="${dataUrl}" class="fishid-preview" alt="Your catch">`;
-
-    // Show identify button
-    document.getElementById('fishIdBtn').style.display = 'block';
-    document.getElementById('fishIdResult').style.display = 'none';
-    document.getElementById('fishIdLoading').style.display = 'none';
+      // Show preview
+      const zone = document.getElementById('fishIdUploadZone');
+      zone.classList.add('has-image');
+      zone.innerHTML = `<img src="${compressed}" class="fishid-preview" alt="Your catch">`;
+      document.getElementById('fishIdBtn').style.display = 'block';
+      document.getElementById('fishIdResult').style.display = 'none';
+      document.getElementById('fishIdLoading').style.display = 'none';
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
   event.target.value = '';
