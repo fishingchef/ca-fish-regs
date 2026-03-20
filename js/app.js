@@ -8,6 +8,31 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3Lh4gmjt2Wvvp0u76qqkrQ_3h-DqVwY';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── Region config ───────────────────────────────────────────
+// Single source of truth for the active region.
+// Stored in localStorage so user preference persists.
+// When expanding to Oregon/Washington: just update this value
+// or let users pick from the regions table — zero other code changes needed.
+const REGION_CONFIG = {
+  california: { name: 'California', admin1: 'California', country_code: 'US', bbox: { minLat: 32.5, maxLat: 42.0, minLng: -124.5, maxLng: -114.1 } },
+  oregon:     { name: 'Oregon',     admin1: 'Oregon',     country_code: 'US', bbox: { minLat: 41.9, maxLat: 46.3, minLng: -124.6, maxLng: -116.5 } },
+  washington: { name: 'Washington', admin1: 'Washington', country_code: 'US', bbox: { minLat: 45.5, maxLat: 49.0, minLng: -124.8, maxLng: -116.9 } },
+  alaska:     { name: 'Alaska',     admin1: 'Alaska',     country_code: 'US', bbox: { minLat: 54.0, maxLat: 71.5, minLng: -168.0, maxLng: -130.0 } },
+  florida:    { name: 'Florida',    admin1: 'Florida',    country_code: 'US', bbox: { minLat: 24.5, maxLat: 31.0, minLng: -87.6,  maxLng: -80.0  } },
+};
+
+function getUserRegion() {
+  try { return localStorage.getItem('fishsmarter_region') || 'california'; }
+  catch(e) { return 'california'; }
+}
+function setUserRegion(regionId) {
+  try { localStorage.setItem('fishsmarter_region', regionId); }
+  catch(e) {}
+}
+function getRegionConfig() {
+  return REGION_CONFIG[getUserRegion()] || REGION_CONFIG['california'];
+}
+
 // ── Active nav item ─────────────────────────────────────────
 function setActiveNav(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
