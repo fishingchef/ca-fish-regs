@@ -108,7 +108,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text">Analyzing your catch…</div>
-  <div class="loading-sub">Running AI identification twice for accuracy</div>
+  <div class="loading-sub">Analyzing your catch with AI…</div>
 </div>
 
 <!-- Bottom Nav -->
@@ -186,40 +186,75 @@ async function identifyFish() {
       var wait = errData.retryAfter || 60;
       throw new Error('RATE_LIMITED:' + wait);
     }
-    if (!res.ok) throw new Error('API error ' + res.status);
 
     var result = await res.json();
 
-    if (result.error) throw new Error(result.error);
+    // Handle specific 422 errors with user-friendly messages
+    if (res.status === 422) {
+      var icon = '🔍', userMsg = result.message || 'Could not identify species.';
+      if (result.error === 'not_a_fish') icon = '📷';
+      if (result.error === 'poor_image') icon = '💡';
+      document.getElementById('resultArea').innerHTML =
+        '<div class="result-card" style="text-align:center;padding:24px">'
+        + '<div style="font-size:40px;margin-bottom:12px">' + icon + '</div>'
+        + '<p style="font-weight:600;font-size:15px;margin-bottom:8px">' + userMsg + '</p>'
+        + '<button class="second-opinion" onclick="identifyFish()" style="margin-top:12px">🔄 Try Again</button>'
+        + '</div>';
+      return;
+    }
 
-    // Look up species in DB for additional regulation details
+    if (!res.ok) throw new Error(result.error || 'API error ' + res.status);
+
+    // Look up species in DB — try exact full name first, then scientific, then partial
     var matched = null;
     if (result.commonName) {
-      var firstWord = result.commonName.split(' ')[0];
-      var specRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', '%' + firstWord + '%').limit(3);
-      if (specRes.data && specRes.data.length > 0) {
-        matched = specRes.data[0];
-        if (result.scientificName) {
-          var sciMatch = specRes.data.find(function(s) {
-            return s.scientific_name && s.scientific_name.toLowerCase().includes(result.scientificName.split(' ')[0].toLowerCase());
+      // 1. Try exact full name match first
+      var exactRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', result.commonName).limit(1);
+      if (exactRes.data && exactRes.data.length > 0) {
+        matched = exactRes.data[0];
+      }
+      // 2. Try scientific name match (most accurate)
+      if (!matched && result.scientificName) {
+        var sciGenus = result.scientificName.split(' ')[0];
+        var sciRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('scientific_name', sciGenus + '%').limit(3);
+        if (sciRes.data && sciRes.data.length > 0) {
+          matched = sciRes.data[0];
+          // Prefer exact species match over genus-only
+          var fullSciMatch = sciRes.data.find(function(s) {
+            return s.scientific_name && s.scientific_name.toLowerCase() === result.scientificName.toLowerCase();
           });
-          if (sciMatch) matched = sciMatch;
+          if (fullSciMatch) matched = fullSciMatch;
+        }
+      }
+      // 3. Last resort: full name contains search
+      if (!matched) {
+        var partialRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', '%' + result.commonName + '%').limit(5);
+        if (partialRes.data && partialRes.data.length > 0) {
+          // Score by how closely the name matches
+          var nameLower = result.commonName.toLowerCase();
+          var best = partialRes.data.reduce(function(prev, curr) {
+            var prevScore = prev.name.toLowerCase() === nameLower ? 2 : prev.name.toLowerCase().includes(nameLower) ? 1 : 0;
+            var currScore = curr.name.toLowerCase() === nameLower ? 2 : curr.name.toLowerCase().includes(nameLower) ? 1 : 0;
+            return currScore > prevScore ? curr : prev;
+          });
+          matched = best;
         }
       }
     }
 
     renderResult(result, matched);
   } catch(e) {
-    var msg = '⚠️ Identification failed. Check your connection and try again.';
+    var icon = '⚠️', msg = 'Identification failed. Check your connection and try again.';
     if (e.message && e.message.startsWith('RATE_LIMITED:')) {
+      icon = '⏱️';
       var secs = e.message.split(':')[1];
-      msg = '⏱️ Too many identifications — please wait ' + secs + ' seconds and try again.';
+      msg = 'Too many identifications — please wait ' + secs + ' seconds and try again.';
     }
     document.getElementById('resultArea').innerHTML =
       '<div class="result-card" style="text-align:center;padding:20px">'
-      + '<div style="font-size:32px;margin-bottom:8px">🎣</div>'
+      + '<div style="font-size:32px;margin-bottom:8px">' + icon + '</div>'
       + '<p style="font-weight:600;margin-bottom:6px">' + msg + '</p>'
-      + '<p style="font-size:12px;color:var(--text-muted)">Fish Smarter limits identifications to protect service quality for all anglers.</p>'
+      + '<button class="second-opinion" onclick="identifyFish()" style="margin-top:12px">🔄 Try Again</button>'
       + '</div>';
   } finally {
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -236,15 +271,20 @@ function renderResult(r, matched) {
   var confLabel = conf === 'high' ? '✓ High confidence' : conf === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
 
   var html = '<div class="result-card">'
-    + '<div class="result-header">'
+    + '<div class="result-header" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
     + '<span class="confidence-pill ' + confClass + '">' + confLabel + '</span>'
+    + (r.doubleChecked ? '<span class="confidence-pill" style="background:#e8eef8;color:#1a5276">✓ Double-checked</span>' : '')
+    + (r.imageQuality === 'poor' ? '<span class="confidence-pill" style="background:#fdf0e0;color:#7a4f00">⚠ Poor image</span>' : '')
     + '</div>'
     + '<div class="result-name">' + (r.commonName || 'Unknown species') + '</div>'
     + (r.scientificName ? '<div class="result-sci">' + r.scientificName + '</div>' : '')
-    + '<div style="height:12px"></div>';
+    + '<div style="height:10px"></div>';
 
   if (r.confidenceReason) {
     html += '<div class="result-desc">' + r.confidenceReason + '</div>';
+  }
+  if (r.alternateId) {
+    html += '<div class="reg-note warning" style="margin-bottom:10px">⚠️ Alternate ID: AI also suggested <strong>' + r.alternateId + '</strong> — verify carefully before keeping.</div>';
   }
 
   if (matched) {
@@ -271,7 +311,21 @@ function renderResult(r, matched) {
       html += '<div class="reg-note ' + noteClass + '">' + reg.special_notes + '</div>';
     }
   } else {
-    html += '<div class="reg-note warning">⚠️ Species not found in California regulations database. Always check <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> before keeping any catch.</div>';
+    // No DB match — show AI-provided regulation data as fallback
+    html += '<div style="font-size:11px;font-weight:600;color:var(--ocean-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 AI-Estimated Regulations</div>';
+    html += '<div class="reg-note warning" style="margin-bottom:10px">⚠️ Not in our database — showing AI estimates. Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a></div>';
+    if (r.legalStatus && r.legalStatus !== 'unknown') {
+      var statusColor = r.legalStatus === 'closed' || r.legalStatus === 'protected' ? 'var(--danger)' : r.legalStatus === 'legal' ? 'var(--success)' : 'var(--warning)';
+      html += '<div class="reg-grid">';
+      html += '<div class="reg-tile"><div class="reg-tile-label">Status</div>'
+        + '<div class="reg-tile-value" style="font-size:13px;color:' + statusColor + '">' + r.legalStatus.toUpperCase() + '</div></div>';
+      if (r.bagLimit) html += '<div class="reg-tile"><div class="reg-tile-label">Bag Limit</div><div class="reg-tile-value">' + r.bagLimit + '</div></div>';
+      if (r.minSize) html += '<div class="reg-tile"><div class="reg-tile-label">Min Size</div><div class="reg-tile-value" style="font-size:13px">' + r.minSize + '</div></div>';
+      html += '</div>';
+    }
+    if (r.season) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Season:</strong> ' + r.season + '</div>';
+    if (r.gearAllowed) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Gear:</strong> ' + r.gearAllowed + '</div>';
+    if (r.legalStatusNote) html += '<div class="reg-note warning">' + r.legalStatusNote + '</div>';
   }
 
   if (r.legalStatusNote) {
