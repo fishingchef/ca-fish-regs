@@ -135,20 +135,96 @@ function showError(msg) {
     + '</div>';
 }
 
+// State name/abbreviation lookup — used to detect explicit user intent
+var STATE_HINTS = {
+  'al':'Alabama','alaska':'Alaska','ak':'Alaska','arizona':'Arizona','az':'Arizona',
+  'california':'California','ca':'California','colorado':'Colorado','co':'Colorado',
+  'florida':'Florida','fl':'Florida','georgia':'Georgia','ga':'Georgia',
+  'hawaii':'Hawaii','hi':'Hawaii','idaho':'Idaho','id':'Idaho',
+  'montana':'Montana','mt':'Montana','nevada':'Nevada','nv':'Nevada',
+  'oregon':'Oregon','or':'Oregon','texas':'Texas','tx':'Texas',
+  'utah':'Utah','ut':'Utah','washington':'Washington','wa':'Washington',
+  'wyoming':'Wyoming','wy':'Wyoming',
+};
+
+function detectStateHint(query) {
+  // Check if query ends with a state name or abbreviation
+  // e.g. "Crater Lake OR", "Portland Oregon", "Bodega Bay, CA"
+  var q = query.toLowerCase().replace(/[,\.]/g, ' ').trim();
+  var parts = q.split(/\s+/);
+  // Check last word
+  var last = parts[parts.length - 1];
+  if (STATE_HINTS[last]) return STATE_HINTS[last];
+  // Check last two words as a phrase (e.g. "new york")
+  if (parts.length >= 2) {
+    var lastTwo = parts.slice(-2).join(' ');
+    if (STATE_HINTS[lastTwo]) return STATE_HINTS[lastTwo];
+  }
+  return null;
+}
+
 async function searchLocation() {
   var q = document.getElementById('locInput').value.trim();
   if (!q) return;
   showLoading('Searching for ' + q + '…');
   try {
-    var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=1&language=en&format=json');
+    var regionCfg = (typeof getRegionConfig === 'function') ? getRegionConfig() : { admin1: 'California', country_code: 'US', name: 'California' };
+
+    // Detect if user explicitly stated a state in their query
+    var explicitState = detectStateHint(q);
+
+    // Fetch up to 10 candidates
+    var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
+      + encodeURIComponent(q) + '&count=10&language=en&format=json');
     var data = await res.json();
+
     if (!data.results || !data.results.length) {
-      showError('Location not found. Try a city name like "Monterey" or "San Diego".');
-      return;
+      // If no results and no explicit state, retry with home region appended
+      var retryQ = explicitState ? q : q + ' ' + regionCfg.name;
+      var res2 = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
+        + encodeURIComponent(retryQ) + '&count=5&language=en&format=json');
+      var data2 = await res2.json();
+      if (!data2.results || !data2.results.length) {
+        showError('Location not found. Try adding a state — e.g. "Crater Lake OR" or "Crescent City CA"');
+        return;
+      }
+      data = data2;
     }
-    var r = data.results[0];
-    await loadSpot(r.name + (r.admin1 ? ', ' + r.admin1 : ''), r.latitude, r.longitude);
+
+    var qLower = q.toLowerCase();
+    var scored = data.results.map(function(r) {
+      var score = 0;
+      var admin = (r.admin1 || '').toLowerCase();
+      var country = (r.country_code || '').toUpperCase();
+
+      if (explicitState) {
+        // User told us exactly which state — heavily reward matching it,
+        // apply zero home-region bias
+        if (admin === explicitState.toLowerCase()) score += 150;
+        else if (country === 'US') score += 5;
+      } else {
+        // Ambiguous query — bias toward home region
+        if (admin === regionCfg.admin1.toLowerCase()) score += 100;
+        else if (country === regionCfg.country_code) score += 15;
+      }
+
+      // Name quality bonuses (always apply)
+      if (r.name.toLowerCase() === qLower) score += 50;
+      else if (r.name.toLowerCase().startsWith(qLower)) score += 25;
+      if (r.population) score += Math.min(r.population / 10000, 20);
+
+      return { r: r, score: score };
+    });
+
+    scored.sort(function(a, b) { return b.score - a.score; });
+    var best = scored[0].r;
+    var locName = best.name
+      + (best.admin1 ? ', ' + best.admin1 : '')
+      + (best.country_code !== 'US' ? ', ' + best.country_code : '');
+
+    await loadSpot(locName, best.latitude, best.longitude);
   } catch(e) {
+    console.error('[FS] search error:', e);
     showError('Search failed. Check your connection.');
   }
 }
