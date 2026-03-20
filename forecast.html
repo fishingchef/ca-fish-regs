@@ -407,7 +407,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
           html += '<div class="tide-row">'
             + '<div style="display:flex;align-items:center;gap:10px">'
             + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-            + '<span style="font-size:14px;filter:brightness(0) invert(1)">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
+            + '<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">' + (isH ? '↑' : '↓') + '</span></div>'
             + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
             + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
             + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
@@ -441,7 +441,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
         html += '<div class="tide-row">'
           + '<div style="display:flex;align-items:center;gap:10px">'
           + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-          + '<span style="font-size:14px;filter:brightness(0) invert(1)">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
+          + '<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">' + (isH ? '↑' : '↓') + '</span></div>'
           + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
           + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
           + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';

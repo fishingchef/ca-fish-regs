@@ -14,7 +14,7 @@
 <style>
 :root{--ocean:#0a3d62;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}#map{flex:1;min-height:0}
 .header{background:var(--ocean);padding:48px 20px 12px;position:relative;overflow:hidden;flex-shrink:0}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between}
@@ -34,8 +34,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .safe .gps-dot{background:#27ae60}
 .warning .gps-dot{background:var(--danger)}
 .caution .gps-dot{background:var(--warning)}
-#map{flex:1;position:relative}
-.map-legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);border-radius:10px;padding:8px 12px;font-size:11px;z-index:400;display:flex;flex-wrap:wrap;gap:8px;max-width:280px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+#map{flex:1}#map-wrap{flex:1;position:relative;display:flex;flex-direction:column}
+.map-legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);border-radius:10px;padding:8px 12px;font-size:11px;z-index:400;display:flex;flex-wrap:wrap;gap:8px;max-width:300px;box-shadow:0 2px 8px rgba(0,0,0,.15);pointer-events:none}
 .legend-item{display:flex;align-items:center;gap:5px;color:var(--text-muted)}
 .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
 .legend-you{background:#2980b9;border:2px solid #fff;box-shadow:0 0 0 2px #2980b9}
@@ -81,7 +81,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <div>Detecting your location…</div>
 </div>
 
-<div id="map">
+<div id="map-wrap">
+  <div id="map"></div>
   <div class="map-legend" id="mapLegend">
     <div class="legend-item"><div class="legend-dot" style="background:rgba(204,0,0,.5);border:2px solid #cc0000"></div>SMR (no take)</div>
     <div class="legend-item"><div class="legend-dot" style="background:rgba(255,136,0,.4);border:2px solid #ff8800"></div>SMCA (restricted)</div>
