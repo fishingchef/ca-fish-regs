@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — AI Fish ID</title>
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--ocean-light:#2980b9;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--success:#27ae60;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
+.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1}
+.app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:400;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff;line-height:1.2}
+.page-title span{color:var(--kelp-light)}
+.page-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:6px}
+.content{padding:20px 16px 16px}
+.upload-zone{background:var(--white);border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.upload-zone:active,.upload-zone.drag{background:var(--bg);border-color:var(--ocean-light)}
+.upload-zone.has-image{padding:0;border-style:solid;border-color:var(--ocean-light)}
+.upload-zone img{width:100%;max-height:280px;object-fit:cover;display:block;border-radius:calc(var(--radius) - 2px)}
+.upload-icon{font-size:48px;margin-bottom:12px}
+.upload-text{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-sub{font-size:13px;color:var(--text-muted)}
+.actions{display:flex;gap:10px;margin-top:12px}
+.btn-camera{flex:1;padding:14px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-gallery{flex:1;padding:14px;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.btn-identify{width:100%;padding:16px;background:var(--kelp-light);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;transition:all .2s}
+.btn-identify:disabled{opacity:.5;cursor:not-allowed}
+.result-card{background:var(--white);border-radius:var(--radius);padding:16px;margin-top:16px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.result-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.confidence-pill{padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase}
+.confidence-high{background:#e8f5ee;color:var(--success)}
+.confidence-medium{background:#fdf0e0;color:#7a4f00}
+.confidence-low{background:#fde8e8;color:var(--danger)}
+.result-name{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:var(--text)}
+.result-sci{font-size:12px;color:var(--text-muted);font-style:italic;margin-top:3px}
+.result-desc{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px}
+.reg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.reg-tile{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.reg-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.reg-tile-value{font-size:16px;font-weight:700;color:var(--ocean);font-family:'Unbounded',sans-serif}
+.reg-note{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px}
+.reg-note.warning{background:#fdf0e0;color:#7a4f00;border-left:3px solid var(--warning)}
+.reg-note.danger{background:#fde8e8;color:#7a0000;border-left:3px solid var(--danger)}
+.loading-overlay{position:fixed;inset:0;background:rgba(10,61,98,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;color:#fff;gap:16px}
+.loading-overlay.hidden{display:none}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:15px;font-weight:500}
+.loading-sub{font-size:13px;opacity:.7}
+.second-opinion{width:100%;padding:12px;background:var(--bg);color:var(--ocean);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.disclaimer{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
+.nav-item.active{color:var(--ocean)}
+.nav-icon{font-size:22px;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="app-eyebrow">Fish Smarter</div>
+    <div class="page-title">Fish <span>ID</span></div>
+    <div class="page-sub">Snap a photo — get instant AI identification + regulations</div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- Upload zone -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('galleryInput').click()">
+    <div id="uploadPrompt">
+      <div class="upload-icon">🐟</div>
+      <div class="upload-text">Tap to upload a photo</div>
+      <div class="upload-sub">or use camera below</div>
+    </div>
+    <img id="previewImg" style="display:none">
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+  <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+
+  <!-- Action buttons -->
+  <div class="actions">
+    <button class="btn-camera" onclick="document.getElementById('cameraInput').click()">📷 Camera</button>
+    <button class="btn-gallery" onclick="document.getElementById('galleryInput').click()">🖼 Gallery</button>
+  </div>
+
+  <button class="btn-identify" id="identifyBtn" disabled onclick="identifyFish()">
+    🔍 Identify & Check Regulations
+  </button>
+
+  <!-- Result -->
+  <div id="resultArea"></div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Analyzing your catch…</div>
+  <div class="loading-sub">Running AI identification twice for accuracy</div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <a class="nav-item" data-page="species" href="index.html">
+    <span class="nav-icon">🐟</span><span>Species</span>
+  </a>
+  <a class="nav-item active" data-page="fishid" href="fishid.html">
+    <span class="nav-icon">📷</span><span>Fish ID</span>
+  </a>
+  <a class="nav-item" data-page="forecast" href="forecast.html">
+    <span class="nav-icon">🌊</span><span>Forecast</span>
+  </a>
+  <a class="nav-item" data-page="account" href="account.html">
+    <span class="nav-icon">👤</span><span>Account</span>
+  </a>
+</nav>
+
+<script src="js/app.js"></script>
+<script>
+var imageBase64 = null;
+var imageType = null;
+
+function handlePhoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      // Compress to max 1024px
+      var maxSize = 1024;
+      var w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      var compressed = canvas.toDataURL('image/jpeg', 0.8);
+      imageBase64 = compressed.split(',')[1];
+      imageType = 'image/jpeg';
+
+      // Show preview
+      var preview = document.getElementById('previewImg');
+      var prompt = document.getElementById('uploadPrompt');
+      var zone = document.getElementById('uploadZone');
+      preview.src = compressed;
+      preview.style.display = 'block';
+      prompt.style.display = 'none';
+      zone.classList.add('has-image');
+      document.getElementById('identifyBtn').disabled = false;
+      document.getElementById('resultArea').innerHTML = '';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function identifyFish() {
+  if (!imageBase64) return;
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('identifyBtn').disabled = true;
+
+  try {
+    // Run identification twice for accuracy
+    var prompt = 'Identify this fish, crab, shellfish, or marine creature. Respond in this exact format:\nSPECIES: [common name]\nSCIENTIFIC: [scientific name]\nCONFIDENCE: [high/medium/low]\nDESCRIPTION: [1-2 sentences about the species]\nCALIFORNIA_LEGAL: [yes/no/unknown]\nNOTES: [any important notes about identification or regulations]';
+
+    var [res1, res2] = await Promise.all([
+      callGemini(prompt, imageBase64, imageType),
+      callGemini(prompt, imageBase64, imageType)
+    ]);
+
+    var r1 = parseResponse(res1);
+    var r2 = parseResponse(res2);
+
+    // Combine results
+    var result = r1;
+    if (r1.species && r2.species && r1.species.toLowerCase() !== r2.species.toLowerCase()) {
+      result.confidence = 'low';
+      result.notes = (result.notes || '') + ' Note: Two analyses gave different results (' + r1.species + ' vs ' + r2.species + '). Please verify carefully.';
+    }
+
+    // Look up in database
+    var matched = null;
+    if (result.species) {
+      var specRes = await db.from('species').select('*, regulations(*)').ilike('name', '%' + result.species.split(' ')[0] + '%').limit(3);
+      if (specRes.data && specRes.data.length > 0) {
+        matched = specRes.data[0];
+        // Try scientific name match for better accuracy
+        if (result.scientific) {
+          var sciMatch = specRes.data.find(function(s) {
+            return s.scientific_name && s.scientific_name.toLowerCase().includes(result.scientific.split(' ')[0].toLowerCase());
+          });
+          if (sciMatch) matched = sciMatch;
+        }
+      }
+    }
+
+    renderResult(result, matched);
+  } catch(e) {
+    var msg = '⚠️ Identification failed. Check your connection and try again.';
+    if (e.message && e.message.startsWith('RATE_LIMITED:')) {
+      var secs = e.message.split(':')[1];
+      msg = '⏱️ Too many identifications — please wait ' + secs + ' seconds and try again.';
+    }
+    document.getElementById('resultArea').innerHTML =
+      '<div class="result-card" style="text-align:center;padding:20px">'
+      + '<div style="font-size:32px;margin-bottom:8px">🎣</div>'
+      + '<p style="font-weight:600;margin-bottom:6px">' + msg + '</p>'
+      + '<p style="font-size:12px;color:var(--text-muted)">Fish Smarter limits identifications to protect service quality for all anglers.</p>'
+      + '</div>';
+  } finally {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    document.getElementById('identifyBtn').disabled = false;
+  }
+}
+
+async function callGemini(prompt, base64, mimeType) {
+  var res = await fetch('/api/identify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({imageBase64: base64, imageType: mimeType, prompt: prompt})
+  });
+  if (res.status === 429) {
+    var data = await res.json();
+    var wait = data.retryAfter || 60;
+    throw new Error('RATE_LIMITED:' + wait);
+  }
+  if (!res.ok) throw new Error('API error ' + res.status);
+  var data = await res.json();
+  return data.result || '';
+}
+
+function parseResponse(text) {
+  var r = {};
+  var lines = text.split('\n');
+  lines.forEach(function(line) {
+    var colon = line.indexOf(':');
+    if (colon > -1) {
+      var key = line.substring(0, colon).trim().toUpperCase();
+      var val = line.substring(colon + 1).trim();
+      if (key === 'SPECIES') r.species = val;
+      else if (key === 'SCIENTIFIC') r.scientific = val;
+      else if (key === 'CONFIDENCE') r.confidence = val.toLowerCase();
+      else if (key === 'DESCRIPTION') r.description = val;
+      else if (key === 'CALIFORNIA_LEGAL') r.legal = val.toLowerCase();
+      else if (key === 'NOTES') r.notes = val;
+    }
+  });
+  return r;
+}
+
+function renderResult(r, matched) {
+  var reg = matched && matched.regulations && matched.regulations[0];
+  var status = deriveStatus(reg);
+
+  var confClass = r.confidence === 'high' ? 'confidence-high' : r.confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
+  var confLabel = r.confidence === 'high' ? '✓ High confidence' : r.confidence === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
+
+  var html = '<div class="result-card">'
+    + '<div class="result-header">'
+    + '<span class="confidence-pill ' + confClass + '">' + confLabel + '</span>'
+    + '</div>'
+    + '<div class="result-name">' + (r.species || 'Unknown species') + '</div>'
+    + (r.scientific ? '<div class="result-sci">' + r.scientific + '</div>' : '')
+    + '<div style="height:12px"></div>';
+
+  if (r.description) {
+    html += '<div class="result-desc">' + r.description + '</div>';
+  }
+
+  if (matched) {
+    html += '<div style="font-size:11px;font-weight:600;color:var(--ocean-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 California Regulations</div>';
+    html += '<div class="reg-grid">';
+    html += '<div class="reg-tile"><div class="reg-tile-label">Status</div>'
+      + '<div class="reg-tile-value" style="font-size:13px;color:' + (status === 'open' ? 'var(--success)' : status === 'closed' ? 'var(--danger)' : 'var(--warning)') + '">'
+      + (status === 'open' ? '✅ Open' : status === 'closed' ? '🚫 Closed' : '📅 Seasonal') + '</div></div>';
+
+    if (reg && reg.bag_limit === 0) {
+      html += '<div class="reg-tile"><div class="reg-tile-label">Take</div><div class="reg-tile-value" style="font-size:13px;color:var(--danger)">NO TAKE</div></div>';
+    } else if (reg && reg.bag_limit) {
+      html += '<div class="reg-tile"><div class="reg-tile-label">Bag Limit</div>'
+        + '<div class="reg-tile-value">' + reg.bag_limit + '</div>'
+        + '<div style="font-size:11px;color:var(--text-muted)">per day</div></div>';
+    }
+    if (reg && reg.size_min_inches) {
+      html += '<div class="reg-tile"><div class="reg-tile-label">Min Size</div>'
+        + '<div class="reg-tile-value">' + reg.size_min_inches + '"</div></div>';
+    }
+    html += '</div>';
+    if (reg && reg.special_notes) {
+      var noteClass = reg.special_notes.includes('⚠️') || reg.special_notes.toUpperCase().includes('PROHIBITED') ? 'danger' : 'warning';
+      html += '<div class="reg-note ' + noteClass + '">' + reg.special_notes + '</div>';
+    }
+  } else {
+    html += '<div class="reg-note warning">⚠️ Species not found in California regulations database. Always check <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> before keeping any catch.</div>';
+  }
+
+  if (r.notes) {
+    html += '<div class="reg-note">' + r.notes + '</div>';
+  }
+
+  html += '<div class="disclaimer">AI identification can make mistakes. Always confirm species identification visually and verify current regulations at wildlife.ca.gov before keeping any catch.</div>';
+  html += '<button class="second-opinion" onclick="identifyFish()">🔄 Get Second Opinion</button>';
+  html += '</div>';
+
+  document.getElementById('resultArea').innerHTML = html;
+  document.getElementById('resultArea').scrollIntoView({behavior:'smooth', block:'start'});
+}
+</script>
+</body>
+</html>

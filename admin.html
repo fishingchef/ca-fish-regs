@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — Admin</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a3d62">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--success:#27ae60;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
+.header{background:var(--ocean);padding:48px 20px 16px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between}
+.admin-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#fff}
+.btn-exit{background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 14px;border-radius:100px;font-family:inherit;font-size:12px;cursor:pointer}
+.content{padding:16px}
+.section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:16px 0 8px}
+.admin-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.form-row{margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--ocean-mid)}
+textarea{min-height:72px;resize:vertical}
+.btn-primary{width:100%;padding:13px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-danger{background:var(--danger)}
+.btn-success{background:var(--success)}
+.btn-sm{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit}
+.species-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.species-row:last-child{border-bottom:none}
+.species-name{flex:1;font-size:14px;font-weight:500}
+.species-sub{font-size:11px;color:var(--text-muted)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a3a5a;color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:16px}
+.login-title{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:var(--ocean)}
+.closure-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.closure-item:last-child{border-bottom:none}
+.closure-title{flex:1;font-size:13px;font-weight:500}
+.active-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-title">🔐 Admin Login</div>
+  <p style="font-size:13px;color:var(--text-muted)">Sign in with your Google account to access the admin panel.</p>
+  <button onclick="signInWithGoogle()" style="padding:14px 28px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">
+    Sign in with Google
+  </button>
+  <a href="index.html" style="font-size:13px;color:var(--text-muted)">← Back to app</a>
+</div>
+
+<!-- Admin panel (shown after login) -->
+<div id="adminPanel" style="display:none">
+  <div class="header">
+    <div class="header-wave"></div>
+    <div class="header-content">
+      <div class="admin-title">⚙️ Admin</div>
+      <button class="btn-exit" onclick="window.location.href='index.html'">← Exit</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Species picker -->
+    <div class="section-label">Edit Species & Regulations</div>
+    <div class="admin-card">
+      <div class="form-row">
+        <label>Select Species</label>
+        <select id="speciesPicker" onchange="loadSpeciesForEdit()">
+          <option value="">— choose species —</option>
+        </select>
+      </div>
+      <div id="editForm" style="display:none">
+        <!-- Species info -->
+        <div class="section-label">Species Info</div>
+        <div class="form-row"><label>Common Name</label><input id="edit_name" type="text"></div>
+        <div class="form-row"><label>Scientific Name</label><input id="edit_sci" type="text"></div>
+        <div class="form-row"><label>Water Type</label>
+          <select id="edit_water">
+            <option value="saltwater">Saltwater</option>
+            <option value="freshwater">Freshwater</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Category</label><input id="edit_category" type="text" placeholder="e.g. Rockfish, Invertebrate, Invasive"></div>
+        <div class="form-row"><label>Image URL</label><input id="edit_image" type="url" placeholder="https://..."></div>
+        <div class="form-row"><label>Description</label><textarea id="edit_desc"></textarea></div>
+        <div class="form-row"><label>Identification Tips</label><textarea id="edit_tips"></textarea></div>
+        <button class="btn-primary btn-success" onclick="saveSpeciesInfo()">💾 Save Species Info</button>
+
+        <!-- Regulation -->
+        <div class="section-label" style="margin-top:20px">Regulation Details</div>
+        <div class="form-row"><label>Bag Limit (0 = no take)</label><input id="edit_bag" type="number" min="0"></div>
+        <div class="form-row"><label>Possession Limit</label><input id="edit_possession" type="number" min="0"></div>
+        <div class="form-row"><label>Min Size (inches)</label><input id="edit_size_min" type="number" min="0" step="0.5"></div>
+        <div class="form-row"><label>Max Size (inches)</label><input id="edit_size_max" type="number" min="0" step="0.5"></div>
+        <div class="form-row"><label>Season Note</label><input id="edit_season" type="text" placeholder="e.g. April 1 – Oct 31 or Year-round"></div>
+        <div class="form-row"><label>Gear Restrictions</label><textarea id="edit_gear"></textarea></div>
+        <div class="form-row"><label>Special Notes</label><textarea id="edit_notes"></textarea></div>
+        <div class="form-row"><label>CCR Reference</label><input id="edit_ccr" type="text" placeholder="CCR Title 14 §..."></div>
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:normal;text-transform:none;letter-spacing:0">
+            <input type="checkbox" id="edit_report_card"> Report card required
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:normal;text-transform:none;letter-spacing:0">
+            <input type="checkbox" id="edit_catch_release"> Catch &amp; release only
+          </label>
+        </div>
+        <button class="btn-primary" onclick="saveRegulation()">💾 Save Regulation</button>
+        <button class="btn-primary btn-danger" style="margin-top:8px" onclick="deleteSpecies()">🗑️ Delete Species</button>
+      </div>
+    </div>
+
+    <!-- Add new species -->
+    <div class="section-label">Add New Species</div>
+    <div class="admin-card">
+      <div class="form-row"><label>Name</label><input id="new_name" type="text" placeholder="Common name"></div>
+      <div class="form-row"><label>Scientific Name</label><input id="new_sci" type="text"></div>
+      <div class="form-row"><label>Water Type</label>
+        <select id="new_water">
+          <option value="saltwater">Saltwater</option>
+          <option value="freshwater">Freshwater</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Category</label><input id="new_category" type="text"></div>
+      <div class="form-row"><label>Image URL</label><input id="new_image" type="url"></div>
+      <button class="btn-primary btn-success" onclick="addNewSpecies()">➕ Add Species</button>
+    </div>
+
+    <!-- Emergency Closures -->
+    <div class="section-label">Emergency Closures</div>
+    <div class="admin-card">
+      <div id="closuresList" style="margin-bottom:14px"></div>
+      <div class="form-row"><label>Title</label><input id="new_closure_title" type="text" placeholder="e.g. Salmon Emergency Closure — North Coast"></div>
+      <div class="form-row"><label>Species (optional)</label><select id="new_closure_species"><option value="">None</option></select></div>
+      <div class="form-row"><label>Effective Date</label><input id="new_closure_date" type="date"></div>
+      <div class="form-row"><label>Expiration Date</label><input id="new_closure_exp" type="date"></div>
+      <div class="form-row"><label>Description</label><textarea id="new_closure_desc" placeholder="Details about the closure"></textarea></div>
+      <button class="btn-primary btn-danger" onclick="addClosure()">🚨 Add Closure</button>
+    </div>
+
+    <div style="height:40px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+<script>
+var currentSpeciesId = null;
+
+// ── Auth ─────────────────────────────────────────────────────
+async function checkAuth() {
+  var res = await db.auth.getSession();
+  var session = res.data && res.data.session;
+  if (session) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    loadAdminData();
+  }
+  db.auth.onAuthStateChange(function(event, session) {
+    if (session) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      loadAdminData();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('adminPanel').style.display = 'none';
+    }
+  });
+}
+
+async function signInWithGoogle() {
+  await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+}
+
+// ── Load admin data ───────────────────────────────────────────
+async function loadAdminData() {
+  var res = await db.from('species').select('id,name,water_type').order('name');
+  var species = res.data || [];
+  var picker = document.getElementById('speciesPicker');
+  var closurePicker = document.getElementById('new_closure_species');
+  picker.innerHTML = '<option value="">— choose species —</option>';
+  closurePicker.innerHTML = '<option value="">None</option>';
+  species.forEach(function(s) {
+    picker.innerHTML += '<option value="' + s.id + '">' + s.name + ' (' + s.water_type + ')</option>';
+    closurePicker.innerHTML += '<option value="' + s.id + '">' + s.name + '</option>';
+  });
+  loadClosures();
+}
+
+async function loadSpeciesForEdit() {
+  var id = document.getElementById('speciesPicker').value;
+  if (!id) { document.getElementById('editForm').style.display = 'none'; return; }
+  currentSpeciesId = id;
+  var res = await db.from('species').select('*').eq('id', id);
+  var sp = res.data && res.data[0];
+  var regRes = await db.from('regulations').select('*').eq('species_id', id);
+  var reg = regRes.data && regRes.data[0];
+
+  if (sp) {
+    document.getElementById('edit_name').value = sp.name || '';
+    document.getElementById('edit_sci').value = sp.scientific_name || '';
+    document.getElementById('edit_water').value = sp.water_type || 'saltwater';
+    document.getElementById('edit_category').value = sp.category || '';
+    document.getElementById('edit_image').value = sp.image_url || '';
+    document.getElementById('edit_desc').value = sp.description || '';
+    document.getElementById('edit_tips').value = sp.identification_tips || '';
+  }
+  if (reg) {
+    document.getElementById('edit_bag').value = reg.bag_limit != null ? reg.bag_limit : '';
+    document.getElementById('edit_possession').value = reg.possession_limit || '';
+    document.getElementById('edit_size_min').value = reg.size_min_inches || '';
+    document.getElementById('edit_size_max').value = reg.size_max_inches || '';
+    document.getElementById('edit_season').value = reg.season_note || '';
+    document.getElementById('edit_gear').value = reg.gear_restricted || '';
+    document.getElementById('edit_notes').value = reg.special_notes || '';
+    document.getElementById('edit_ccr').value = reg.ccr_reference || '';
+    document.getElementById('edit_report_card').checked = !!reg.report_card_required;
+    document.getElementById('edit_catch_release').checked = !!reg.catch_release_only;
+  } else {
+    ['edit_bag','edit_possession','edit_size_min','edit_size_max','edit_season','edit_gear','edit_notes','edit_ccr'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('edit_report_card').checked = false;
+    document.getElementById('edit_catch_release').checked = false;
+  }
+  document.getElementById('editForm').style.display = 'block';
+}
+
+async function saveSpeciesInfo() {
+  if (!currentSpeciesId) return;
+  var data = {
+    name: document.getElementById('edit_name').value.trim(),
+    scientific_name: document.getElementById('edit_sci').value.trim(),
+    water_type: document.getElementById('edit_water').value,
+    category: document.getElementById('edit_category').value.trim(),
+    image_url: document.getElementById('edit_image').value.trim() || null,
+    description: document.getElementById('edit_desc').value.trim() || null,
+    identification_tips: document.getElementById('edit_tips').value.trim() || null,
+  };
+  var res = await db.from('species').update(data).eq('id', currentSpeciesId);
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  toast('✓ Species info saved');
+}
+
+async function saveRegulation() {
+  if (!currentSpeciesId) return;
+  var bagVal = document.getElementById('edit_bag').value;
+  var data = {
+    species_id: currentSpeciesId,
+    bag_limit: bagVal !== '' ? parseInt(bagVal) : null,
+    possession_limit: document.getElementById('edit_possession').value ? parseInt(document.getElementById('edit_possession').value) : null,
+    size_min_inches: document.getElementById('edit_size_min').value ? parseFloat(document.getElementById('edit_size_min').value) : null,
+    size_max_inches: document.getElementById('edit_size_max').value ? parseFloat(document.getElementById('edit_size_max').value) : null,
+    season_note: document.getElementById('edit_season').value.trim() || null,
+    gear_restricted: document.getElementById('edit_gear').value.trim() || null,
+    special_notes: document.getElementById('edit_notes').value.trim() || null,
+    ccr_reference: document.getElementById('edit_ccr').value.trim() || null,
+    report_card_required: document.getElementById('edit_report_card').checked,
+    catch_release_only: document.getElementById('edit_catch_release').checked,
+  };
+  var res = await db.from('regulations').upsert(data, {onConflict: 'species_id'});
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  toast('✓ Regulation saved');
+}
+
+async function deleteSpecies() {
+  if (!currentSpeciesId) return;
+  var picker = document.getElementById('speciesPicker');
+  var name = picker.options[picker.selectedIndex].text;
+  if (!confirm('Delete "' + name + '" and ALL its regulations?\n\nThis cannot be undone.')) return;
+  await db.from('regulations').delete().eq('species_id', currentSpeciesId);
+  var res = await db.from('species').delete().eq('id', currentSpeciesId);
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  document.getElementById('editForm').style.display = 'none';
+  currentSpeciesId = null;
+  toast('✓ Species deleted');
+  loadAdminData();
+}
+
+async function addNewSpecies() {
+  var name = document.getElementById('new_name').value.trim();
+  if (!name) { toast('Please enter a species name'); return; }
+  var data = {
+    name: name,
+    scientific_name: document.getElementById('new_sci').value.trim() || null,
+    water_type: document.getElementById('new_water').value,
+    category: document.getElementById('new_category').value.trim() || null,
+    image_url: document.getElementById('new_image').value.trim() || null,
+  };
+  var res = await db.from('species').insert(data);
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  ['new_name','new_sci','new_category','new_image'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  toast('✓ Species added');
+  loadAdminData();
+}
+
+// ── Closures ──────────────────────────────────────────────────
+async function loadClosures() {
+  var res = await db.from('emergency_closures').select('*').eq('is_active', true).order('created_at');
+  var list = document.getElementById('closuresList');
+  var closures = res.data || [];
+  if (!closures.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:4px 0">No active closures</div>';
+    return;
+  }
+  list.innerHTML = closures.map(function(c) {
+    return '<div class="closure-item">'
+      + '<div class="active-dot"></div>'
+      + '<div class="closure-title">' + c.title + '<br>'
+      + '<span style="font-size:11px;color:var(--text-muted)">' + (c.effective_date || '') + '</span></div>'
+      + '<button class="btn-sm" style="background:var(--danger);color:#fff" onclick="deactivateClosure(' + c.id + ')">Deactivate</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function addClosure() {
+  var title = document.getElementById('new_closure_title').value.trim();
+  if (!title) { toast('Please enter a closure title'); return; }
+  var data = {
+    title: title,
+    species_id: document.getElementById('new_closure_species').value || null,
+    effective_date: document.getElementById('new_closure_date').value || null,
+    expiration_date: document.getElementById('new_closure_exp').value || null,
+    description: document.getElementById('new_closure_desc').value.trim() || null,
+    is_active: true,
+  };
+  var res = await db.from('emergency_closures').insert(data);
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  ['new_closure_title','new_closure_date','new_closure_exp','new_closure_desc'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  toast('✓ Closure added');
+  loadClosures();
+}
+
+async function deactivateClosure(id) {
+  var res = await db.from('emergency_closures').update({is_active: false}).eq('id', id);
+  if (res.error) { toast('Error: ' + res.error.message); return; }
+  toast('✓ Closure deactivated');
+  loadClosures();
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+checkAuth();
+</script>
+</body>
+</html>

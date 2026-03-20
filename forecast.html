@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — Tides & Forecast</title>
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--ocean-light:#2980b9;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
+.header{background:var(--ocean);padding:48px 20px 16px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1}
+.app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff;margin-bottom:14px}
+.page-title span{color:var(--kelp-light)}
+.search-row{display:flex;gap:8px}
+.loc-input-wrap{flex:1;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;gap:8px;padding:0 12px}
+.loc-input-wrap input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 0}
+.loc-input-wrap input::placeholder{color:rgba(255,255,255,.6)}
+.btn-search{background:var(--kelp-light);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.quick-spots{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0 2px}
+.quick-spots::-webkit-scrollbar{display:none}
+.spot-btn{flex-shrink:0;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:none;border-radius:100px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.spot-btn:active{background:rgba(255,255,255,.3)}
+.spot-btn.gps-btn{background:rgba(255,255,255,.25);font-weight:600}
+.content{padding:16px}
+.section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:0 0 10px}
+.score-card{border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.score-num{font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;color:#fff;line-height:1}
+.score-info-title{font-size:14px;font-weight:700;color:#fff}
+.score-info-sub{font-size:12px;color:rgba(255,255,255,.85);margin-top:3px}
+.day-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:8px;margin-bottom:16px}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{flex-shrink:0;padding:8px 14px;border-radius:100px;border:1.5px solid var(--border);background:var(--white);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;text-align:center;min-width:68px;transition:all .2s}
+.day-tab.active{background:var(--ocean);border-color:var(--ocean);color:#fff}
+.day-panel{display:none}
+.day-panel.active{display:block}
+.wx-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.wx-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.wx-icon{font-size:32px}
+.wx-info{flex:1}
+.wx-day{font-size:14px;font-weight:600}
+.wx-desc{font-size:12px;color:var(--text-muted)}
+.wx-score-pill{color:#fff;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;border-radius:12px;padding:8px 14px;text-align:center;flex-shrink:0}
+.wx-score-sub{font-size:9px;font-weight:400;opacity:.9;display:block}
+.wx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.wx-tile{background:var(--bg);border-radius:8px;padding:10px;text-align:center}
+.wx-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.wx-tile-value{font-size:20px;font-weight:700;color:var(--text);margin-top:2px}
+.wx-tile-sub{font-size:10px;color:var(--text-muted);margin-top:1px}
+.wx-detail{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px}
+.tide-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.tide-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.tide-row:last-child{border-bottom:none}
+.tide-type{font-size:13px;font-weight:500}
+.tide-time{font-size:11px;color:var(--text-muted);margin-top:1px}
+.tide-ht{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700}
+.tide-high .tide-ht{color:#1a6390}
+.tide-low .tide-ht{color:#e07b39}
+.loading-state{padding:40px 20px;text-align:center;color:var(--text-muted)}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-state{background:var(--white);border-radius:var(--radius-sm);padding:24px;text-align:center;margin-top:8px}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
+.nav-item.active{color:var(--ocean)}
+.nav-icon{font-size:22px;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="app-eyebrow">Fish Smarter</div>
+    <div class="page-title">Tides & <span>Forecast</span></div>
+    <div class="search-row">
+      <div class="loc-input-wrap">
+        <span style="font-size:16px;color:rgba(255,255,255,.6)">🔍</span>
+        <input id="locInput" type="text" placeholder="Search city or fishing spot…"
+          onkeydown="if(event.key==='Enter')searchLocation()">
+      </div>
+      <button class="btn-search" onclick="searchLocation()">Go</button>
+    </div>
+    <div class="quick-spots">
+      <button class="spot-btn gps-btn" onclick="useGPS()">📍 My Location</button>
+      <button class="spot-btn" onclick="loadSpot('San Francisco Bay',37.8044,-122.2711)">SF Bay</button>
+      <button class="spot-btn" onclick="loadSpot('Monterey Bay',36.6002,-121.8947)">Monterey</button>
+      <button class="spot-btn" onclick="loadSpot('Bodega Bay',38.3327,-123.0497)">Bodega Bay</button>
+      <button class="spot-btn" onclick="loadSpot('Morro Bay',35.3658,-120.8499)">Morro Bay</button>
+      <button class="spot-btn" onclick="loadSpot('Santa Barbara',34.4208,-119.6982)">Santa Barbara</button>
+      <button class="spot-btn" onclick="loadSpot('San Diego',32.7157,-117.1611)">San Diego</button>
+      <button class="spot-btn" onclick="loadSpot('Eureka',40.8021,-124.1637)">Eureka</button>
+    </div>
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <div>Search a location or tap My Location</div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
+  <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
+  <a class="nav-item active" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
+  <a class="nav-item" href="account.html"><span class="nav-icon">👤</span><span>Account</span></a>
+</nav>
+
+<script src="js/app.js"></script>
+<script>
+var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function showLoading(msg) {
+  document.getElementById('content').innerHTML =
+    '<div class="loading-state"><div class="spinner"></div><div>' + (msg || 'Loading…') + '</div></div>';
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML =
+    '<div class="error-state"><div style="font-size:32px;margin-bottom:8px">🌊</div>'
+    + '<div style="font-weight:600;margin-bottom:6px">Could not load forecast</div>'
+    + '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + (msg || 'Check your connection and try again.') + '</div>'
+    + '<button onclick="useGPS()" style="padding:10px 24px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-family:inherit;cursor:pointer">Try My Location</button>'
+    + '</div>';
+}
+
+async function searchLocation() {
+  var q = document.getElementById('locInput').value.trim();
+  if (!q) return;
+  showLoading('Searching for ' + q + '…');
+  try {
+    var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=1&language=en&format=json');
+    var data = await res.json();
+    if (!data.results || !data.results.length) {
+      showError('Location not found. Try a city name like "Monterey" or "San Diego".');
+      return;
+    }
+    var r = data.results[0];
+    await loadSpot(r.name + (r.admin1 ? ', ' + r.admin1 : ''), r.latitude, r.longitude);
+  } catch(e) {
+    showError('Search failed. Check your connection.');
+  }
+}
+
+function useGPS() {
+  if (!navigator.geolocation) { showError('Location not supported on this device.'); return; }
+  showLoading('Getting your location…');
+  navigator.geolocation.getCurrentPosition(
+    function(pos) { loadSpot('My Location', pos.coords.latitude, pos.coords.longitude); },
+    function() { showError('Location access denied. Enable location in browser settings.'); }
+  );
+}
+
+async function loadSpot(locName, lat, lng) {
+  showLoading('Loading forecast for ' + locName + '…');
+  try {
+    var station = nearestStation(lat, lng);
+    var today = new Date();
+    var ds = today.toISOString().split('T')[0].replace(/-/g,'');
+    var end14 = new Date(today);
+    end14.setDate(today.getDate() + 13);
+    var de = end14.toISOString().split('T')[0].replace(/-/g,'');
+
+    var tideUrl = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=' + ds
+      + '&end_date=' + de + '&station=' + station.id
+      + '&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json';
+
+    var wxPointUrl = 'https://api.weather.gov/points/' + lat.toFixed(4) + ',' + lng.toFixed(4);
+
+    var results = await Promise.all([fetch(tideUrl), fetch(wxPointUrl)]);
+    var tideData = await results[0].json();
+    var wxPoint = await results[1].json();
+
+    var forecast = null, hourly = null;
+    if (wxPoint.properties && wxPoint.properties.forecast) {
+      var wxResults = await Promise.all([
+        fetch(wxPoint.properties.forecast),
+        fetch(wxPoint.properties.forecastHourly)
+      ]);
+      var fData = await wxResults[0].json();
+      var hData = await wxResults[1].json();
+      forecast = fData.properties && fData.properties.periods;
+      hourly = hData.properties && hData.properties.periods;
+    }
+
+    renderForecast(locName, lat, lng, station, tideData, forecast, hourly);
+  } catch(e) {
+    showError('Could not load data for this location. It may be outside NWS coverage (US only).');
+  }
+}
+
+function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) {
+  // Group tides by date
+  var tidesByDate = {};
+  (tideData.predictions || []).forEach(function(t) {
+    var dk = t.t.split(' ')[0];
+    if (!tidesByDate[dk]) tidesByDate[dk] = [];
+    tidesByDate[dk].push(t);
+  });
+
+  var dayForecasts = forecast ? forecast.filter(function(p) { return p.isDaytime; }) : [];
+  var nightForecasts = forecast ? forecast.filter(function(p) { return !p.isDaytime; }) : [];
+  var current = hourly ? hourly[0] : null;
+  var todayF = dayForecasts[0];
+  var curTemp = current ? parseInt(current.temperature) : (todayF ? todayF.temperature : null);
+  var curWind = current ? current.windSpeed : (todayF ? todayF.windSpeed : 'N/A');
+  var curFcast = current ? current.shortForecast : (todayF ? todayF.shortForecast : '');
+  var todayScore = calcFishingScore(curTemp, curWind, curFcast);
+
+  var html = '';
+
+  // Location info
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">'
+    + '📍 ' + locName + ' · Tide station: ' + station.name + '</div>';
+
+  // Today's fishing score card
+  html += '<div class="score-card" style="background:' + scoreColor(todayScore) + '">'
+    + '<div class="score-num">' + todayScore + '</div>'
+    + '<div><div class="score-info-title">Today\'s Fishing Score</div>'
+    + '<div class="score-info-sub">' + scoreDesc(todayScore)
+    + (curTemp ? ' · ' + curTemp + '°F' : '')
+    + ' · ' + curWind + ' · ' + curFcast + '</div></div></div>';
+
+  if (dayForecasts.length > 0) {
+    // Day selector tabs
+    html += '<div class="section-label">7-Day Forecast</div>';
+    html += '<div class="day-tabs" id="dayTabs">';
+    dayForecasts.slice(0, 7).forEach(function(p, i) {
+      var d = new Date(p.startTime);
+      var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+      var label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : DAYS[d.getDay()];
+      html += '<button class="day-tab' + (i === 0 ? ' active' : '') + '" onclick="switchDay(' + i + ')" id="dtab' + i + '">'
+        + label + '<br>'
+        + '<span style="font-size:11px;color:' + (i === 0 ? 'var(--kelp-light)' : scoreColor(s)) + '">'
+        + getWxIcon(p.shortForecast) + ' ' + s + '</span></button>';
+    });
+    html += '</div>';
+
+    // Day panels
+    dayForecasts.slice(0, 7).forEach(function(p, i) {
+      var d = new Date(p.startTime);
+      var night = nightForecasts[i];
+      var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+      var dateKey = d.toISOString().split('T')[0];
+      var label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
+        : DAYS[d.getDay()] + ' ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
+      var dayTides = tidesByDate[dateKey] || [];
+
+      html += '<div class="day-panel' + (i === 0 ? ' active' : '') + '" id="dpanel' + i + '">';
+      html += '<div class="wx-card">'
+        + '<div class="wx-header">'
+        + '<span class="wx-icon">' + getWxIcon(p.shortForecast) + '</span>'
+        + '<div class="wx-info"><div class="wx-day">' + label + '</div>'
+        + '<div class="wx-desc">' + p.shortForecast + ' · ' + p.windSpeed + ' ' + p.windDirection + '</div></div>'
+        + '<div class="wx-score-pill" style="background:' + scoreColor(s) + '">'
+        + s + '<span class="wx-score-sub">' + scoreDesc(s) + '</span></div>'
+        + '</div>'
+        + '<div class="wx-grid">'
+        + '<div class="wx-tile"><div class="wx-tile-label">High Temp</div>'
+        + '<div class="wx-tile-value">' + p.temperature + '°</div></div>'
+        + '<div class="wx-tile"><div class="wx-tile-label">Wind</div>'
+        + '<div class="wx-tile-value" style="font-size:14px">' + p.windSpeed + '</div>'
+        + '<div class="wx-tile-sub">' + p.windDirection + '</div></div>';
+      if (night) {
+        html += '<div class="wx-tile"><div class="wx-tile-label">Tonight</div>'
+          + '<div class="wx-tile-value">' + night.temperature + '°</div></div>';
+      }
+      html += '</div>';
+      if (p.detailedForecast) {
+        html += '<div class="wx-detail">' + p.detailedForecast + '</div>';
+      }
+      html += '</div>';
+
+      // Tides for this day
+      html += '<div class="section-label">Tides — ' + station.name + '</div>';
+      html += '<div class="tide-card">';
+      if (dayTides.length) {
+        dayTides.forEach(function(t) {
+          var isH = t.type === 'H';
+          var parts = t.t.split(' ')[1].split(':');
+          var h = parseInt(parts[0]), mn = parts[1];
+          var ampm = h >= 12 ? 'PM' : 'AM';
+          var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+          html += '<div class="tide-row ' + (isH ? 'tide-high' : 'tide-low') + '">'
+            + '<div><div class="tide-type">' + (isH ? '⬆️ High Tide' : '⬇️ Low Tide') + '</div>'
+            + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div>'
+            + '<div class="tide-ht">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
+        });
+      } else {
+        html += '<div style="font-size:13px;color:var(--text-muted);padding:8px">No tide data for this day</div>';
+      }
+      html += '</div>';
+      html += '</div>'; // end day-panel
+    });
+  }
+
+  // Extended tide forecast (days 8-14, tides only)
+  var extKeys = Object.keys(tidesByDate).sort().slice(7, 14);
+  if (extKeys.length) {
+    html += '<div class="section-label" style="margin-top:8px">14-Day Tide Forecast</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Weather unavailable beyond 7 days · Tide predictions only</div>';
+    extKeys.forEach(function(dk) {
+      var d = new Date(dk + 'T12:00:00');
+      var ts = tidesByDate[dk];
+      if (!ts || !ts.length) return;
+      html += '<div class="tide-card" style="margin-bottom:10px">'
+        + '<div style="font-size:13px;font-weight:600;margin-bottom:8px">'
+        + DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + '</div>';
+      ts.forEach(function(t) {
+        var isH = t.type === 'H';
+        var parts = t.t.split(' ')[1].split(':');
+        var h = parseInt(parts[0]), mn = parts[1];
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        html += '<div class="tide-row ' + (isH ? 'tide-high' : 'tide-low') + '">'
+          + '<div><div class="tide-type">' + (isH ? '⬆️ High' : '⬇️ Low') + '</div>'
+          + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div>'
+          + '<div class="tide-ht">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function switchDay(i) {
+  document.querySelectorAll('.day-tab').forEach(function(t, idx) {
+    t.classList.toggle('active', idx === i);
+  });
+  document.querySelectorAll('.day-panel').forEach(function(p, idx) {
+    p.classList.toggle('active', idx === i);
+  });
+}
+
+// Auto-load with GPS on first visit
+useGPS();
+</script>
+</body>
+</html>

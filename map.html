@@ -3,174 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Fish Smarter — MPA Map & Tide Forecast</title>
-<meta name="description" content="View California Marine Protected Areas, MPA boundaries, fishing spot locations, and get 14-day tide and weather forecasts for your fishing location.">
-<meta name="keywords" content="California MPA map, marine protected areas, tide forecast, fishing spots, CDFW MPA, California fishing map">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://fishsmarter.app/map.html">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://fishsmarter.app/map.html">
-<meta property="og:title" content="Fish Smarter — MPA Map & Tide Forecast">
-<meta property="og:description" content="View California Marine Protected Areas and get local tide and weather forecasts for smarter fishing.">
-<meta property="og:image" content="https://fishsmarter.app/icon-512.png">
+<title>Fish Smarter — MPA Map</title>
 <meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-  :root {
-    --ocean: #0a3d62; --ocean-mid: #1a6390; --ocean-light: #2980b9;
-    --kelp-light: #52b788; --danger: #c0392b;
-    --text: #1a1a2e; --text-muted: #5a6473;
-    --white: #ffffff; --bg: #f0f4f8; --border: #dce3ea;
-    --radius: 16px; --radius-sm: 10px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* HEADER */
-  .header { background: var(--ocean); padding: 48px 20px 14px; position: relative; flex-shrink: 0; }
-  .header-wave { position: absolute; top:0;left:0;right:0;bottom:0; opacity:0.06; background-image: repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px); }
-  .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
-  .header-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); }
-  .header-title span { color: var(--kelp-light); }
-  .back-btn { color: var(--white); font-size: 13px; cursor: pointer; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 100px; border: none; font-family: inherit; }
-
-  /* MAP TABS */
-  .map-tabs { display: flex; background: var(--ocean); padding: 0 20px 14px; gap: 8px; position: relative; z-index: 1; flex-shrink: 0; }
-  .map-tab { flex: 1; padding: 7px 10px; border-radius: 100px; border: 1.5px solid rgba(255,255,255,0.25); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.2s; text-align: center; }
-  .map-tab.active { background: var(--white); border-color: var(--white); color: var(--ocean); }
-
-  /* GPS STATUS */
-  .gps-status { padding: 9px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-shrink: 0; transition: all 0.3s; }
-  .gps-status.searching { background: #e8eef8; color: var(--ocean); }
-  .gps-status.safe { background: #e8f5ee; color: #1a6b3a; }
-  .gps-status.warning { background: #fde8e8; color: var(--danger); animation: pulse-warning 1s ease-in-out infinite; }
-  .gps-status.caution { background: #fdf0e0; color: #7a4f00; }
-  @keyframes pulse-warning { 0%,100%{opacity:1} 50%{opacity:0.75} }
-  .gps-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .searching .gps-dot { background: var(--ocean); }
-  .safe .gps-dot { background: #27ae60; }
-  .warning .gps-dot { background: var(--danger); }
-  .caution .gps-dot { background: #f0a500; }
-  .gps-text { flex: 1; }
-  .gps-text strong { font-weight: 500; margin-right: 4px; }
-
-  /* MAP CONTAINER */
-  .map-container { flex: 1; position: relative; overflow: hidden; }
-  #map { width: 100%; height: 100%; min-height: 300px; background: #e8f4f8; }
-
-  /* WEATHER PANEL */
-  #weatherPanel { display: none; flex: 1; overflow-y: auto; background: var(--bg); padding: 16px; padding-bottom: 80px; }
-  #weatherPanel.visible { display: block; }
-
-  /* WEATHER CARDS */
-  .weather-location { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-  .weather-location-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
-
-  .wx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .wx-tile { background: var(--white); border-radius: var(--radius-sm); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .wx-tile.full { grid-column: 1 / -1; }
-  .wx-label { font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .wx-value { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; color: var(--ocean); line-height: 1; }
-  .wx-value.big { font-size: 32px; }
-  .wx-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-  .wx-icon { font-size: 28px; margin-bottom: 4px; }
-
-  /* TIDE CHART */
-  .tide-section-title { font-family: 'Unbounded', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; margin-top: 4px; }
-  .tide-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 10px; }
-  .tide-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .tide-row:last-child { border-bottom: none; }
-  .tide-time { font-size: 14px; font-weight: 500; color: var(--text); }
-  .tide-type { font-size: 12px; color: var(--text-muted); }
-  .tide-height { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; color: var(--ocean); }
-  .tide-high { color: #1a6390; }
-  .tide-low { color: #e07b39; }
-
-  /* SOLUNAR */
-  .solunar-row { display: flex; gap: 10px; margin-bottom: 16px; }
-  .solunar-tile { flex: 1; background: var(--white); border-radius: var(--radius-sm); padding: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .solunar-icon { font-size: 20px; margin-bottom: 4px; }
-  .solunar-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .solunar-value { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
-
-  /* FISHING SCORE */
-  .fishing-score-card { background: var(--ocean); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; color: var(--white); display: flex; align-items: center; gap: 16px; }
-  .score-number { font-family: 'Unbounded', sans-serif; font-size: 48px; font-weight: 900; color: var(--kelp-light); line-height: 1; flex-shrink: 0; }
-  .score-info { flex: 1; }
-  .score-label { font-family: 'Unbounded', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
-  .score-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.5; }
-
-  /* FORECAST TABS */
-  .forecast-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
-  .forecast-tabs::-webkit-scrollbar { display: none; }
-  .forecast-tab { flex-shrink: 0; padding: 7px 14px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-align: center; }
-  .forecast-tab.active { background: var(--ocean); border-color: var(--ocean); color: var(--white); }
-  .forecast-tab .tab-score { display: block; font-size: 11px; margin-top: 1px; }
-  .forecast-tab.good .tab-score { color: #27ae60; }
-  .forecast-tab.fair .tab-score { color: #f0a500; }
-  .forecast-tab.poor .tab-score { color: var(--danger); }
-  .forecast-tab.active .tab-score { color: var(--kelp-light); }
-
-  /* DAY DETAIL */
-  .day-detail { display: none; }
-  .day-detail.active { display: block; }
-  .day-header { display: flex; align-items: center; gap: 14px; background: var(--white); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .day-icon { font-size: 36px; }
-  .day-info { flex: 1; }
-  .day-name { font-family: 'Unbounded', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
-  .day-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .day-score-pill { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; color: var(--white); background: var(--ocean); border-radius: 100px; padding: 6px 14px; }
-  .day-score-pill.good { background: #27ae60; }
-  .day-score-pill.fair { background: #f0a500; }
-  .day-score-pill.poor { background: var(--danger); }
-
-  /* LOADING */
-  .wx-loading { text-align: center; padding: 48px 20px; color: var(--text-muted); }
-  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--ocean); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .wx-error { text-align: center; padding: 32px 20px; color: var(--text-muted); background: var(--white); border-radius: var(--radius); margin: 16px 0; }
-
-  /* MAP OVERLAYS */
-  .locate-btn { position: absolute; bottom: 16px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: transform 0.2s; }
-  .spots-btn { position: absolute; bottom: 120px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: all 0.2s; }
-  .spots-btn.active { background: #d4edda; }
-  .spot-marker-label { background: white; border: 2px solid var(--kelp); border-radius: 8px; padding: 3px 7px; font-size: 11px; font-weight: 600; color: var(--kelp); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
-  .spot-type-ocean { border-color: var(--ocean-light) !important; color: var(--ocean) !important; }
-  .spot-type-fresh { border-color: var(--kelp) !important; color: var(--kelp) !important; }
-  .locate-btn:active { transform: scale(0.93); }
-  .pin-btn { position: absolute; bottom: 68px; right: 16px; z-index: 500; background: var(--white); border: none; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.15); transition: all 0.2s; }
-  .pin-btn.active { background: var(--ocean); }
-  .pin-btn:active { transform: scale(0.93); }
-  .pin-mode-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 500; background: var(--ocean); color: white; padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 500; white-space: nowrap; display: none; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
-  .pin-mode-banner.visible { display: block; }
-
-  /* LEGEND */
-  .map-legend { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
-  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-  .legend-smr { background: rgba(200,0,0,0.4); border: 2px solid #c00; }
-  .legend-smca { background: rgba(255,140,0,0.3); border: 2px solid #f80; }
-  .legend-you { background: var(--ocean); border-radius: 50%; }
-
-  /* MPA DRAWER */
-  .mpa-drawer { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 20px 20px 0 0; padding: 16px 20px 28px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 1000; max-height: 55vh; overflow-y: auto; }
-  .mpa-drawer.open { transform: translateY(0); }
-  .mpa-drawer-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 14px; }
-  .mpa-name { font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-  .mpa-type-badge { display: inline-block; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 500; margin-bottom: 10px; }
-  .badge-smr { background: #fde8e8; color: #a31d1d; }
-  .badge-smca { background: #fdf0e0; color: #7a4f00; }
-  .mpa-restrictions { font-size: 13px; color: var(--text); line-height: 1.6; background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; }
-  .mpa-ccr { font-size: 11px; color: var(--text-muted); }
-
-  /* NAV */
-  .bottom-nav { flex-shrink: 0; background: var(--white); border-top: 1px solid var(--border); display: flex; padding: 10px 0 20px; }
-  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-muted); cursor: pointer; font-weight: 500; }
-  .nav-item.active { color: var(--ocean); }
-  .nav-icon { font-size: 22px; }
+:root{--ocean:#0a3d62;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.header{background:var(--ocean);padding:48px 20px 12px;position:relative;overflow:hidden;flex-shrink:0}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#fff}
+.header-title span{color:var(--kelp-light)}
+.btn-back{color:#fff;font-size:13px;cursor:pointer;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:100px;border:none;font-family:inherit}
+.map-tabs{background:var(--ocean);padding:0 16px 12px;display:flex;gap:8px;flex-shrink:0}
+.map-tab{flex:1;padding:7px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.25);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;transition:all .2s;text-align:center}
+.map-tab.active{background:#fff;border-color:#fff;color:var(--ocean)}
+.gps-status{padding:8px 16px;display:flex;align-items:center;gap:10px;font-size:12px;flex-shrink:0;transition:background .3s}
+.gps-status.searching{background:#e8eef8;color:var(--ocean)}
+.gps-status.safe{background:#e8f5ee;color:#1a6b3a}
+.gps-status.warning{background:#fde8e8;color:var(--danger)}
+.gps-status.caution{background:#fdf0e0;color:#7a4f00}
+.gps-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.searching .gps-dot{background:var(--ocean)}
+.safe .gps-dot{background:#27ae60}
+.warning .gps-dot{background:var(--danger)}
+.caution .gps-dot{background:var(--warning)}
+#map{flex:1}
+.map-legend{position:absolute;bottom:calc(var(--nav-h) + 8px);left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);border-radius:10px;padding:8px 12px;font-size:11px;z-index:400;display:flex;flex-wrap:wrap;gap:8px;max-width:280px}
+.legend-item{display:flex;align-items:center;gap:5px;color:var(--text-muted)}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-you{background:#2980b9;border:2px solid #fff;box-shadow:0 0 0 2px #2980b9}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;opacity:0;pointer-events:none;transition:opacity .3s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;z-index:501;transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:75vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+.drawer.open{transform:translateX(-50%) translateY(0)}
+.drawer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.drawer-body{padding:16px 20px 32px}
+.d-type-pill{display:inline-block;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;margin-bottom:10px}
+.pill-smr{background:#fde8e8;color:var(--danger)}
+.pill-smca{background:#fdf0e0;color:#7a4f00}
+.pill-park{background:#e8eef8;color:var(--ocean)}
+.pill-spot{background:#e8f5ee;color:#1a6b3a}
+.d-name{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px;line-height:1.3}
+.d-section{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;font-family:'Unbounded',sans-serif;margin:12px 0 6px}
+.d-note{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6;color:var(--text)}
+.d-note.danger{background:#fde8e8;color:#7a0000;border-left:3px solid var(--danger)}
+.d-note.warning{background:#fdf0e0;color:#7a4f00;border-left:3px solid var(--warning)}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
+.nav-item.active{color:var(--ocean)}
+.nav-icon{font-size:22px;line-height:1}
 </style>
 </head>
 <body>
@@ -178,88 +66,47 @@
 <div class="header">
   <div class="header-wave"></div>
   <div class="header-content">
-    <div class="header-title">Fish <span>Map</span></div>
-    <button class="back-btn" onclick="window.location.href='index.html'">← Species</button>
+    <div class="header-title">MPA <span>Map</span></div>
+    <button class="btn-back" onclick="window.location.href='index.html'">← Species</button>
   </div>
 </div>
 
-<!-- MAP / WEATHER TABS -->
 <div class="map-tabs">
   <button class="map-tab active" id="tab-map" onclick="switchTab('map')">🗺️ MPA Map</button>
-  <button class="map-tab" id="tab-weather" onclick="switchTab('weather')">🌊 Tides & Weather</button>
+  <button class="map-tab" id="tab-spots" onclick="switchTab('spots')">🎣 Fishing Spots</button>
 </div>
 
-<!-- GPS STATUS BAR -->
 <div class="gps-status searching" id="gpsStatus">
   <div class="gps-dot"></div>
-  <div class="gps-text"><strong>Getting your location…</strong> Allow access for live data</div>
+  <div>Detecting your location…</div>
 </div>
 
-<!-- MAP VIEW -->
-<div class="map-container" id="mapView">
-  <div id="map"></div>
-  <div class="pin-mode-banner" id="pinModeBanner">📌 Tap anywhere to drop a pin</div>
-  <button class="locate-btn" id="locateBtn" onclick="centerOnUser()" title="Center on my location">📍</button>
-  <button class="pin-btn" id="pinBtn" onclick="togglePinMode()" title="Drop a pin">📌</button>
-  <button class="spots-btn" id="spotsBtn" onclick="toggleFishingSpots()" title="Show fishing spots">🎣</button>
-  <div class="mpa-drawer" id="mpaDrawer">
-    <div class="mpa-drawer-handle"></div>
-    <div id="mpaDrawerContent"></div>
-  </div>
-</div>
+<div id="map"></div>
 
-<!-- WEATHER VIEW -->
-<div id="weatherPanel">
-  <div class="wx-loading" id="wxLoading">
-    <div class="spinner"></div>
-    <div>Loading tides & weather…</div>
-    <div style="font-size:12px;margin-top:8px;color:var(--text-muted)">Allow location access to get local data</div>
-  </div>
-  <div id="wxContent" style="display:none"></div>
-</div>
-
-<!-- MAP LEGEND (only shown on map tab) -->
 <div class="map-legend" id="mapLegend">
-  <div class="legend-item"><div class="legend-dot" style="background:rgba(204,0,0,0.4);border:2px solid #cc0000"></div>SMR (no take)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,136,0,0.3);border:2px solid #ff8800"></div>SMCA (restricted)</div>
-  <div class="legend-item"><div class="legend-dot" style="background:rgba(0,102,204,0.3);border:2px solid #0066cc"></div>Marine Park</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(204,0,0,.5);border:2px solid #cc0000"></div>SMR (no take)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,136,0,.4);border:2px solid #ff8800"></div>SMCA (restricted)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(0,102,204,.3);border:2px solid #0066cc"></div>Marine Park</div>
   <div class="legend-item"><span style="font-size:14px">🎣</span> Fishing spot</div>
   <div class="legend-item"><div class="legend-dot legend-you"></div>You</div>
 </div>
 
-<!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <div class="nav-item" onclick="window.location.href='index.html'">
-    <span class="nav-icon">🐟</span><span>Species</span>
-  </div>
-  <div class="nav-item" onclick="window.location.href='index.html#fishid'">
-    <span class="nav-icon">📷</span><span>Fish ID</span>
-  </div>
-  <div class="nav-item active" onclick="switchTab('weather')">
-    <span class="nav-icon">🌊</span><span>Forecast</span>
-  </div>
-  <div class="nav-item" onclick="window.location.href='index.html#account'">
-    <span class="nav-icon">👤</span><span>Account</span>
-  </div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-body" id="drawerBody"></div>
 </div>
 
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
+  <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
+  <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
+  <a class="nav-item" href="account.html"><span class="nav-icon">👤</span><span>Account</span></a>
+</nav>
+
+<script src="js/app.js"></script>
 <script>
-// ============================================================
-// SUPABASE CONFIG
-// ============================================================
-const SUPABASE_URL = 'https://maqffkhgynuzbvpbueds.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3Lh4gmjt2Wvvp0u76qqkrQ_3h-DqVwY';
-
-async function fetchMPAs() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/mpas?is_active=eq.true&select=*`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  return res.json();
-}
-
-// ============================================================
-// HARDCODED MPA FALLBACK (used if DB fetch fails)
-// ============================================================
+// ── MPA & Spot Data ──────────────────────────────────────────
 const MPAS_FALLBACK = [
   { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000, restrictions: "No take of any living or non-living marine resource. No fishing of any kind.", ccr: "CCR Title 14 §632(b)(1)" },
   { name: "Pyramid Point SMR", type: "SMR", lat: 41.83, lng: -124.22, radius: 3000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(2)" },
@@ -293,297 +140,6 @@ const MPAS_FALLBACK = [
   { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000, restrictions: "No take of most species within protected area. Adjacent to Scripps Institution.", ccr: "CCR Title 14 §632(b)(87)" }
 ];
 
-// ============================================================
-// MPA TYPE HELPERS — must be defined before loadMPAs
-// ============================================================
-function getMPAType(props) {
-  const type = (props.Type || props.TYPE || props.type || '').trim().toUpperCase();
-  if (type === 'SMR') return 'SMR';
-  if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
-  if (type === 'SMP') return 'SMP';
-  if (type === 'SMRMA') return 'SMRMA';
-  if (type === 'SPECIAL CLOSURE' || type === 'SC') return 'SC';
-  // Fallback: check full name
-  const name = (props.FULLNAME || props.NAME || '').toLowerCase();
-  if (name.includes('state marine reserve')) return 'SMR';
-  if (name.includes('conservation area')) return 'SMCA';
-  if (name.includes('marine park')) return 'SMP';
-  return 'SMCA';
-}
-
-function getMPAColor(type) {
-  if (type === 'SMR') return '#cc0000';
-  if (type === 'SMCA') return '#ff8800';
-  if (type === 'SMP') return '#0066cc';
-  if (type === 'SC') return '#888888';
-  return '#888800';
-}
-
-function getMPAFillOpacity(type) {
-  if (type === 'SMR') return 0.35;
-  if (type === 'SMCA') return 0.2;
-  return 0.15;
-}
-
-function getRestrictions(type) {
-  if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
-  if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
-  if (type === 'SMP') return 'State Marine Park — Recreational take of certain invertebrates and plants may be allowed. Verify current rules at wildlife.ca.gov.';
-  return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
-}
-
-// ============================================================
-// LOAD MPAS — directly from CDFW ArcGIS API (all official MPAs)
-// ============================================================
-let MPAS = [];
-let mpaGeoJSON = null;
-
-async function loadMPAs() {
-  setGPSStatus('searching', 'Loading official CDFW MPA boundaries…', '');
-  try {
-    // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
-    const res = await fetch(
-      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds582_fpu/FeatureServer/0/query' +
-      '?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=200'
-    );
-
-    if (!res.ok) throw new Error('CDFW API error');
-    const data = await res.json();
-
-    if (data.features && data.features.length > 0) {
-      mpaGeoJSON = data;
-      drawMPAPolygons(data);
-      // Also build MPAS array for GPS proximity checks (using feature centroids)
-      MPAS = data.features.map(f => {
-        const props = f.properties;
-        const type = getMPAType(props);
-        const bbox = getBBox(f.geometry);
-        return {
-          name: props.NAME || props.SHORTNAME || 'MPA',
-          type,
-          lat: (bbox.minLat + bbox.maxLat) / 2,
-          lng: (bbox.minLng + bbox.maxLng) / 2,
-          radius: estimateRadius(bbox),
-          restrictions: getRestrictions(type),
-          ccr: 'CCR Title 14, Section 632',
-          geometry: f.geometry
-        };
-      }).filter(m => m.lat && m.lng && !isNaN(m.lat));
-
-      console.log(`✓ Loaded ${MPAS.length} official CDFW MPAs`);
-      setGPSStatus('searching', 'Getting your location…', '');
-      locateUser();
-      return;
-    }
-  } catch(e) {
-    console.warn('CDFW API failed, trying coordinate points API…', e);
-  }
-
-  // Fallback: use coordinate points dataset ds3207
-  try {
-    const res = await fetch(
-      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds3207_fmu/FeatureServer/0/query' +
-      '?where=1%3D1&outFields=MPA_Name,Type,Regulation&outSR=4326&f=geojson&resultRecordCount=500'
-    );
-    const data = await res.json();
-
-    if (data.features && data.features.length > 0) {
-      // Group by MPA name to get unique MPAs
-      const mpaMap = {};
-      data.features.forEach(f => {
-        const name = f.properties.MPA_Name;
-        const type = (f.properties.Type || '').includes('Reserve') ? 'SMR' : 'SMCA';
-        const coords = f.geometry?.coordinates;
-        if (!name || !coords) return;
-        if (!mpaMap[name]) {
-          mpaMap[name] = {
-            name, type, lats: [], lngs: [],
-            ccr: f.properties.Regulation || 'CCR Title 14, Section 632'
-          };
-        }
-        mpaMap[name].lats.push(coords[1]);
-        mpaMap[name].lngs.push(coords[0]);
-      });
-
-      MPAS = Object.values(mpaMap).map(m => {
-        const lat = m.lats.reduce((a,b) => a+b, 0) / m.lats.length;
-        const lng = m.lngs.reduce((a,b) => a+b, 0) / m.lngs.length;
-        const latSpread = Math.max(...m.lats) - Math.min(...m.lats);
-        const lngSpread = Math.max(...m.lngs) - Math.min(...m.lngs);
-        const radius = Math.max(1000, Math.min(15000,
-          Math.max(latSpread, lngSpread) * 111000 * 0.6
-        ));
-        return {
-          name: m.name, type: m.type, lat, lng, radius,
-          restrictions: getRestrictions(m.type),
-          ccr: m.ccr
-        };
-      });
-
-      // Draw circles for coordinate-based fallback
-      MPAS.forEach(mpa => {
-        const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-        const circle = L.circle([mpa.lat, mpa.lng], {
-          radius: mpa.radius, color,
-          fillColor: color,
-          fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
-          weight: 2
-        }).addTo(map);
-        circle.on('click', () => showMPADetail(mpa));
-        mpaLayers.push({ circle, mpa });
-      });
-
-      console.log(`✓ Loaded ${MPAS.length} MPAs from coordinate points API`);
-      setGPSStatus('searching', 'Getting your location…', '');
-      locateUser();
-      return;
-    }
-  } catch(e) {
-    console.warn('Both CDFW APIs failed, using fallback data', e);
-  }
-
-  // Final fallback — use hardcoded list
-  MPAS = MPAS_FALLBACK;
-  MPAS.forEach(mpa => {
-    const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-    const circle = L.circle([mpa.lat, mpa.lng], {
-      radius: mpa.radius, color,
-      fillColor: color,
-      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
-      weight: 2
-    }).addTo(map);
-    circle.on('click', () => showMPADetail(mpa));
-    mpaLayers.push({ circle, mpa });
-  });
-  setGPSStatus('searching', 'Getting your location…', '');
-  locateUser();
-}
-
-function drawMPAPolygons(geojson) {
-  const geoLayer = L.geoJSON(geojson, {
-    style: feature => {
-      const type = getMPAType(feature.properties);
-      return {
-        color: getMPAColor(type),
-        fillColor: getMPAColor(type),
-        fillOpacity: getMPAFillOpacity(type),
-        weight: 2
-      };
-    },
-    onEachFeature: (feature, layer) => {
-      const props = feature.properties;
-      const type = getMPAType(props);
-      const mpa = {
-        name: props.FULLNAME || props.NAME || props.SHORTNAME || 'Marine Protected Area',
-        type,
-        restrictions: getRestrictions(type),
-        ccr: 'CCR Title 14, Section 632'
-      };
-      layer.on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
-        showMPADetail(mpa);
-      });
-      mpaLayers.push({ layer, mpa, isPolygon: true });
-    }
-  }).addTo(map);
-  console.log('Drew MPA polygons from CDFW GeoJSON');
-}
-
-// GPS proximity check using actual polygon containment when available
-function checkPointInPolygon(lat, lng) {
-  if (!mpaGeoJSON) return null;
-  for (const feature of mpaGeoJSON.features) {
-    try {
-      if (isPointInGeoJSON(lat, lng, feature.geometry)) {
-        const props = feature.properties;
-        const type = getMPAType(props);
-        return {
-          name: props.NAME || props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
-          type,
-          restrictions: getRestrictions(type),
-          ccr: 'CCR Title 14, Section 632'
-        };
-      }
-    } catch(e) {}
-  }
-  return null;
-}
-
-// Simple point-in-polygon check (ray casting)
-function isPointInGeoJSON(lat, lng, geometry) {
-  if (!geometry) return false;
-  const coords = geometry.type === 'Polygon' ? [geometry.coordinates] :
-                 geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
-  for (const poly of coords) {
-    for (const ring of poly) {
-      if (pointInRing(lng, lat, ring)) return true;
-    }
-  }
-  return false;
-}
-
-function pointInRing(x, y, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0], yi = ring[i][1];
-    const xj = ring[j][0], yj = ring[j][1];
-    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-// Helper: get bounding box of a GeoJSON geometry
-function getBBox(geometry) {
-  const coords = [];
-  function extract(c) {
-    if (typeof c[0] === 'number') coords.push(c);
-    else c.forEach(extract);
-  }
-  extract(geometry.coordinates);
-  const lngs = coords.map(c => c[0]);
-  const lats = coords.map(c => c[1]);
-  return {
-    minLat: Math.min(...lats), maxLat: Math.max(...lats),
-    minLng: Math.min(...lngs), maxLng: Math.max(...lngs)
-  };
-}
-
-// Helper: estimate circle radius from bounding box
-function estimateRadius(bbox) {
-  const latSpan = (bbox.maxLat - bbox.minLat) * 111000;
-  const lngSpan = (bbox.maxLng - bbox.minLng) * 111000 * Math.cos(bbox.minLat * Math.PI / 180);
-  return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
-}
-
-// ============================================================
-// NOAA TIDE STATIONS — closest to major CA fishing areas
-// ============================================================
-const TIDE_STATIONS = [
-  { id: '9414290', name: 'San Francisco', lat: 37.80, lng: -122.47 },
-  { id: '9410170', name: 'San Diego', lat: 32.71, lng: -117.17 },
-  { id: '9410660', name: 'Los Angeles', lat: 33.72, lng: -118.27 },
-  { id: '9412110', name: 'Port San Luis', lat: 35.17, lng: -120.75 },
-  { id: '9413450', name: 'Monterey', lat: 36.60, lng: -121.89 },
-  { id: '9415020', name: 'Point Reyes', lat: 38.00, lng: -122.98 },
-  { id: '9418767', name: 'North Spit (Eureka)', lat: 40.77, lng: -124.22 },
-  { id: '9411340', name: 'Santa Barbara', lat: 34.40, lng: -119.69 }
-];
-
-// ============================================================
-// STATE
-// ============================================================
-let map, userMarker, watchId;
-let userLat = null, userLng = null;
-let mpaLayers = [];
-let currentTab = 'map';
-let fishingSpotLayers = [];
-let fishingSpotsVisible = false;
-
-// ============================================================
-// FISHING SPOTS — curated CA locations
-// ============================================================
 const FISHING_SPOTS = [
   // NORTH COAST
   { name: 'Humboldt Bay', lat: 40.769, lng: -124.192, type: 'bay', species: ['Halibut (California)', 'Dungeness Crab', 'Leopard Shark', 'Bat Ray'], tips: 'Great halibut bay. Fish the channels on incoming tide. Launch from Eureka or Fields Landing.' },
@@ -631,676 +187,165 @@ const FISHING_SPOTS = [
   { name: 'Colorado River', lat: 35.157, lng: -114.572, type: 'river', species: ['Striped Bass', 'Largemouth Bass', 'Catfish (Channel)', 'Rainbow Trout'], tips: 'Warm-water fishery along CA-NV border. Excellent stripers and catfish. Trout in tailwater below Davis Dam.' },
 ];
 
-let weatherLoaded = false;
+// ── Map init ─────────────────────────────────────────────────
+var map, userMarker, mpaLayers = [], spotMarkers = [];
+var currentTab = 'map';
+var userLat = null, userLng = null;
 
-// ============================================================
-// TAB SWITCHING
-// ============================================================
+function initMap() {
+  map = L.map('map', { zoomControl: true, attributionControl: false })
+    .setView([37.5, -122.0], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '© OpenStreetMap'
+  }).addTo(map);
+  drawMPAs();
+  locateUser();
+}
+
+function drawMPAs() {
+  mpaLayers.forEach(function(l) { map.removeLayer(l); });
+  mpaLayers = [];
+  MPAS_FALLBACK.forEach(function(mpa) {
+    var color = mpa.type === 'SMR' ? '#cc0000' : mpa.type === 'SMCA' ? '#ff8800' : '#0066cc';
+    var fillOpacity = mpa.type === 'SMR' ? 0.2 : 0.15;
+    var circle = L.circle([mpa.lat, mpa.lng], {
+      radius: mpa.radius,
+      color: color,
+      fillColor: color,
+      fillOpacity: fillOpacity,
+      weight: 2
+    }).addTo(map);
+    circle.on('click', function() { showMPADetail(mpa); });
+    mpaLayers.push(circle);
+  });
+}
+
+function drawSpots() {
+  spotMarkers.forEach(function(m) { map.removeLayer(m); });
+  spotMarkers = [];
+  FISHING_SPOTS.forEach(function(spot) {
+    var icon = L.divIcon({
+      html: '<div style="background:#27ae60;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">🎣</div>',
+      className: '', iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+    var marker = L.marker([spot.lat, spot.lng], {icon: icon}).addTo(map);
+    marker.on('click', function() { showSpotDetail(spot); });
+    spotMarkers.push(marker);
+  });
+}
+
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.map-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
-
-  const mapView = document.getElementById('mapView');
-  const weatherPanel = document.getElementById('weatherPanel');
-  const mapLegend = document.getElementById('mapLegend');
-
-  if (tab === 'map') {
-    mapView.style.display = 'block';
-    weatherPanel.classList.remove('visible');
-    mapLegend.style.display = 'flex';
-    if (map) setTimeout(() => map.invalidateSize(), 100);
+  document.getElementById('tab-map').classList.toggle('active', tab === 'map');
+  document.getElementById('tab-spots').classList.toggle('active', tab === 'spots');
+  if (tab === 'spots') {
+    drawSpots();
+    mpaLayers.forEach(function(l) { l.setStyle({opacity:0.3, fillOpacity:0.05}); });
   } else {
-    mapView.style.display = 'none';
-    weatherPanel.classList.add('visible');
-    mapLegend.style.display = 'none';
-    if (!weatherLoaded) loadWeather();
-  }
-}
-
-// ============================================================
-// DROP PIN MODE
-// ============================================================
-function togglePinMode() {
-  pinMode = !pinMode;
-  const btn = document.getElementById('pinBtn');
-  const banner = document.getElementById('pinModeBanner');
-  btn.classList.toggle('active', pinMode);
-  banner.classList.toggle('visible', pinMode);
-  map.getContainer().style.cursor = pinMode ? 'crosshair' : '';
-}
-
-function dropPin(lat, lng) {
-  // Remove existing pin
-  if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
-
-  // Create pin marker
-  const pinIcon = L.divIcon({
-    className: '',
-    html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">📌</div>',
-    iconSize: [28, 28],
-    iconAnchor: [8, 28]
-  });
-
-  pinMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
-
-  // Exit pin mode
-  pinMode = false;
-  document.getElementById('pinBtn').classList.remove('active');
-  document.getElementById('pinModeBanner').classList.remove('visible');
-  map.getContainer().style.cursor = '';
-
-  // Show pin info popup
-  showPinInfo(lat, lng);
-}
-
-function showPinInfo(lat, lng) {
-  // Check if pin is inside an MPA
-  const pt = L.latLng(lat, lng);
-  let insideMPA = null;
-  mpaLayers.forEach(({ mpa }) => {
-    if (pt.distanceTo(L.latLng(mpa.lat, mpa.lng)) <= mpa.radius) insideMPA = mpa;
-  });
-
-  const nearestStation = findNearestStation(lat, lng);
-
-  document.getElementById('mpaDrawerContent').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <span style="font-size:24px">📌</span>
-      <div>
-        <div class="mpa-name" style="font-size:14px">Dropped Pin</div>
-        <div style="font-size:12px;color:var(--text-muted)">${lat.toFixed(4)}°N, ${Math.abs(lng).toFixed(4)}°W</div>
-      </div>
-    </div>
-
-    ${insideMPA ? `
-      <div style="background:#fde8e8;border-left:3px solid var(--danger);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--danger);font-weight:500">
-        ⚠️ This pin is inside ${insideMPA.name} — ${insideMPA.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}
-      </div>
-    ` : `
-      <div style="background:#e8f5ee;border-left:3px solid #27ae60;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#1a6b3a">
-        ✓ This location is not inside a Marine Protected Area
-      </div>
-    `}
-
-    <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px">
-      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Nearest Tide Station</div>
-      <div style="font-size:14px;font-weight:500">${nearestStation.name}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">NOAA Station ${nearestStation.id}</div>
-    </div>
-
-    <button onclick="loadWeatherForPin(${lat}, ${lng})" style="width:100%;padding:11px;background:var(--ocean);color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:8px">
-      🌊 View Tides & Weather Here
-    </button>
-    <button onclick="removePin()" style="width:100%;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text);margin-bottom:4px">
-      Remove Pin
-    </button>
-    <button onclick="closeMPADrawer()" style="width:100%;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text)">
-      Close
-    </button>
-  `;
-
-  document.getElementById('mpaDrawer').classList.add('open');
-}
-
-function removePin() {
-  if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
-  closeMPADrawer();
-}
-
-async function loadWeatherForPin(lat, lng) {
-  // Temporarily override user location for weather
-  const prevLat = userLat, prevLng = userLng;
-  userLat = lat; userLng = lng;
-  weatherLoaded = false;
-  closeMPADrawer();
-  switchTab('weather');
-  await loadWeather();
-  // Don't restore — user tapped this location intentionally
-}
-
-// ============================================================
-// MAP INIT
-// ============================================================
-function initMap() {
-  try {
-    map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap', maxZoom: 18
-    }).addTo(map);
-    L.control.zoom({ position: 'topright' }).addTo(map);
-    map.on('click', (e) => {
-      if (pinMode) dropPin(e.latlng.lat, e.latlng.lng);
-      else closeMPADrawer();
+    spotMarkers.forEach(function(m) { map.removeLayer(m); });
+    spotMarkers = [];
+    mpaLayers.forEach(function(l) {
+      var mpa = MPAS_FALLBACK[mpaLayers.indexOf(l)];
+      var color = mpa ? (mpa.type === 'SMR' ? '#cc0000' : mpa.type === 'SMCA' ? '#ff8800' : '#0066cc') : '#0066cc';
+      var fi = mpa ? (mpa.type === 'SMR' ? 0.2 : 0.15) : 0.15;
+      l.setStyle({color:color, fillColor:color, fillOpacity:fi, opacity:1});
     });
-    // loadMPAs handles drawing + locateUser internally
-    loadMPAs();
-  } catch(e) {
-    document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;color:#666">Map failed to load. Check internet connection.</div>';
   }
 }
-
-// ============================================================
-// GPS LOCATION
-// ============================================================
-// ============================================================
-// GPS LOCATION — only center map on FIRST fix, not every update
-// ============================================================
-let mapCenteredOnce = false;
-let pinMarker = null;
-let pinMode = false;
 
 function locateUser() {
-  setGPSStatus('searching', 'Getting your location…', '');
   if (!navigator.geolocation) {
-    setGPSStatus('caution', 'GPS not available', 'Browser does not support location');
+    setGPSStatus('safe', 'Tap map to explore MPA boundaries');
     return;
   }
-  if (watchId) navigator.geolocation.clearWatch(watchId);
-  mapCenteredOnce = false; // reset so next locate re-centers
-  watchId = navigator.geolocation.watchPosition(pos => {
+  navigator.geolocation.getCurrentPosition(function(pos) {
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
-    updateUserMarker(userLat, userLng);
+    var icon = L.divIcon({
+      html: '<div style="background:#2980b9;border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 0 0 3px rgba(41,128,185,.4)"></div>',
+      className: '', iconSize: [18, 18], iconAnchor: [9, 9]
+    });
+    if (userMarker) map.removeLayer(userMarker);
+    userMarker = L.marker([userLat, userLng], {icon: icon, zIndexOffset: 1000}).addTo(map);
+    map.setView([userLat, userLng], 11);
     checkMPAProximity(userLat, userLng);
-    // Only center map on the FIRST location fix — never again unless user taps locate btn
-    if (!mapCenteredOnce && currentTab === 'map') {
-      map.setView([userLat, userLng], 12);
-      mapCenteredOnce = true;
-    }
-    if (currentTab === 'weather' && !weatherLoaded) loadWeather();
-  }, () => {
-    setGPSStatus('caution', 'Location access denied', 'Enable location in browser settings');
-  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
-}
-
-// Re-center on user — called by the 📍 button
-function centerOnUser() {
-  if (userLat && userLng) {
-    map.setView([userLat, userLng], 14);
-  } else {
-    locateUser();
-  }
-}
-
-function updateUserMarker(lat, lng) {
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
-  const icon = L.divIcon({
-    className: '',
-    html: '<div style="width:14px;height:14px;background:#0a3d62;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0a3d62"></div>',
-    iconSize: [14,14], iconAnchor: [7,7]
+  }, function() {
+    setGPSStatus('safe', 'Location access denied — exploring manually');
   });
-  if (userMarker) userMarker.setLatLng([lat, lng]);
-  else userMarker = L.marker([lat, lng], { icon }).addTo(map);
 }
 
-function setGPSStatus(type, title, detail) {
-  const el = document.getElementById('gpsStatus');
-  el.className = `gps-status ${type}`;
-  el.innerHTML = `<div class="gps-dot"></div><div class="gps-text"><strong>${title}</strong> ${detail}</div>`;
+function setGPSStatus(cls, msg) {
+  var el = document.getElementById('gpsStatus');
+  el.className = 'gps-status ' + cls;
+  el.innerHTML = '<div class="gps-dot"></div><div>' + msg + '</div>';
 }
 
-// ============================================================
-// MPA PROXIMITY
-// ============================================================
 function checkMPAProximity(lat, lng) {
-  // First try exact polygon containment (when CDFW polygons loaded)
-  if (mpaGeoJSON) {
-    const inside = checkPointInPolygon(lat, lng);
+  var closest = null, minDist = Infinity;
+  MPAS_FALLBACK.forEach(function(mpa) {
+    var d = Math.hypot(mpa.lat - lat, mpa.lng - lng) * 111000;
+    if (d < mpa.radius * 1.2 && d < minDist) { minDist = d; closest = mpa; }
+  });
+  if (closest) {
+    var inside = minDist <= closest.radius;
     if (inside) {
-      const t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
-      setGPSStatus('warning', `⚠️ INSIDE ${t}!`,
-        `${inside.name} — ${inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}`);
-      showMPADetail(inside);
-      return;
-    }
-    // Check proximity to polygon edges
-    let nearestName = null, nearestDist = Infinity;
-    for (const feature of mpaGeoJSON.features) {
-      const bbox = getBBox(feature.geometry);
-      const centerLat = (bbox.minLat + bbox.maxLat) / 2;
-      const centerLng = (bbox.minLng + bbox.maxLng) / 2;
-      const dist = L.latLng(lat, lng).distanceTo(L.latLng(centerLat, centerLng));
-      const size = estimateRadius(bbox);
-      if (dist < size * 1.3 && dist < nearestDist) {
-        nearestDist = dist;
-        nearestName = feature.properties.FULLNAME || feature.properties.SHORTNAME;
-      }
-    }
-    if (nearestName) {
-      setGPSStatus('caution', `Approaching MPA`, `${nearestName} is nearby — check boundaries before fishing`);
+      setGPSStatus('warning', '⚠️ You are inside ' + closest.name + ' — restrictions apply!');
     } else {
-      setGPSStatus('safe', '✓ Clear — no MPA nearby', 'GPS active');
+      setGPSStatus('caution', '⚠️ Near ' + closest.name + ' — check boundaries');
     }
-    return;
-  }
-
-  // Fallback: circle-based proximity check
-  const userPt = L.latLng(lat, lng);
-  let inside = null, nearest = null, nearestDist = Infinity;
-  mpaLayers.forEach(({ mpa, circle }) => {
-    if (!circle) return;
-    const dist = userPt.distanceTo(L.latLng(mpa.lat, mpa.lng));
-    if (dist <= mpa.radius) { inside = mpa; }
-    else if (dist <= mpa.radius * 1.2 && dist < nearestDist) { nearestDist = dist; nearest = mpa; }
-  });
-  if (inside) {
-    const t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
-    setGPSStatus('warning', `⚠️ INSIDE ${t}!`, `${inside.name} — ${inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'}`);
-    showMPADetail(inside);
-  } else if (nearest) {
-    setGPSStatus('caution', `Approaching MPA`, `${nearest.name} is nearby — tap boundary for rules`);
   } else {
-    setGPSStatus('safe', '✓ Clear — no MPA nearby', 'GPS active');
+    setGPSStatus('safe', '✅ No MPAs detected near your location');
   }
 }
 
-// ============================================================
-// MPA DRAWER
-// ============================================================
 function showMPADetail(mpa) {
-  const typeLabel = mpa.type === 'SMR' ? 'State Marine Reserve' : 'State Marine Conservation Area';
-  const badgeClass = mpa.type === 'SMR' ? 'badge-smr' : 'badge-smca';
-  document.getElementById('mpaDrawerContent').innerHTML = `
-    <div class="mpa-name">${mpa.name}</div>
-    <span class="mpa-type-badge ${badgeClass}">${typeLabel}</span>
-    <div class="mpa-restrictions">${mpa.restrictions}</div>
-    <div class="mpa-ccr">📋 ${mpa.ccr}</div>
-    <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">⚠️ Verify at wildlife.ca.gov — boundaries are approximate</div>
-    <button onclick="closeMPADrawer()" style="width:100%;margin-top:12px;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;cursor:pointer">Close</button>
-  `;
-  document.getElementById('mpaDrawer').classList.add('open');
-  map.setView([mpa.lat, mpa.lng], 12);
-}
-
-function closeMPADrawer() {
-  document.getElementById('mpaDrawer').classList.remove('open');
-}
-
-// ============================================================
-// WEATHER & TIDES
-// ============================================================
-function findNearestStation(lat, lng) {
-  let nearest = TIDE_STATIONS[0], minDist = Infinity;
-  TIDE_STATIONS.forEach(s => {
-    const d = Math.hypot(s.lat - lat, s.lng - lng);
-    if (d < minDist) { minDist = d; nearest = s; }
-  });
-  return nearest;
-}
-
-async function loadWeather() {
-  if (!userLat || !userLng) {
-    document.getElementById('wxLoading').innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">Enable location access to load tides and weather</div>';
-    return;
-  }
-
-  document.getElementById('wxLoading').style.display = 'block';
-  document.getElementById('wxContent').style.display = 'none';
-
-  try {
-    const station = findNearestStation(userLat, userLng);
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-
-    // Fetch 14 days of tides
-    const end14 = new Date(today); end14.setDate(today.getDate() + 13);
-    const endStr14 = end14.toISOString().split('T')[0].replace(/-/g, '');
-
-    // Fetch weather from NWS
-    const pointRes = await fetch(`https://api.weather.gov/points/${userLat.toFixed(4)},${userLng.toFixed(4)}`);
-    const pointData = await pointRes.json();
-
-    // Fetch 14 days of tides from NOAA
-    const tideRes = await fetch(
-      `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${dateStr}&end_date=${endStr14}` +
-      `&station=${station.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=cafish&format=json`
-    );
-    const tideData = await tideRes.json();
-
-    // Fetch NWS forecast (7 days day/night) and hourly
-    const forecastUrl = pointData.properties?.forecast;
-    const hourlyUrl = pointData.properties?.forecastHourly;
-
-    let forecast = null, hourly = null;
-    if (forecastUrl) {
-      const fRes = await fetch(forecastUrl);
-      const fData = await fRes.json();
-      forecast = fData.properties?.periods;
-    }
-    if (hourlyUrl) {
-      const hRes = await fetch(hourlyUrl);
-      const hData = await hRes.json();
-      hourly = hData.properties?.periods;
-    }
-
-    renderWeather(station, tideData, forecast, hourly);
-    weatherLoaded = true;
-
-  } catch(e) {
-    document.getElementById('wxLoading').style.display = 'none';
-    document.getElementById('wxContent').style.display = 'block';
-    document.getElementById('wxContent').innerHTML = `
-      <div class="wx-error">
-        <div style="font-size:32px;margin-bottom:8px">🌊</div>
-        <div style="font-weight:500;margin-bottom:4px">Could not load weather data</div>
-        <div style="font-size:12px">Check your connection and try again</div>
-        <button onclick="loadWeather()" style="margin-top:12px;padding:8px 20px;background:var(--ocean);color:white;border:none;border-radius:8px;font-family:inherit;cursor:pointer">Retry</button>
-      </div>`;
-  }
-}
-
-function getWeatherIcon(text) {
-  if (!text) return '🌤️';
-  const t = text.toLowerCase();
-  if (t.includes('thunder')) return '⛈️';
-  if (t.includes('rain') || t.includes('shower')) return '🌧️';
-  if (t.includes('drizzle')) return '🌦️';
-  if (t.includes('fog')) return '🌫️';
-  if (t.includes('snow')) return '🌨️';
-  if (t.includes('cloud') && t.includes('partly')) return '⛅';
-  if (t.includes('cloud') || t.includes('overcast')) return '☁️';
-  if (t.includes('clear') || t.includes('sunny')) return '☀️';
-  if (t.includes('wind')) return '💨';
-  return '🌤️';
-}
-
-function calcFishingScore(temp, wind, forecastText) {
-  let score = 70;
-  if (temp) {
-    if (temp >= 55 && temp <= 75) score += 15;
-    else if (temp < 45 || temp > 85) score -= 20;
-  }
-  if (wind) {
-    const spd = parseInt(wind);
-    if (spd <= 10) score += 15;
-    else if (spd <= 15) score += 5;
-    else if (spd <= 20) score -= 10;
-    else score -= 25;
-  }
-  if (forecastText) {
-    const f = forecastText.toLowerCase();
-    if (f.includes('clear') || f.includes('sunny')) score += 5;
-    if (f.includes('thunder') || f.includes('storm')) score -= 30;
-    if (f.includes('rain')) score -= 10;
-    if (f.includes('fog')) score -= 5;
-  }
-  return Math.max(10, Math.min(99, score));
-}
-
-function scoreClass(score) {
-  if (score >= 70) return 'good';
-  if (score >= 45) return 'fair';
-  return 'poor';
-}
-
-function scoreDesc(score) {
-  if (score >= 80) return 'Excellent';
-  if (score >= 70) return 'Good';
-  if (score >= 55) return 'Fair';
-  if (score >= 40) return 'Marginal';
-  return 'Poor';
-}
-
-function renderWeather(station, tideData, forecast, hourly) {
-  const loading = document.getElementById('wxLoading');
-  const content = document.getElementById('wxContent');
-  loading.style.display = 'none';
-  content.style.display = 'block';
-
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-  // Group tides by date
-  const tidesByDate = {};
-  if (tideData.predictions) {
-    tideData.predictions.forEach(t => {
-      const dateKey = t.t.split(' ')[0];
-      if (!tidesByDate[dateKey]) tidesByDate[dateKey] = [];
-      tidesByDate[dateKey].push(t);
-    });
-  }
-
-  // Group forecast by day (daytime periods)
-  const dayForecasts = forecast ? forecast.filter(p => p.isDaytime) : [];
-  const nightForecasts = forecast ? forecast.filter(p => !p.isDaytime) : [];
-
-  // Current conditions
-  const current = hourly ? hourly[0] : null;
-  const todayForecast = dayForecasts[0];
-  const currentTemp = current ? parseInt(current.temperature) : (todayForecast ? todayForecast.temperature : null);
-  const currentWind = current ? current.windSpeed : (todayForecast ? todayForecast.windSpeed : 'N/A');
-  const currentForecast = current ? current.shortForecast : (todayForecast ? todayForecast.shortForecast : 'Check NWS');
-  const todayScore = calcFishingScore(currentTemp, currentWind, currentForecast);
-
-  // Build day tabs — up to 7 days from NWS, show 14-day tide notice
-  const numDays = Math.min(dayForecasts.length, 7);
-  const tabsHTML = dayForecasts.slice(0, numDays).map((p, i) => {
-    const d = new Date(p.startTime);
-    const score = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
-    const sc = scoreClass(score);
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[d.getDay()];
-    return `
-      <button class="forecast-tab ${i === 0 ? 'active' : ''} ${sc}"
-        onclick="switchForecastDay(${i})" id="ftab-${i}">
-        ${label}<br>
-        <span class="tab-score">${getWeatherIcon(p.shortForecast)} ${score}</span>
-      </button>
-    `;
-  }).join('');
-
-  // Build day detail panels
-  const dayPanelsHTML = dayForecasts.slice(0, numDays).map((p, i) => {
-    const d = new Date(p.startTime);
-    const night = nightForecasts[i];
-    const score = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
-    const sc = scoreClass(score);
-    const dateKey = d.toISOString().split('T')[0];
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${days[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
-
-    // Tides for this day
-    const dayTides = tidesByDate[dateKey] || [];
-    const tidesHTML = dayTides.length > 0 ? dayTides.map(t => {
-      const isHigh = t.type === 'H';
-      const time = new Date(t.t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      return `
-        <div class="tide-row">
-          <div>
-            <div class="tide-time">${time}</div>
-            <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High' : '▼ Low'}</div>
-          </div>
-          <div class="tide-height ${isHigh ? 'tide-high' : 'tide-low'}">${parseFloat(t.v).toFixed(1)} ft</div>
-        </div>`;
-    }).join('') : '<div style="font-size:13px;color:var(--text-muted);padding:8px">Tide data not available</div>';
-
-    return `
-      <div class="day-detail ${i === 0 ? 'active' : ''}" id="fday-${i}">
-        <div class="day-header">
-          <div class="day-icon">${getWeatherIcon(p.shortForecast)}</div>
-          <div class="day-info">
-            <div class="day-name">${label}</div>
-            <div class="day-desc">${p.shortForecast} · ${p.temperature}°F · ${p.windSpeed} ${p.windDirection}</div>
-          </div>
-          <div class="day-score-pill ${sc}">${score}</div>
-        </div>
-
-        <div class="wx-grid">
-          <div class="wx-tile">
-            <div class="reg-tile-label">High temp</div>
-            <div class="wx-value">${p.temperature}°</div>
-            <div class="reg-tile-sub">${p.shortForecast}</div>
-          </div>
-          <div class="wx-tile">
-            <div class="reg-tile-label">Wind</div>
-            <div class="wx-value" style="font-size:16px;margin-top:4px">${p.windSpeed}</div>
-            <div class="reg-tile-sub">${p.windDirection}</div>
-          </div>
-          ${night ? `
-          <div class="wx-tile">
-            <div class="reg-tile-label">Tonight</div>
-            <div class="wx-value" style="font-size:16px;margin-top:4px">${night.temperature}°F</div>
-            <div class="reg-tile-sub">${night.shortForecast}</div>
-          </div>` : ''}
-          <div class="wx-tile">
-            <div class="reg-tile-label">Fishing score</div>
-            <div class="wx-value ${sc === 'good' ? '' : sc === 'fair' ? 'caution' : 'danger'}">${score}</div>
-            <div class="reg-tile-sub">${scoreDesc(score)}</div>
-          </div>
-        </div>
-
-        ${p.detailedForecast ? `
-        <div class="reg-note" style="margin-bottom:12px;font-size:12px">${p.detailedForecast}</div>
-        ` : ''}
-
-        <div class="tide-section-title">Tides — ${station.name}</div>
-        <div class="tide-card">${tidesHTML}</div>
-      </div>
-    `;
-  }).join('');
-
-  // Extended tide notice for days 8-14
-  const tideDateKeys = Object.keys(tidesByDate).sort();
-  const extendedTideHTML = tideDateKeys.slice(7, 14).map(dateKey => {
-    const d = new Date(dateKey + 'T12:00:00');
-    const dayTides = tidesByDate[dateKey] || [];
-    if (!dayTides.length) return '';
-    return `
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">
-          ${days[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}
-        </div>
-        <div class="tide-card">
-          ${dayTides.map(t => {
-            const isHigh = t.type === 'H';
-            const time = new Date(t.t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-            return `<div class="tide-row">
-              <div>
-                <div class="tide-time">${time}</div>
-                <div class="tide-type ${isHigh ? 'tide-high' : 'tide-low'}">${isHigh ? '▲ High' : '▼ Low'}</div>
-              </div>
-              <div class="tide-height ${isHigh ? 'tide-high' : 'tide-low'}">${parseFloat(t.v).toFixed(1)} ft</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-  }).join('');
-
-  content.innerHTML = `
-    <div class="weather-location">${station.name} Area</div>
-    <div class="weather-location-sub">Nearest NOAA station · ${userLat.toFixed(2)}°N ${Math.abs(userLng).toFixed(2)}°W</div>
-
-    <div class="fishing-score-card">
-      <div class="score-number">${todayScore}</div>
-      <div class="score-info">
-        <div class="score-label">Today's fishing score</div>
-        <div class="score-desc">${currentTemp ? currentTemp + '°F · ' : ''}${currentWind} · ${currentForecast}</div>
-      </div>
-    </div>
-
-    <div class="tide-section-title">7-Day Forecast — tap a day for details</div>
-    <div class="forecast-tabs">${tabsHTML}</div>
-    <div id="dayPanels">${dayPanelsHTML}</div>
-
-    ${extendedTideHTML ? `
-    <div class="tide-section-title" style="margin-top:8px">14-Day Tide Forecast</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Weather unavailable beyond 7 days · Tide predictions only</div>
-    ${extendedTideHTML}
-    ` : ''}
-
-    <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0 16px">
-      Weather: NOAA National Weather Service (7-day) · Tides: NOAA CO-OPS (14-day)<br>
-      <a href="https://weather.gov" style="color:var(--ocean-light)">weather.gov</a> ·
-      <a href="https://tidesandcurrents.noaa.gov" style="color:var(--ocean-light)">tidesandcurrents.noaa.gov</a>
-    </div>
-  `;
-}
-
-function switchForecastDay(i) {
-  document.querySelectorAll('.forecast-tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
-  document.querySelectorAll('.day-detail').forEach((p, idx) => p.classList.toggle('active', idx === i));
-  // Scroll to top of weather panel
-  document.getElementById('weatherPanel').scrollTop = 0;
-}
-
-// ============================================================
-// FISHING SPOTS
-// ============================================================
-function toggleFishingSpots() {
-  fishingSpotsVisible = !fishingSpotsVisible;
-  document.getElementById('spotsBtn').classList.toggle('active', fishingSpotsVisible);
-  if (fishingSpotsVisible) {
-    drawFishingSpots();
-  } else {
-    fishingSpotLayers.forEach(l => map.removeLayer(l));
-    fishingSpotLayers = [];
-  }
-}
-
-function drawFishingSpots() {
-  fishingSpotLayers.forEach(l => map.removeLayer(l));
-  fishingSpotLayers = [];
-
-  const isSaltwater = ['bay','pier','shore','beach'].includes;
-  FISHING_SPOTS.forEach(spot => {
-    if (!spot.lat || !spot.lng || isNaN(spot.lat) || isNaN(spot.lng)) return;
-    const isOcean = ['bay','pier','shore','beach'].includes(spot.type);
-    const typeIcon = spot.type === 'pier' ? '🪝' : spot.type === 'lake' ? '🏔️' : spot.type === 'river' ? '🏞️' : spot.type === 'beach' ? '🏖️' : '🎣';
-    const colorClass = isOcean ? 'spot-type-ocean' : 'spot-type-fresh';
-
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="spot-marker-label ${colorClass}">${typeIcon} ${spot.name}</div>`,
-      iconAnchor: [spot.name.length * 3.5 + 20, 20],
-      iconSize: null
-    });
-
-    const marker = L.marker([spot.lat, spot.lng], { icon })
-      .addTo(map)
-      .on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
-        showSpotDetail(spot);
-      });
-
-    fishingSpotLayers.push(marker);
-  });
+  var typeClass = mpa.type === 'SMR' ? 'pill-smr' : mpa.type === 'SMCA' ? 'pill-smca' : 'pill-park';
+  var noteClass = mpa.type === 'SMR' ? 'danger' : 'warning';
+  var html = '<div class="d-type-pill ' + typeClass + '">' + mpa.type + ' · Marine Protected Area</div>'
+    + '<div class="d-name">' + mpa.name + '</div>'
+    + '<div class="d-section">Restrictions</div>'
+    + '<div class="d-note ' + noteClass + '">' + mpa.restrictions + '</div>'
+    + '<div class="d-section">Legal Reference</div>'
+    + '<div class="d-note">' + mpa.ccr + '</div>'
+    + '<div class="d-note" style="margin-top:8px;font-size:12px">Always verify current boundaries and rules at <a href="https://wildlife.ca.gov/Conservation/Marine/MPAs" style="color:var(--ocean)">wildlife.ca.gov</a></div>';
+  document.getElementById('drawerBody').innerHTML = html;
+  openDrawer();
 }
 
 function showSpotDetail(spot) {
-  const isOcean = ['bay','pier','shore','beach'].includes(spot.type);
-  const typeLabel = { bay: 'Bay / Harbor', pier: 'Pier', shore: 'Shore', beach: 'Beach', lake: 'Lake', river: 'River / Delta' }[spot.type] || spot.type;
-  const speciesLinks = spot.species.map(s =>
-    `<span style="display:inline-block;background:var(--foam);border-radius:100px;padding:4px 10px;font-size:12px;margin:3px 3px 0 0;color:var(--ocean);font-weight:500">${s}</span>`
-  ).join('');
-
-  document.getElementById('mpaDrawerContent').innerHTML = `
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">${typeLabel}</div>
-      <div style="font-family:'Unbounded',sans-serif;font-size:17px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:12px">${spot.name}</div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Top Species</div>
-        <div>${speciesLinks}</div>
-      </div>
-      <div style="background:var(--foam);border-left:3px solid var(--ocean-light);border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.6">
-        💡 ${spot.tips}
-      </div>
-      <button onclick="loadWeatherForPin(${spot.lat}, ${spot.lng}); switchTab('weather')"
-        style="width:100%;margin-top:12px;padding:12px;background:var(--ocean);color:white;border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">
-        🌊 Tides & Weather Here
-      </button>
-    </div>
-  `;
-  document.getElementById('mpaDrawer').classList.add('open');
+  var html = '<div class="d-type-pill pill-spot">🎣 ' + (spot.type || 'Fishing Spot') + '</div>'
+    + '<div class="d-name">' + spot.name + '</div>';
+  if (spot.species && spot.species.length) {
+    html += '<div class="d-section">Common Species</div>'
+      + '<div class="d-note">' + spot.species.join(', ') + '</div>';
+  }
+  if (spot.tips) {
+    html += '<div class="d-section">Insider Tips</div>'
+      + '<div class="d-note">' + spot.tips + '</div>';
+  }
+  document.getElementById('drawerBody').innerHTML = html;
+  openDrawer();
 }
 
-// ============================================================
-// INIT
-// ============================================================
-if (typeof L !== 'undefined') {
-  initMap();
-} else {
-  window.addEventListener('load', initMap);
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
 }
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+// Swipe to close
+var touchStartY = 0;
+document.getElementById('drawer').addEventListener('touchstart', function(e) {
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+document.getElementById('drawer').addEventListener('touchend', function(e) {
+  if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer();
+}, {passive: true});
+
+initMap();
 </script>
 </body>
 </html>

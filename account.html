@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — Account</title>
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ocean:#0a3d62;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
+.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1}
+.app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff}
+.page-title span{color:var(--kelp-light)}
+.content{padding:16px}
+.section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:0 0 10px}
+.saved-card{background:var(--white);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;text-decoration:none;color:inherit}
+.saved-card:active{opacity:.8}
+.saved-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg)}
+.saved-placeholder{width:48px;height:48px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.saved-name{font-size:14px;font-weight:600}
+.saved-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.empty-state{background:var(--white);border-radius:var(--radius-sm);padding:32px 20px;text-align:center;color:var(--text-muted);margin-bottom:16px}
+.coming-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.coming-icon{font-size:28px;flex-shrink:0}
+.coming-title{font-size:13px;font-weight:600}
+.coming-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
+.nav-item.active{color:var(--ocean)}
+.nav-icon{font-size:22px;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="app-eyebrow">Fish Smarter</div>
+    <div class="page-title">My <span>Account</span></div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- Saved species -->
+  <div class="section-label" style="margin-top:4px">⭐ Saved Species</div>
+  <div id="savedList"></div>
+
+  <!-- Coming soon -->
+  <div class="section-label" style="margin-top:20px">🚀 Coming Soon</div>
+  <div class="coming-card">
+    <span class="coming-icon">📔</span>
+    <div><div class="coming-title">Catch Log</div><div class="coming-sub">Track every trip and species caught</div></div>
+  </div>
+  <div class="coming-card">
+    <span class="coming-icon">📡</span>
+    <div><div class="coming-title">Live Catch Reports</div><div class="coming-sub">See what's biting near you right now</div></div>
+  </div>
+  <div class="coming-card">
+    <span class="coming-icon">🔔</span>
+    <div><div class="coming-title">Season Alerts</div><div class="coming-sub">Get notified when your target species opens</div></div>
+  </div>
+  <div class="coming-card">
+    <span class="coming-icon">👥</span>
+    <div><div class="coming-title">Community Feed</div><div class="coming-sub">Share catches and tips with other anglers</div></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
+  <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
+  <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
+  <a class="nav-item active" href="account.html" id="accountNavItem"><span class="nav-icon">👤</span><span>Account</span></a>
+</nav>
+
+<script src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+async function loadSaved() {
+  var ids = getSavedIds();
+  var list = document.getElementById('savedList');
+  if (!ids.length) {
+    list.innerHTML = '<div class="empty-state">'
+      + '<div style="font-size:40px;margin-bottom:10px">⭐</div>'
+      + '<div style="font-weight:600;margin-bottom:4px">No saved species yet</div>'
+      + '<div style="font-size:13px">Go to Species and tap ☆ Save on any species</div>'
+      + '</div>';
+    return;
+  }
+  try {
+    var res = await db.from('species').select('id,name,scientific_name,water_type,category,image_url').in('id', ids);
+    var species = res.data || [];
+    if (!species.length) {
+      list.innerHTML = '<div class="empty-state">No saved species found.</div>';
+      return;
+    }
+    list.innerHTML = species.map(function(sp) {
+      return '<a class="saved-card" href="index.html">'
+        + (sp.image_url
+          ? '<img class="saved-thumb" src="' + sp.image_url + '" alt="' + sp.name + '" onerror="this.style.display=\'none\'">'
+          : '<div class="saved-placeholder">' + getEmoji(sp.name) + '</div>')
+        + '<div style="flex:1;min-width:0">'
+        + '<div class="saved-name">' + sp.name + '</div>'
+        + '<div class="saved-sub">' + (sp.water_type || '') + (sp.category ? ' · ' + sp.category : '') + '</div>'
+        + '</div>'
+        + '<span style="color:var(--ocean-light);font-size:16px">›</span>'
+        + '</a>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state">Could not load saved species.</div>';
+  }
+}
+
+loadSaved();
+
+// 5-tap secret admin entry
+var adminTaps = 0, adminTimer = null;
+document.getElementById('accountNavItem').addEventListener('click', function(e) {
+  adminTaps++;
+  clearTimeout(adminTimer);
+  adminTimer = setTimeout(function() { adminTaps = 0; }, 2000);
+  if (adminTaps >= 5) {
+    adminTaps = 0;
+    window.location.href = 'admin.html';
+  }
+});
+</script>
+</body>
+</html>
