@@ -304,6 +304,14 @@
     <button class="tab" data-filter="open">Open Now</button>
     <button class="tab" data-filter="caution">Check Dates</button>
   </div>
+  <div style="padding:8px 16px 0;display:flex;gap:8px">
+    <button onclick="window.location.href='map.html'" style="flex:1;padding:10px;background:var(--ocean);color:white;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+      🗺️ View MPA Map
+    </button>
+    <button onclick="showSaved()" style="padding:10px 14px;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">
+      ⭐ Saved
+    </button>
+  </div>
   <div class="gps-banner" id="gpsBanner" onclick="getLocation()">
     <span style="font-size:20px">📍</span>
     <div class="gps-text"><strong>Get regulations for your location</strong>Tap to use GPS</div>
@@ -582,22 +590,66 @@
   <div id="drawerContent"></div>
 </div>
 
+<!-- FORECAST VIEW -->
+<div id="forecastView" style="display:none;padding-bottom:100px;overflow-y:auto;height:calc(100vh - 60px)">
+  <div style="background:var(--ocean);padding:48px 20px 20px;position:relative">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;opacity:0.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)"></div>
+    <div style="position:relative;z-index:1">
+      <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:400;color:rgba(255,255,255,0.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px">Own Your Waters.</div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:white">Tides & <span style="color:var(--kelp-light)">Forecast</span></div>
+    </div>
+  </div>
+  <div id="forecastLoading" style="padding:40px 20px;text-align:center;color:var(--text-muted)">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <div style="font-size:14px">Loading tides & weather…</div>
+    <div style="font-size:12px;margin-top:6px">Allow location access for local data</div>
+  </div>
+  <div id="forecastContent" style="display:none;padding:16px"></div>
+</div>
+
+<!-- ACCOUNT PLACEHOLDER VIEW -->
+<div id="accountView" style="display:none;padding-bottom:100px;overflow-y:auto;height:calc(100vh - 60px)">
+  <div style="background:var(--ocean);padding:48px 20px 20px;position:relative">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;opacity:0.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)"></div>
+    <div style="position:relative;z-index:1">
+      <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:400;color:rgba(255,255,255,0.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px">Own Your Waters.</div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:white">My <span style="color:var(--kelp-light)">Account</span></div>
+    </div>
+  </div>
+  <div style="padding:40px 20px;text-align:center">
+    <div style="font-size:48px;margin-bottom:16px">🎣</div>
+    <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Community Coming Soon</div>
+    <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto">Log your catches, share reports, see what others are catching near you.</div>
+    <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;max-width:280px;margin:24px auto 0">
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">📔</span>
+        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Catch Log</div><div style="font-size:11px;color:var(--text-muted)">Track every trip and species</div></div>
+      </div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">📡</span>
+        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Live Reports</div><div style="font-size:11px;color:var(--text-muted)">See what's biting near you</div></div>
+      </div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">🔔</span>
+        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Season Alerts</div><div style="font-size:11px;color:var(--text-muted)">Never miss an opening day</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav" id="bottomNav">
   <div class="nav-item active" id="nav-species" onclick="showMain()">
     <span class="nav-icon">🐟</span><span>Species</span>
   </div>
-  <div class="nav-item" onclick="window.location.href='map.html'">
-    <span class="nav-icon">🗺️</span><span>MPA Map</span>
-  </div>
   <div class="nav-item" id="nav-fishid" onclick="showFishId()">
     <span class="nav-icon">📷</span><span>Fish ID</span>
   </div>
-  <div class="nav-item" onclick="showAlerts()">
-    <span class="nav-icon">🔔</span><span>Alerts</span>
+  <div class="nav-item" id="nav-forecast" onclick="showForecast()">
+    <span class="nav-icon">🌊</span><span>Forecast</span>
   </div>
-  <div class="nav-item" id="nav-admin" onclick="handleAdminTap()">
-    <span class="nav-icon">⭐</span><span>Saved</span>
+  <div class="nav-item" id="nav-account" onclick="handleAccountTap()">
+    <span class="nav-icon">👤</span><span>Account</span>
   </div>
 </div>
 
@@ -611,7 +663,7 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
-// ADMIN AUTH — secret tap pattern (tap saved icon 5 times)
+// ADMIN AUTH — secret tap pattern (tap account icon 5 times)
 // ============================================================
 let adminTapCount = 0;
 let adminTapTimer = null;
@@ -664,8 +716,8 @@ async function signOut() {
   isAdminMode = false;
   document.getElementById('adminView').classList.remove('visible');
   document.getElementById('mainView').style.display = 'block';
-  document.getElementById('nav-admin').querySelector('span:last-child').textContent = 'Saved';
-  document.getElementById('nav-admin').querySelector('.nav-icon').textContent = '⭐';
+  document.getElementById('nav-account').querySelector('span:last-child').textContent = 'Account';
+  document.getElementById('nav-account').querySelector('.nav-icon').textContent = '👤';
 }
 
 function showAdminPanel() {
@@ -673,8 +725,8 @@ function showAdminPanel() {
   document.getElementById('loginScreen').classList.remove('visible');
   document.getElementById('mainView').style.display = 'none';
   document.getElementById('adminView').classList.add('visible');
-  document.getElementById('nav-admin').querySelector('span:last-child').textContent = 'Admin';
-  document.getElementById('nav-admin').querySelector('.nav-icon').textContent = '⚙️';
+  document.getElementById('nav-account').querySelector('span:last-child').textContent = 'Admin';
+  document.getElementById('nav-account').querySelector('.nav-icon').textContent = '⚙️';
 
   if (currentUser) {
     document.getElementById('adminAvatar').src = currentUser.user_metadata?.avatar_url || '';
@@ -1228,33 +1280,8 @@ function toggleSave(id) {
 // ============================================================
 // NAV ACTIONS
 // ============================================================
-function showMain() {
-  if (isAdminMode) return;
-  document.getElementById('mainView').style.display = 'block';
-  document.getElementById('fishIdView').style.display = 'none';
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===0));
-  renderList();
-}
-
-async function showAlerts() {
-  document.getElementById('mainView').style.display = 'block';
-  document.getElementById('fishIdView').style.display = 'none';
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===3));
-  const { data: closures } = await db.from('emergency_closures').select('*').eq('is_active', true);
-  const list = document.getElementById('speciesList');
-  if (!closures?.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">✅</div><h3>No active closures</h3><p>No emergency regulations right now</p></div>'; return; }
-  list.innerHTML = closures.map(c => `
-    <div class="species-card caution" style="flex-direction:column;align-items:flex-start;gap:8px">
-      <div style="display:flex;gap:10px;align-items:center;width:100%">
-        <span style="font-size:24px">⚠️</span>
-        <div><div class="species-name">${c.title}</div><div class="species-sub">Effective ${c.effective_date}${c.expiration_date?' · Expires '+c.expiration_date:''}</div></div>
-      </div>
-      <div style="font-size:13px;color:var(--text);line-height:1.5">${c.description}</div>
-    </div>`).join('');
-}
-
 function showSaved() {
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===3));
+  showMain();
   const saved = allSpecies.filter(s => savedIds.includes(s.id));
   const list = document.getElementById('speciesList');
   if (!saved.length) { list.innerHTML = '<div class="no-results"><div class="no-results-icon">⭐</div><h3>No saved species yet</h3><p>Tap any species, then tap Save</p></div>'; return; }
@@ -1262,6 +1289,14 @@ function showSaved() {
   allSpecies = saved;
   renderList();
   allSpecies = prev;
+}
+
+function showMain() {
+  if (isAdminMode) return;
+  document.getElementById('mainView').style.display = 'block';
+  document.getElementById('fishIdView').style.display = 'none';
+  setNav(0);
+  renderList();
 }
 
 function getLocation() {
@@ -1306,6 +1341,13 @@ document.getElementById('drawer').addEventListener('touchend', e => { if (e.chan
 checkAuthRedirect();
 loadData();
 
+// Handle deep link hash routing
+if (window.location.hash === '#fishid') {
+  setTimeout(() => showFishId(), 100);
+} else if (window.location.hash === '#forecast') {
+  setTimeout(() => showForecast(), 100);
+}
+
 // Force clear ALL service workers and caches
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => {
@@ -1323,15 +1365,184 @@ if ('caches' in window) {
 // ============================================================
 // FISH ID — AI-powered fish identification
 // ============================================================
-let fishIdImageBase64 = null;
-let fishIdImageType = null;
+function setNav(idx) {
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
+}
+
+function hideAllViews() {
+  document.getElementById('mainView').style.display = 'none';
+  document.getElementById('fishIdView').style.display = 'none';
+  document.getElementById('forecastView').style.display = 'none';
+  document.getElementById('accountView').style.display = 'none';
+  document.getElementById('adminView').classList.remove('visible');
+}
+
+function showMain() {
+  hideAllViews();
+  document.getElementById('mainView').style.display = 'block';
+  setNav(0);
+}
 
 function showFishId() {
-  document.getElementById('mainView').style.display = 'none';
+  hideAllViews();
   document.getElementById('fishIdView').style.display = 'block';
-  document.getElementById('adminView').classList.remove('visible');
-  document.getElementById('alertsView')?.classList.remove('visible');
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===2));
+  setNav(1);
+}
+
+function showForecast() {
+  hideAllViews();
+  document.getElementById('forecastView').style.display = 'block';
+  setNav(2);
+  loadForecast();
+}
+
+function handleAccountTap() {
+  hideAllViews();
+  document.getElementById('accountView').style.display = 'block';
+  setNav(3);
+}
+
+async function loadForecast() {
+  if (window._forecastLoaded) return;
+  const loading = document.getElementById('forecastLoading');
+  const content = document.getElementById('forecastContent');
+  loading.style.display = 'block';
+  content.style.display = 'none';
+
+  if (!navigator.geolocation) {
+    loading.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">Location not supported on this device</div>';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    try {
+      // Find nearest NOAA tide station
+      const stations = [
+        {id:'9415020',name:'Point Reyes',lat:37.99,lng:-122.97},
+        {id:'9414290',name:'San Francisco',lat:37.81,lng:-122.47},
+        {id:'9413450',name:'Monterey',lat:36.60,lng:-121.89},
+        {id:'9411340',name:'Santa Barbara',lat:34.41,lng:-119.69},
+        {id:'9410660',name:'Los Angeles',lat:33.72,lng:-118.27},
+        {id:'9410230',name:'La Jolla',lat:32.87,lng:-117.26},
+        {id:'9416841',name:'Arena Cove',lat:38.91,lng:-123.71},
+        {id:'9418767',name:'North Spit',lat:40.77,lng:-124.22},
+      ];
+      let nearest = stations[0], minDist = 999;
+      stations.forEach(s => {
+        const d = Math.sqrt((s.lat-lat)**2 + (s.lng-lng)**2);
+        if (d < minDist) { minDist = d; nearest = s; }
+      });
+
+      const today = new Date();
+      const ds = today.toISOString().split('T')[0].replace(/-/g,'');
+      const end = new Date(today); end.setDate(today.getDate()+6);
+      const de = end.toISOString().split('T')[0].replace(/-/g,'');
+
+      const [tideRes, wxPointRes] = await Promise.all([
+        fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${ds}&end_date=${de}&station=${nearest.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json`),
+        fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lng.toFixed(4)}`)
+      ]);
+
+      const tideData = await tideRes.json();
+      const wxPoint = await wxPointRes.json();
+      let forecast = null;
+      if (wxPoint.properties?.forecast) {
+        const fRes = await fetch(wxPoint.properties.forecast);
+        const fData = await fRes.json();
+        forecast = fData.properties?.periods?.slice(0,8);
+      }
+
+      // Group tides by day
+      const tides = tideData.predictions || [];
+      const tidesByDay = {};
+      tides.forEach(t => {
+        const day = t.t.split(' ')[0];
+        if (!tidesByDay[day]) tidesByDay[day] = [];
+        tidesByDay[day].push(t);
+      });
+
+      const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+      let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">📍 Nearest station: ${nearest.name}</div>`;
+
+      // 7-day forecast cards
+      if (forecast) {
+        html += `<div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">7-Day Forecast</div>`;
+        html += `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;scrollbar-width:none">`;
+        const dayForecasts = forecast.filter(p => p.isDaytime);
+        dayForecasts.forEach(p => {
+          const d = new Date(p.startTime);
+          const icon = getWxIcon(p.shortForecast);
+          html += `<div style="flex-shrink:0;background:white;border-radius:12px;padding:12px 10px;text-align:center;min-width:72px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted)">${days[d.getDay()]}</div>
+            <div style="font-size:24px;margin:6px 0">${icon}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--ocean)">${p.temperature}°</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${p.windSpeed}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      // Tide table by day
+      html += `<div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Tide Predictions</div>`;
+      Object.entries(tidesByDay).slice(0,7).forEach(([day, tides]) => {
+        const d = new Date(day);
+        html += `<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}</div>`;
+        tides.forEach(t => {
+          const isHigh = t.type === 'H';
+          const time = t.t.split(' ')[1];
+          const [hStr, mStr] = time.split(':');
+          const h = parseInt(hStr), m = parseInt(mStr);
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          const h12 = h > 12 ? h-12 : h === 0 ? 12 : h;
+          html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:16px">${isHigh ? '⬆️' : '⬇️'}</span>
+              <div>
+                <div style="font-size:13px;font-weight:500">${isHigh ? 'High' : 'Low'} Tide</div>
+                <div style="font-size:11px;color:var(--text-muted)">${h12}:${mStr} ${ampm}</div>
+              </div>
+            </div>
+            <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:${isHigh?'#1a6390':'#e07b39'}">${parseFloat(t.v).toFixed(1)} ft</div>
+          </div>`;
+        });
+        html += `</div>`;
+      });
+
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = html;
+      window._forecastLoaded = true;
+
+    } catch(e) {
+      loading.innerHTML = `<div style="text-align:center;padding:20px">
+        <div style="font-size:32px;margin-bottom:8px">🌊</div>
+        <div style="font-weight:500;margin-bottom:4px">Could not load forecast</div>
+        <div style="font-size:12px;color:var(--text-muted)">Check your connection and try again</div>
+        <button onclick="window._forecastLoaded=false;loadForecast()" style="margin-top:12px;padding:8px 20px;background:var(--ocean);color:white;border:none;border-radius:8px;font-family:inherit;cursor:pointer">Retry</button>
+      </div>`;
+    }
+  }, () => {
+    loading.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--text-muted)">Location access denied. Enable location in browser settings to load tides and weather.</div>';
+  });
+}
+
+function getWxIcon(text) {
+  if (!text) return '🌤️';
+  const t = text.toLowerCase();
+  if (t.includes('thunder')) return '⛈️';
+  if (t.includes('rain') || t.includes('shower')) return '🌧️';
+  if (t.includes('fog')) return '🌫️';
+  if (t.includes('snow')) return '🌨️';
+  if (t.includes('partly')) return '⛅';
+  if (t.includes('cloud') || t.includes('overcast')) return '☁️';
+  if (t.includes('clear') || t.includes('sunny')) return '☀️';
+  if (t.includes('wind')) return '💨';
+  return '🌤️';
 }
 
 function handleFishIdFile(event) {
