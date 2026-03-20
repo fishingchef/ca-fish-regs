@@ -1,18 +1,12 @@
 // middleware.js
-// ============================================================
-// Fish Smarter — API Rate Limiting (Vercel Edge Middleware)
-// No Next.js required — uses Web standard Request/Response
-// ============================================================
-// Rate limits:
-//   /api/identify → 5 req/min per IP  (Gemini protection)
-//   /api/*        → 60 req/min per IP (general)
-// ============================================================
+// Fish Smarter — API Rate Limiting (Vercel Edge)
+// Uses Web standard Request/Response — no Next.js required
 
 const rateStore = new Map();
 
 const LIMITS = {
-  '/api/identify': [5,  60_000],
-  '/api/':         [60, 60_000],
+  '/api/identify': [5,  60_000],   // 5 per minute — Gemini protection
+  '/api/':         [60, 60_000],   // 60 per minute — general API
 };
 
 function getClientIP(req) {
@@ -47,17 +41,21 @@ export default function middleware(req) {
   const url = new URL(req.url);
   const pathname = url.pathname;
 
+  // Only apply rate limiting to API routes
   if (!pathname.startsWith('/api/')) {
-    return new Response(null, { status: 200 });
+    return; // returning undefined = pass through
   }
 
   const ip = getClientIP(req);
   const limitEntry = Object.entries(LIMITS).find(([path]) => pathname.startsWith(path));
-  if (!limitEntry) return new Response(null, { status: 200 });
+
+  // No matching limit — pass through
+  if (!limitEntry) return;
 
   const [limitPath, [maxRequests, windowMs]] = limitEntry;
   const result = checkRateLimit(`${ip}:${limitPath}`, maxRequests, windowMs);
 
+  // Rate limited — block with 429
   if (!result.allowed) {
     return new Response(
       JSON.stringify({
@@ -77,13 +75,8 @@ export default function middleware(req) {
     );
   }
 
-  return new Response(null, {
-    status: 200,
-    headers: {
-      'X-RateLimit-Limit': String(maxRequests),
-      'X-RateLimit-Remaining': String(result.remaining),
-    },
-  });
+  // Allowed — return undefined to pass through to the actual API function
+  return;
 }
 
 export const config = {

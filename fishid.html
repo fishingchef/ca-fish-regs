@@ -175,34 +175,33 @@ async function identifyFish() {
   document.getElementById('identifyBtn').disabled = true;
 
   try {
-    // Run identification twice for accuracy
-    var prompt = 'Identify this fish, crab, shellfish, or marine creature. Respond in this exact format:\nSPECIES: [common name]\nSCIENTIFIC: [scientific name]\nCONFIDENCE: [high/medium/low]\nDESCRIPTION: [1-2 sentences about the species]\nCALIFORNIA_LEGAL: [yes/no/unknown]\nNOTES: [any important notes about identification or regulations]';
+    var res = await fetch('/api/identify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({imageBase64: imageBase64, imageType: imageType})
+    });
 
-    var [res1, res2] = await Promise.all([
-      callGemini(prompt, imageBase64, imageType),
-      callGemini(prompt, imageBase64, imageType)
-    ]);
-
-    var r1 = parseResponse(res1);
-    var r2 = parseResponse(res2);
-
-    // Combine results
-    var result = r1;
-    if (r1.species && r2.species && r1.species.toLowerCase() !== r2.species.toLowerCase()) {
-      result.confidence = 'low';
-      result.notes = (result.notes || '') + ' Note: Two analyses gave different results (' + r1.species + ' vs ' + r2.species + '). Please verify carefully.';
+    if (res.status === 429) {
+      var errData = await res.json();
+      var wait = errData.retryAfter || 60;
+      throw new Error('RATE_LIMITED:' + wait);
     }
+    if (!res.ok) throw new Error('API error ' + res.status);
 
-    // Look up in database
+    var result = await res.json();
+
+    if (result.error) throw new Error(result.error);
+
+    // Look up species in DB for additional regulation details
     var matched = null;
-    if (result.species) {
-      var specRes = await db.from('species').select('*, regulations(*)').ilike('name', '%' + result.species.split(' ')[0] + '%').limit(3);
+    if (result.commonName) {
+      var firstWord = result.commonName.split(' ')[0];
+      var specRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', '%' + firstWord + '%').limit(3);
       if (specRes.data && specRes.data.length > 0) {
         matched = specRes.data[0];
-        // Try scientific name match for better accuracy
-        if (result.scientific) {
+        if (result.scientificName) {
           var sciMatch = specRes.data.find(function(s) {
-            return s.scientific_name && s.scientific_name.toLowerCase().includes(result.scientific.split(' ')[0].toLowerCase());
+            return s.scientific_name && s.scientific_name.toLowerCase().includes(result.scientificName.split(' ')[0].toLowerCase());
           });
           if (sciMatch) matched = sciMatch;
         }
@@ -228,58 +227,24 @@ async function identifyFish() {
   }
 }
 
-async function callGemini(prompt, base64, mimeType) {
-  var res = await fetch('/api/identify', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({imageBase64: base64, imageType: mimeType, prompt: prompt})
-  });
-  if (res.status === 429) {
-    var data = await res.json();
-    var wait = data.retryAfter || 60;
-    throw new Error('RATE_LIMITED:' + wait);
-  }
-  if (!res.ok) throw new Error('API error ' + res.status);
-  var data = await res.json();
-  return data.result || '';
-}
-
-function parseResponse(text) {
-  var r = {};
-  var lines = text.split('\n');
-  lines.forEach(function(line) {
-    var colon = line.indexOf(':');
-    if (colon > -1) {
-      var key = line.substring(0, colon).trim().toUpperCase();
-      var val = line.substring(colon + 1).trim();
-      if (key === 'SPECIES') r.species = val;
-      else if (key === 'SCIENTIFIC') r.scientific = val;
-      else if (key === 'CONFIDENCE') r.confidence = val.toLowerCase();
-      else if (key === 'DESCRIPTION') r.description = val;
-      else if (key === 'CALIFORNIA_LEGAL') r.legal = val.toLowerCase();
-      else if (key === 'NOTES') r.notes = val;
-    }
-  });
-  return r;
-}
-
 function renderResult(r, matched) {
   var reg = matched && matched.regulations && matched.regulations[0];
   var status = deriveStatus(reg);
 
-  var confClass = r.confidence === 'high' ? 'confidence-high' : r.confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
-  var confLabel = r.confidence === 'high' ? '✓ High confidence' : r.confidence === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
+  var conf = r.confidence || 'medium';
+  var confClass = conf === 'high' ? 'confidence-high' : conf === 'medium' ? 'confidence-medium' : 'confidence-low';
+  var confLabel = conf === 'high' ? '✓ High confidence' : conf === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
 
   var html = '<div class="result-card">'
     + '<div class="result-header">'
     + '<span class="confidence-pill ' + confClass + '">' + confLabel + '</span>'
     + '</div>'
-    + '<div class="result-name">' + (r.species || 'Unknown species') + '</div>'
-    + (r.scientific ? '<div class="result-sci">' + r.scientific + '</div>' : '')
+    + '<div class="result-name">' + (r.commonName || 'Unknown species') + '</div>'
+    + (r.scientificName ? '<div class="result-sci">' + r.scientificName + '</div>' : '')
     + '<div style="height:12px"></div>';
 
-  if (r.description) {
-    html += '<div class="result-desc">' + r.description + '</div>';
+  if (r.confidenceReason) {
+    html += '<div class="result-desc">' + r.confidenceReason + '</div>';
   }
 
   if (matched) {
@@ -309,8 +274,14 @@ function renderResult(r, matched) {
     html += '<div class="reg-note warning">⚠️ Species not found in California regulations database. Always check <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> before keeping any catch.</div>';
   }
 
-  if (r.notes) {
-    html += '<div class="reg-note">' + r.notes + '</div>';
+  if (r.legalStatusNote) {
+    html += '<div class="reg-note warning">' + r.legalStatusNote + '</div>';
+  }
+  if (r.identificationTips) {
+    html += '<div class="reg-note"><strong>ID Tips:</strong> ' + r.identificationTips + '</div>';
+  }
+  if (r.lookAlikes && r.lookAlikes !== 'none' && r.lookAlikes !== '') {
+    html += '<div class="reg-note warning">⚠️ Look-alikes: ' + r.lookAlikes + '</div>';
   }
 
   html += '<div class="disclaimer">AI identification can make mistakes. Always confirm species identification visually and verify current regulations at wildlife.ca.gov before keeping any catch.</div>';
