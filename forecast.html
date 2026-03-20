@@ -173,19 +173,31 @@ async function searchLocation() {
     // Detect if user explicitly stated a state in their query
     var explicitState = detectStateHint(q);
 
+    // If state hint detected, strip it from the query for geocoding
+    // e.g. "Crater Lake OR" -> search "Crater Lake" biased to Oregon
+    var searchQ = q;
+    if (explicitState) {
+      var statePattern = new RegExp('\\s*,?\\s*(' + explicitState + '|' + Object.keys(STATE_HINTS).filter(function(k) { return STATE_HINTS[k] === explicitState; }).join('|') + ')\\s*$', 'i');
+      searchQ = q.replace(statePattern, '').trim();
+      if (!searchQ) searchQ = q; // fallback if nothing left
+    }
+
     // Fetch up to 10 candidates
     var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
-      + encodeURIComponent(q) + '&count=10&language=en&format=json');
+      + encodeURIComponent(searchQ) + '&count=10&language=en&format=json');
     var data = await res.json();
 
     if (!data.results || !data.results.length) {
-      // If no results and no explicit state, retry with home region appended
-      var retryQ = explicitState ? q : q + ' ' + regionCfg.name;
+      // Retry: if explicit state, try appending state name to clean query
+      // If no state, try appending home region name
+      var retryQ = explicitState
+        ? searchQ + ' ' + explicitState
+        : searchQ + ' ' + regionCfg.name;
       var res2 = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
         + encodeURIComponent(retryQ) + '&count=5&language=en&format=json');
       var data2 = await res2.json();
       if (!data2.results || !data2.results.length) {
-        showError('Location not found. Try adding a state — e.g. "Crater Lake OR" or "Crescent City CA"');
+        showError('Location not found. Try a nearby city instead — e.g. "Klamath Falls OR" or "Medford Oregon"');
         return;
       }
       data = data2;
