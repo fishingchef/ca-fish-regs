@@ -278,7 +278,7 @@ function renderList() {
     var limitText = '';
     if (reg) {
       if (reg.bag_limit === 0) limitText = 'No take';
-      else if (reg.bag_limit) limitText = reg.bag_limit + '/day';
+      else if (reg.bag_limit) { var unit = reg.bag_limit_unit || 'fish'; limitText = reg.bag_limit + ' ' + (unit === 'fish' ? '' : unit + ' ') + '/day'; limitText = limitText.replace('  ', ' '); }
       if (reg.size_min_inches) limitText += (limitText ? ' · ' : '') + 'Min ' + reg.size_min_inches + '"';
     }
 
@@ -345,9 +345,12 @@ function openDrawer(speciesId) {
         + '<div class="d-tile-sub">Fully protected</div></div>';
     } else {
       if (reg.bag_limit) {
+        var bagUnit = reg.bag_limit_unit || 'fish';
+        var bagDisplay = reg.bag_limit;
+        var bagSub = bagUnit === 'fish' ? 'fish per day' : bagUnit + ' per day';
         html += '<div class="d-tile"><div class="d-tile-label">Bag Limit</div>'
-          + '<div class="d-tile-value">' + reg.bag_limit + '</div>'
-          + '<div class="d-tile-sub">per day</div></div>';
+          + '<div class="d-tile-value">' + bagDisplay + '</div>'
+          + '<div class="d-tile-sub">' + bagSub + '</div></div>';
       }
       if (reg.size_min_inches) {
         html += '<div class="d-tile"><div class="d-tile-label">Min Size</div>'
