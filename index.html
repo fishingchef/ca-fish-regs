@@ -308,9 +308,6 @@
     <button onclick="window.location.href='map.html'" style="flex:1;padding:10px;background:var(--ocean);color:white;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
       🗺️ View MPA Map
     </button>
-    <button onclick="showSaved()" style="padding:10px 14px;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">
-      ⭐ Saved
-    </button>
   </div>
   <div class="gps-banner" id="gpsBanner" onclick="getLocation()">
     <span style="font-size:20px">📍</span>
@@ -616,22 +613,28 @@
       <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:white">My <span style="color:var(--kelp-light)">Account</span></div>
     </div>
   </div>
-  <div style="padding:40px 20px;text-align:center">
-    <div style="font-size:48px;margin-bottom:16px">🎣</div>
-    <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Community Coming Soon</div>
-    <div style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto">Log your catches, share reports, see what others are catching near you.</div>
-    <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;max-width:280px;margin:24px auto 0">
+
+  <!-- SAVED SPECIES SECTION -->
+  <div style="padding:16px 16px 0">
+    <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">⭐ Saved Species</div>
+    <div id="savedList"></div>
+  </div>
+
+  <!-- COMING SOON -->
+  <div style="padding:16px">
+    <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">🚀 Coming Soon</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
       <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
         <span style="font-size:24px">📔</span>
-        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Catch Log</div><div style="font-size:11px;color:var(--text-muted)">Track every trip and species</div></div>
+        <div><div style="font-size:13px;font-weight:600">Catch Log</div><div style="font-size:11px;color:var(--text-muted)">Track every trip and species</div></div>
       </div>
       <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
         <span style="font-size:24px">📡</span>
-        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Live Reports</div><div style="font-size:11px;color:var(--text-muted)">See what's biting near you</div></div>
+        <div><div style="font-size:13px;font-weight:600">Live Reports</div><div style="font-size:11px;color:var(--text-muted)">See what's biting near you</div></div>
       </div>
       <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px">
         <span style="font-size:24px">🔔</span>
-        <div style="text-align:left"><div style="font-size:13px;font-weight:600">Season Alerts</div><div style="font-size:11px;color:var(--text-muted)">Never miss an opening day</div></div>
+        <div><div style="font-size:13px;font-weight:600">Season Alerts</div><div style="font-size:11px;color:var(--text-muted)">Never miss an opening day</div></div>
       </div>
     </div>
   </div>
@@ -1346,6 +1349,8 @@ if (window.location.hash === '#fishid') {
   setTimeout(() => showFishId(), 100);
 } else if (window.location.hash === '#forecast') {
   setTimeout(() => showForecast(), 100);
+} else if (window.location.hash === '#account') {
+  setTimeout(() => handleAccountTap(), 100);
 }
 
 // Force clear ALL service workers and caches
@@ -1400,7 +1405,54 @@ function handleAccountTap() {
   hideAllViews();
   document.getElementById('accountView').style.display = 'block';
   setNav(3);
+  // Render saved species
+  const saved = allSpecies.filter(s => savedIds.includes(s.id));
+  const list = document.getElementById('savedList');
+  if (!list) return;
+  if (!saved.length) {
+    list.innerHTML = '<div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:16px">No saved species yet.<br>Tap any species card, then tap ☆ Save.</div>';
+  } else {
+    list.innerHTML = saved.map(s => `
+      <div onclick="openDrawer(${s.id})" style="background:white;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);cursor:pointer">
+        ${s.image_url ? `<img src="${s.image_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0">` : '<div style="width:48px;height:48px;border-radius:8px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px">🐟</div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${s.name}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${s.water_type} · ${s.category || ''}</div>
+        </div>
+        <span style="color:var(--ocean-light);font-size:16px">›</span>
+      </div>`).join('');
+  }
 }
+
+// Fishing score helpers
+function calcFishingScore(temp, wind, forecastText) {
+  let score = 70;
+  if (temp) {
+    if (temp >= 55 && temp <= 75) score += 15;
+    else if (temp < 45 || temp > 85) score -= 20;
+  }
+  if (wind) {
+    const spd = parseInt(wind);
+    if (spd <= 10) score += 15;
+    else if (spd <= 15) score += 5;
+    else if (spd <= 20) score -= 10;
+    else score -= 25;
+  }
+  if (forecastText) {
+    const f = forecastText.toLowerCase();
+    if (f.includes('clear') || f.includes('sunny')) score += 5;
+    if (f.includes('thunder') || f.includes('storm')) score -= 30;
+    if (f.includes('rain')) score -= 10;
+    if (f.includes('fog')) score -= 5;
+  }
+  return Math.max(10, Math.min(99, score));
+}
+function scoreClass(s) { return s >= 70 ? 'good' : s >= 45 ? 'fair' : 'poor'; }
+function scoreDesc(s) {
+  if (s >= 80) return 'Excellent'; if (s >= 70) return 'Good';
+  if (s >= 55) return 'Fair'; if (s >= 40) return 'Marginal'; return 'Poor';
+}
+function scoreColor(s) { return s >= 70 ? '#27ae60' : s >= 45 ? '#f0a500' : '#c0392b'; }
 
 async function loadForecast() {
   if (window._forecastLoaded) return;
@@ -1410,7 +1462,7 @@ async function loadForecast() {
   content.style.display = 'none';
 
   if (!navigator.geolocation) {
-    loading.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px">Location not supported on this device</div>';
+    loading.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:20px;text-align:center">Location not supported on this device</div>';
     return;
   }
 
@@ -1418,7 +1470,6 @@ async function loadForecast() {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
     try {
-      // Find nearest NOAA tide station
       const stations = [
         {id:'9415020',name:'Point Reyes',lat:37.99,lng:-122.97},
         {id:'9414290',name:'San Francisco',lat:37.81,lng:-122.47},
@@ -1437,89 +1488,163 @@ async function loadForecast() {
 
       const today = new Date();
       const ds = today.toISOString().split('T')[0].replace(/-/g,'');
-      const end = new Date(today); end.setDate(today.getDate()+6);
-      const de = end.toISOString().split('T')[0].replace(/-/g,'');
+      const end14 = new Date(today); end14.setDate(today.getDate()+13);
+      const de14 = end14.toISOString().split('T')[0].replace(/-/g,'');
 
       const [tideRes, wxPointRes] = await Promise.all([
-        fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${ds}&end_date=${de}&station=${nearest.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json`),
+        fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${ds}&end_date=${de14}&station=${nearest.id}&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json`),
         fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lng.toFixed(4)}`)
       ]);
 
       const tideData = await tideRes.json();
       const wxPoint = await wxPointRes.json();
-      let forecast = null;
+      let forecast = null, hourly = null;
       if (wxPoint.properties?.forecast) {
-        const fRes = await fetch(wxPoint.properties.forecast);
+        const [fRes, hRes] = await Promise.all([
+          fetch(wxPoint.properties.forecast),
+          fetch(wxPoint.properties.forecastHourly)
+        ]);
         const fData = await fRes.json();
-        forecast = fData.properties?.periods?.slice(0,8);
+        const hData = await hRes.json();
+        forecast = fData.properties?.periods;
+        hourly = hData.properties?.periods;
       }
 
-      // Group tides by day
-      const tides = tideData.predictions || [];
-      const tidesByDay = {};
-      tides.forEach(t => {
-        const day = t.t.split(' ')[0];
-        if (!tidesByDay[day]) tidesByDay[day] = [];
-        tidesByDay[day].push(t);
+      // Group tides by date
+      const tidesByDate = {};
+      (tideData.predictions || []).forEach(t => {
+        const dk = t.t.split(' ')[0];
+        if (!tidesByDate[dk]) tidesByDate[dk] = [];
+        tidesByDate[dk].push(t);
       });
 
       const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const dayForecasts = forecast ? forecast.filter(p => p.isDaytime) : [];
+      const nightForecasts = forecast ? forecast.filter(p => !p.isDaytime) : [];
+      const current = hourly ? hourly[0] : null;
+      const todayF = dayForecasts[0];
+      const curTemp = current ? parseInt(current.temperature) : (todayF ? todayF.temperature : null);
+      const curWind = current ? current.windSpeed : (todayF ? todayF.windSpeed : 'N/A');
+      const curFcast = current ? current.shortForecast : (todayF ? todayF.shortForecast : '');
+      const todayScore = calcFishingScore(curTemp, curWind, curFcast);
+      const sc = scoreClass(todayScore);
 
-      let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">📍 Nearest station: ${nearest.name}</div>`;
+      // Day selector tabs
+      const tabsHTML = dayForecasts.slice(0,7).map((p,i) => {
+        const d = new Date(p.startTime);
+        const s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+        const label = i===0?'Today':i===1?'Tomorrow':days[d.getDay()];
+        return `<button onclick="switchFDay(${i})" id="fday-tab-${i}"
+          style="flex-shrink:0;padding:8px 14px;border-radius:100px;border:1.5px solid ${i===0?'var(--ocean)':'var(--border)'};background:${i===0?'var(--ocean)':'white'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:${i===0?'white':'var(--text-muted)'};cursor:pointer;text-align:center;min-width:68px">
+          ${label}<br><span style="font-size:11px;color:${i===0?'var(--kelp-light)':scoreColor(s)}">${getWxIcon(p.shortForecast)} ${s}</span>
+        </button>`;
+      }).join('');
 
-      // 7-day forecast cards
-      if (forecast) {
-        html += `<div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">7-Day Forecast</div>`;
-        html += `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;scrollbar-width:none">`;
-        const dayForecasts = forecast.filter(p => p.isDaytime);
-        dayForecasts.forEach(p => {
-          const d = new Date(p.startTime);
-          const icon = getWxIcon(p.shortForecast);
-          html += `<div style="flex-shrink:0;background:white;border-radius:12px;padding:12px 10px;text-align:center;min-width:72px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted)">${days[d.getDay()]}</div>
-            <div style="font-size:24px;margin:6px 0">${icon}</div>
-            <div style="font-size:14px;font-weight:700;color:var(--ocean)">${p.temperature}°</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${p.windSpeed}</div>
-          </div>`;
-        });
-        html += `</div>`;
-      }
-
-      // Tide table by day
-      html += `<div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Tide Predictions</div>`;
-      Object.entries(tidesByDay).slice(0,7).forEach(([day, tides]) => {
-        const d = new Date(day);
-        html += `<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}</div>`;
-        tides.forEach(t => {
-          const isHigh = t.type === 'H';
-          const time = t.t.split(' ')[1];
-          const [hStr, mStr] = time.split(':');
-          const h = parseInt(hStr), m = parseInt(mStr);
-          const ampm = h >= 12 ? 'PM' : 'AM';
-          const h12 = h > 12 ? h-12 : h === 0 ? 12 : h;
-          html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+      // Day detail panels
+      const panelsHTML = dayForecasts.slice(0,7).map((p,i) => {
+        const d = new Date(p.startTime);
+        const night = nightForecasts[i];
+        const s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
+        const sc2 = scoreClass(s);
+        const dateKey = d.toISOString().split('T')[0];
+        const label = i===0?'Today':i===1?'Tomorrow':`${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+        const dayTides = tidesByDate[dateKey] || [];
+        const tidesHTML = dayTides.length ? dayTides.map(t => {
+          const isH = t.type==='H';
+          const [hr,mn] = t.t.split(' ')[1].split(':');
+          const h = parseInt(hr), ampm = h>=12?'PM':'AM', h12 = h>12?h-12:h===0?12:h;
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
             <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:16px">${isHigh ? '⬆️' : '⬇️'}</span>
-              <div>
-                <div style="font-size:13px;font-weight:500">${isHigh ? 'High' : 'Low'} Tide</div>
-                <div style="font-size:11px;color:var(--text-muted)">${h12}:${mStr} ${ampm}</div>
+              <span style="font-size:16px">${isH?'⬆️':'⬇️'}</span>
+              <div><div style="font-size:13px;font-weight:500">${isH?'High':'Low'} Tide</div>
+              <div style="font-size:11px;color:var(--text-muted)">${h12}:${mn} ${ampm}</div></div>
+            </div>
+            <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:${isH?'#1a6390':'#e07b39'}">${parseFloat(t.v).toFixed(1)} ft</div>
+          </div>`;
+        }).join('') : '<div style="font-size:13px;color:var(--text-muted);padding:8px">Tide data unavailable</div>';
+
+        return `<div id="fday-panel-${i}" style="display:${i===0?'block':'none'}">
+          <div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+              <span style="font-size:32px">${getWxIcon(p.shortForecast)}</span>
+              <div style="flex:1"><div style="font-size:14px;font-weight:600">${label}</div>
+              <div style="font-size:12px;color:var(--text-muted)">${p.shortForecast} · ${p.temperature}°F · ${p.windSpeed} ${p.windDirection}</div></div>
+              <div style="background:${scoreColor(s)};color:white;font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;border-radius:12px;padding:8px 14px;text-align:center">
+                ${s}<div style="font-size:9px;font-weight:400;opacity:0.9">${scoreDesc(s)}</div>
               </div>
             </div>
-            <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:${isHigh?'#1a6390':'#e07b39'}">${parseFloat(t.v).toFixed(1)} ft</div>
-          </div>`;
-        });
-        html += `</div>`;
-      });
+            <div style="display:grid;grid-template-columns:1fr 1fr${night?'':''};gap:8px">
+              <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Temp</div>
+                <div style="font-size:20px;font-weight:700;color:var(--text)">${p.temperature}°</div>
+              </div>
+              <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Wind</div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)">${p.windSpeed}</div>
+                <div style="font-size:10px;color:var(--text-muted)">${p.windDirection}</div>
+              </div>
+              ${night?`<div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Tonight</div>
+                <div style="font-size:20px;font-weight:700;color:var(--text)">${night.temperature}°</div>
+              </div>`:''}
+            </div>
+            ${p.detailedForecast?`<div style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.5">${p.detailedForecast}</div>`:''}
+          </div>
+          <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Tides — ${nearest.name}</div>
+          <div style="background:white;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:16px">${tidesHTML}</div>
+        </div>`;
+      }).join('');
+
+      // Extended tide forecast (days 8-14)
+      const extKeys = Object.keys(tidesByDate).sort().slice(7,14);
+      const extHTML = extKeys.map(dk => {
+        const d = new Date(dk+'T12:00:00');
+        const ts = tidesByDate[dk];
+        if (!ts?.length) return '';
+        return `<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}</div>
+          ${ts.map(t => {
+            const isH = t.type==='H';
+            const [hr,mn] = t.t.split(' ')[1].split(':');
+            const h = parseInt(hr), ampm = h>=12?'PM':'AM', h12 = h>12?h-12:h===0?12:h;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:16px">${isH?'⬆️':'⬇️'}</span>
+                <div><div style="font-size:13px;font-weight:500">${isH?'High':'Low'} Tide</div>
+                <div style="font-size:11px;color:var(--text-muted)">${h12}:${mn} ${ampm}</div></div>
+              </div>
+              <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:${isH?'#1a6390':'#e07b39'}">${parseFloat(t.v).toFixed(1)} ft</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
 
       loading.style.display = 'none';
       content.style.display = 'block';
-      content.innerHTML = html;
+      content.innerHTML = `
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">📍 ${nearest.name} · ${lat.toFixed(2)}°N ${Math.abs(lng).toFixed(2)}°W</div>
+
+        <div style="background:${scoreColor(todayScore)};border-radius:16px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+          <div style="font-family:'Unbounded',sans-serif;font-size:48px;font-weight:900;color:white;line-height:1">${todayScore}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:white">Today's Fishing Score</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.85)">${scoreDesc(todayScore)} · ${curTemp?curTemp+'°F · ':''}${curWind} · ${curFcast}</div>
+          </div>
+        </div>
+
+        <div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">7-Day Forecast</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;scrollbar-width:none">${tabsHTML}</div>
+        <div id="fday-panels">${panelsHTML}</div>
+
+        ${extHTML ? `<div style="font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-top:8px;margin-bottom:10px">14-Day Tide Forecast</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Weather unavailable beyond 7 days · Tide predictions only</div>
+        ${extHTML}` : ''}
+      `;
       window._forecastLoaded = true;
 
     } catch(e) {
-      loading.innerHTML = `<div style="text-align:center;padding:20px">
+      loading.innerHTML = `<div style="text-align:center;padding:40px 20px">
         <div style="font-size:32px;margin-bottom:8px">🌊</div>
         <div style="font-weight:500;margin-bottom:4px">Could not load forecast</div>
         <div style="font-size:12px;color:var(--text-muted)">Check your connection and try again</div>
@@ -1527,7 +1652,16 @@ async function loadForecast() {
       </div>`;
     }
   }, () => {
-    loading.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--text-muted)">Location access denied. Enable location in browser settings to load tides and weather.</div>';
+    loading.innerHTML = '<div style="text-align:center;padding:40px 20px;font-size:13px;color:var(--text-muted)">Location access denied.<br>Enable location in browser settings to load tides and weather.</div>';
+  });
+}
+
+function switchFDay(i) {
+  document.querySelectorAll('[id^="fday-panel-"]').forEach((p,idx) => p.style.display = idx===i?'block':'none');
+  document.querySelectorAll('[id^="fday-tab-"]').forEach((t,idx) => {
+    t.style.background = idx===i?'var(--ocean)':'white';
+    t.style.color = idx===i?'white':'var(--text-muted)';
+    t.style.borderColor = idx===i?'var(--ocean)':'var(--border)';
   });
 }
 
