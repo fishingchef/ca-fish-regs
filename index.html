@@ -276,9 +276,17 @@ function renderList() {
     var badgeText = sp.category === 'Invasive' ? '⚠️ Invasive' : getStatusLabel(status);
     var cardClass = sp.category === 'Invasive' ? 'invasive' : status;
     var limitText = '';
-    if (reg) {
+    var rtype = (reg && reg.regulation_type)
+      ? reg.regulation_type
+      : (sp.category === 'Invasive' ? 'invasive_remove' : 'observe_only');
+    if (rtype === 'invasive_remove') limitText = 'Do not release';
+    else if (rtype === 'no_take') limitText = 'Fully protected';
+    else if (rtype === 'observe_only') limitText = 'Observe only';
+    else if (rtype === 'group_rule') limitText = reg.group_name ? reg.group_name.split('(')[0].trim() : 'Group rules apply';
+    else if (rtype === 'verify_cdfw') limitText = reg && reg.bag_limit ? reg.bag_limit + '/day — verify' : 'Verify limits';
+    else if (reg) {
       if (reg.bag_limit === 0) limitText = 'No take';
-      else if (reg.bag_limit) { var unit = reg.bag_limit_unit || 'fish'; limitText = reg.bag_limit + ' ' + (unit === 'fish' ? '' : unit + ' ') + '/day'; limitText = limitText.replace('  ', ' '); }
+      else if (reg.bag_limit) { var unit = reg.bag_limit_unit || 'fish'; limitText = reg.bag_limit + (unit !== 'fish' ? ' ' + unit : '') + '/day'; }
       if (reg.size_min_inches) limitText += (limitText ? ' · ' : '') + 'Min ' + reg.size_min_inches + '"';
     }
 
@@ -334,23 +342,98 @@ function openDrawer(speciesId) {
     html += '<div class="d-note">' + sp.description + '</div>';
   }
 
-  if (reg) {
-    html += '<div class="d-section">Regulations</div>';
-    html += '<div class="d-grid">';
+  // ── Regulation block — driven by regulation_type ─────────────
+  var regType = (reg && reg.regulation_type) ? reg.regulation_type
+    : (sp.category === 'Invasive' ? 'invasive_remove' : 'observe_only');
 
-    if (reg.bag_limit === 0) {
+  html += '<div class="d-section">Regulations</div>';
+
+  if (regType === 'no_take') {
+    html += '<div class="d-tile" style="background:#fde8e8;margin-bottom:8px">'
+      + '<div class="d-tile-label">Status</div>'
+      + '<div class="d-tile-value" style="color:var(--danger);font-size:14px">FULLY PROTECTED</div>'
+      + '<div class="d-tile-sub">No recreational take — ever</div></div>';
+    if (reg && reg.cdfw_citation) {
+      html += '<div class="d-note warning">Citation: ' + reg.cdfw_citation + '</div>';
+    }
+    html += '<div class="d-note">This species is fully protected under California law. '
+      + 'It may not be taken recreationally under any circumstances.</div>';
+
+  } else if (regType === 'invasive_remove') {
+    html += '<div class="d-tile" style="background:#fdf3e0;margin-bottom:8px">'
+      + '<div class="d-tile-label">Status</div>'
+      + '<div class="d-tile-value" style="color:#7a4f00;font-size:14px">INVASIVE SPECIES</div>'
+      + '<div class="d-tile-sub">Do not release if caught</div></div>';
+    html += '<div class="d-note warning">CDFW encourages removal. Do not return to the water. '
+      + 'Report sightings at <a href="https://wildlife.ca.gov/invasives" style="color:var(--ocean)">wildlife.ca.gov/invasives</a>.</div>';
+
+  } else if (regType === 'observe_only') {
+    html += '<div class="d-tile" style="background:#f0f0f8;margin-bottom:8px">'
+      + '<div class="d-tile-label">Status</div>'
+      + '<div class="d-tile-value" style="font-size:14px">OBSERVE ONLY</div>'
+      + '<div class="d-tile-sub">No established recreational fishery</div></div>';
+    var obsNote = (reg && reg.special_notes)
+      ? reg.special_notes
+      : 'No established recreational fishery for this species. Commonly encountered in intertidal and coastal zones — observe without disturbing.';
+    html += '<div class="d-note">' + obsNote + '</div>';
+
+  } else if (regType === 'group_rule') {
+    var grpName = (reg && reg.group_name) ? reg.group_name : 'a general CDFW category';
+    html += '<div class="d-tile" style="background:#e8f4fd;margin-bottom:8px">'
+      + '<div class="d-tile-label">Regulated under</div>'
+      + '<div style="font-size:14px;font-weight:600;margin-top:2px;color:#0a3d62">' + grpName + '</div></div>';
+    if (reg && reg.special_notes) {
+      html += '<div class="d-note warning">' + reg.special_notes + '</div>';
+    }
+    html += '<div class="d-note">Verify current season dates and sub-limits at '
+      + '<a href="https://wildlife.ca.gov/Regulations" style="color:var(--ocean)">wildlife.ca.gov</a>.</div>';
+
+  } else if (regType === 'verify_cdfw') {
+    html += '<div class="d-tile" style="background:#fdf0e0;margin-bottom:8px">'
+      + '<div class="d-tile-label">Regulations</div>'
+      + '<div class="d-tile-value" style="color:#7a4f00;font-size:13px">COMPLEX — VERIFY BEFORE FISHING</div>'
+      + '<div class="d-tile-sub">Quota, zone, and season restrictions apply</div></div>';
+    if (reg && (reg.bag_limit || reg.size_min_inches)) {
+      html += '<div class="d-grid">';
+      if (reg.bag_limit) {
+        var vu = reg.bag_limit_unit || 'fish';
+        html += '<div class="d-tile"><div class="d-tile-label">General limit</div>'
+          + '<div class="d-tile-value">' + reg.bag_limit + '</div>'
+          + '<div class="d-tile-sub">' + (vu === 'fish' ? 'fish per day' : vu + ' per day') + '</div></div>';
+      }
+      if (reg.size_min_inches) {
+        html += '<div class="d-tile"><div class="d-tile-label">Min size</div>'
+          + '<div class="d-tile-value">' + reg.size_min_inches + '"</div>'
+          + '<div class="d-tile-sub">total length</div></div>';
+      }
+      html += '</div>';
+    }
+    if (reg && reg.season_note) {
+      html += '<div class="d-tile" style="margin-bottom:8px">'
+        + '<div class="d-tile-label">Season</div>'
+        + '<div style="font-size:14px;font-weight:500;margin-top:2px">' + reg.season_note + '</div></div>';
+    }
+    if (reg && reg.special_notes) {
+      html += '<div class="d-note warning">' + reg.special_notes + '</div>';
+    }
+    html += '<div class="d-note warning">Always verify current limits at '
+      + '<a href="https://wildlife.ca.gov/Regulations" style="color:var(--ocean)">wildlife.ca.gov/Regulations</a> '
+      + 'before fishing — in-season changes apply.</div>';
+
+  } else {
+    // 'specific' — full regulation grid
+    html += '<div class="d-grid">';
+    if (reg && reg.bag_limit === 0) {
       html += '<div class="d-tile" style="grid-column:1/-1;background:#fde8e8">'
         + '<div class="d-tile-label">Status</div>'
         + '<div class="d-tile-value" style="color:var(--danger);font-size:14px">NO TAKE</div>'
-        + '<div class="d-tile-sub">Fully protected</div></div>';
-    } else {
+        + '<div class="d-tile-sub">No recreational take allowed</div></div>';
+    } else if (reg) {
       if (reg.bag_limit) {
-        var bagUnit = reg.bag_limit_unit || 'fish';
-        var bagDisplay = reg.bag_limit;
-        var bagSub = bagUnit === 'fish' ? 'fish per day' : bagUnit + ' per day';
+        var bu = reg.bag_limit_unit || 'fish';
         html += '<div class="d-tile"><div class="d-tile-label">Bag Limit</div>'
-          + '<div class="d-tile-value">' + bagDisplay + '</div>'
-          + '<div class="d-tile-sub">' + bagSub + '</div></div>';
+          + '<div class="d-tile-value">' + reg.bag_limit + '</div>'
+          + '<div class="d-tile-sub">' + (bu === 'fish' ? 'fish per day' : bu + ' per day') + '</div></div>';
       }
       if (reg.size_min_inches) {
         html += '<div class="d-tile"><div class="d-tile-label">Min Size</div>'
@@ -359,23 +442,21 @@ function openDrawer(speciesId) {
       }
     }
     html += '</div>';
-
-    if (reg.season_note) {
+    if (reg && reg.season_note) {
       html += '<div class="d-tile" style="margin-bottom:8px">'
         + '<div class="d-tile-label">Season</div>'
         + '<div style="font-size:14px;font-weight:500;margin-top:2px">' + reg.season_note + '</div></div>';
     }
-    if (reg.gear_restricted) {
+    if (reg && reg.gear_restricted) {
       html += '<div class="d-tile" style="margin-bottom:8px">'
         + '<div class="d-tile-label">Gear</div>'
         + '<div style="font-size:13px;margin-top:2px">' + reg.gear_restricted + '</div></div>';
     }
-    if (reg.special_notes) {
-      var noteClass = reg.special_notes.toUpperCase().includes('PROHIBITED') || reg.special_notes.includes('⚠️') ? 'danger' : 'warning';
-      html += '<div class="d-note ' + noteClass + '">' + reg.special_notes + '</div>';
+    if (reg && reg.special_notes) {
+      var nc = (reg.special_notes.toUpperCase().includes('PROHIBITED') || reg.special_notes.includes('⚠️')) ? 'danger' : 'warning';
+      html += '<div class="d-note ' + nc + '">' + reg.special_notes + '</div>';
     }
   }
-
   if (sp.identification_tips) {
     html += '<div class="d-section">Identification Tips</div>'
       + '<div class="d-note">' + sp.identification_tips + '</div>';
