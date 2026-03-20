@@ -44,7 +44,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <div class="header">
   <div class="header-wave"></div>
   <div class="header-content">
-    <div class="app-eyebrow">Fish Smarter</div>
+    <div class="app-eyebrow" id="adminTrigger" style="cursor:default;user-select:none">Fish Smarter</div>
     <div class="page-title">My <span>Account</span></div>
   </div>
 </div>
@@ -121,18 +121,15 @@ async function loadSaved() {
 
 loadSaved();
 
-// 5-tap secret admin entry on the page title
+// 5-tap secret admin entry — tap the "Fish Smarter" eyebrow text 5x
 var adminTaps = 0, adminTimer = null;
-function handleAccountTap(e) {
-  // Normal nav behaviour — don't prevent default
-}
-var titleEl = document.querySelector('.page-title');
-if (titleEl) {
-  titleEl.style.cursor = 'default';
-  titleEl.addEventListener('click', function() {
+function handleAccountTap(e) {}
+var adminEl = document.getElementById('adminTrigger');
+if (adminEl) {
+  adminEl.addEventListener('click', function() {
     adminTaps++;
     clearTimeout(adminTimer);
-    adminTimer = setTimeout(function() { adminTaps = 0; }, 2000);
+    adminTimer = setTimeout(function() { adminTaps = 0; }, 3000);
     if (adminTaps >= 5) {
       adminTaps = 0;
       window.location.href = 'admin.html';

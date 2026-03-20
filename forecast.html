@@ -13,7 +13,7 @@
 :root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--ocean-light:#2980b9;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
-.header{background:var(--ocean);padding:48px 20px 16px;position:relative;overflow:hidden}
+.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1}
 .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
@@ -291,10 +291,12 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
           var h = parseInt(parts[0]), mn = parts[1];
           var ampm = h >= 12 ? 'PM' : 'AM';
           var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-          html += '<div class="tide-row ' + (isH ? 'tide-high' : 'tide-low') + '">'
-            + '<div><div class="tide-type">' + (isH ? '⬆️ High Tide' : '⬇️ Low Tide') + '</div>'
-            + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div>'
-            + '<div class="tide-ht">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
+          html += '<div class="tide-row">'
+            + '<div style="display:flex;align-items:center;gap:10px">'
+            + '<span style="font-size:18px">' + (isH ? '⬆️' : '⬇️') + '</span>'
+            + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
+            + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
+            + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
         });
       } else {
         html += '<div style="font-size:13px;color:var(--text-muted);padding:8px">No tide data for this day</div>';
@@ -322,10 +324,12 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
         var h = parseInt(parts[0]), mn = parts[1];
         var ampm = h >= 12 ? 'PM' : 'AM';
         var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-        html += '<div class="tide-row ' + (isH ? 'tide-high' : 'tide-low') + '">'
-          + '<div><div class="tide-type">' + (isH ? '⬆️ High' : '⬇️ Low') + '</div>'
-          + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div>'
-          + '<div class="tide-ht">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
+        html += '<div class="tide-row">'
+          + '<div style="display:flex;align-items:center;gap:10px">'
+          + '<span style="font-size:18px">' + (isH ? '⬆️' : '⬇️') + '</span>'
+          + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
+          + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
+          + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
       });
       html += '</div>';
     });
