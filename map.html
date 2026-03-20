@@ -108,6 +108,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/app.js"></script>
 <script>
+
 // ── MPA & Spot Data ──────────────────────────────────────────
 const MPAS_FALLBACK = [
   { name: "Point St. George Reef Offshore SMR", type: "SMR", lat: 41.85, lng: -124.35, radius: 8000, restrictions: "No take of any living or non-living marine resource. No fishing of any kind.", ccr: "CCR Title 14 §632(b)(1)" },
@@ -194,33 +195,301 @@ var map, userMarker, mpaLayers = [], spotMarkers = [];
 var currentTab = 'map';
 var userLat = null, userLng = null;
 
-function initMap() {
-  map = L.map('map', { zoomControl: true, attributionControl: false })
-    .setView([37.5, -122.0], 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '© OpenStreetMap'
-  }).addTo(map);
-  drawMPAs();
+let MPAS = [];
+let mpaGeoJSON = null;
+let mapCenteredOnce = false;
+let pinMarker = null;
+let pinMode = false;
+let watchId;
+
+
+// ── Restored from original — CDFW polygon rendering ─────────
+
+function getMPAType(props) {
+  const type = (props.Type || props.TYPE || props.type || '').trim().toUpperCase();
+  if (type === 'SMR') return 'SMR';
+  if (type === 'SMCA' || type === 'SMCA (NO-TAKE)') return 'SMCA';
+  if (type === 'SMP') return 'SMP';
+  if (type === 'SMRMA') return 'SMRMA';
+  if (type === 'SPECIAL CLOSURE' || type === 'SC') return 'SC';
+  // Fallback: check full name
+  const name = (props.FULLNAME || props.NAME || '').toLowerCase();
+  if (name.includes('state marine reserve')) return 'SMR';
+  if (name.includes('conservation area')) return 'SMCA';
+  if (name.includes('marine park')) return 'SMP';
+  return 'SMCA';
+}
+
+function getMPAColor(type) {
+  if (type === 'SMR') return '#cc0000';
+  if (type === 'SMCA') return '#ff8800';
+  if (type === 'SMP') return '#0066cc';
+  if (type === 'SC') return '#888888';
+  return '#888800';
+}
+
+function getMPAFillOpacity(type) {
+  if (type === 'SMR') return 0.35;
+  if (type === 'SMCA') return 0.2;
+  return 0.15;
+}
+
+function getRestrictions(type) {
+  if (type === 'SMR') return 'State Marine Reserve — No take of any living or non-living marine resource. No fishing of any kind is permitted within this area.';
+  if (type === 'SMCA') return 'State Marine Conservation Area — Take of most species is prohibited. Some recreational fishing may be allowed. Always verify specific rules at wildlife.ca.gov before fishing.';
+  if (type === 'SMP') return 'State Marine Park — Recreational take of certain invertebrates and plants may be allowed. Verify current rules at wildlife.ca.gov.';
+  return 'Marine Protected Area — Fishing restrictions apply. Verify current rules at wildlife.ca.gov before fishing.';
+}
+
+async function loadMPAs() {
+  setGPSStatus('searching', 'Loading official CDFW MPA boundaries…', '');
+  try {
+    // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
+    const res = await fetch(
+      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds582_fpu/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=200'
+    );
+
+    if (!res.ok) throw new Error('CDFW API error');
+    const data = await res.json();
+
+    if (data.features && data.features.length > 0) {
+      mpaGeoJSON = data;
+      drawMPAPolygons(data);
+      // Also build MPAS array for GPS proximity checks (using feature centroids)
+      MPAS = data.features.map(f => {
+        const props = f.properties;
+        const type = getMPAType(props);
+        const bbox = getBBox(f.geometry);
+        return {
+          name: props.NAME || props.SHORTNAME || 'MPA',
+          type,
+          lat: (bbox.minLat + bbox.maxLat) / 2,
+          lng: (bbox.minLng + bbox.maxLng) / 2,
+          radius: estimateRadius(bbox),
+          restrictions: getRestrictions(type),
+          ccr: 'CCR Title 14, Section 632',
+          geometry: f.geometry
+        };
+      }).filter(m => m.lat && m.lng && !isNaN(m.lat));
+
+      console.log(`✓ Loaded ${MPAS.length} official CDFW MPAs`);
+      setGPSStatus('searching', 'Getting your location…', '');
+      locateUser();
+      return;
+    }
+  } catch(e) {
+    console.warn('CDFW API failed, trying coordinate points API…', e);
+  }
+
+  // Fallback: use coordinate points dataset ds3207
+  try {
+    const res = await fetch(
+      'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds3207_fmu/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=MPA_Name,Type,Regulation&outSR=4326&f=geojson&resultRecordCount=500'
+    );
+    const data = await res.json();
+
+    if (data.features && data.features.length > 0) {
+      // Group by MPA name to get unique MPAs
+      const mpaMap = {};
+      data.features.forEach(f => {
+        const name = f.properties.MPA_Name;
+        const type = (f.properties.Type || '').includes('Reserve') ? 'SMR' : 'SMCA';
+        const coords = f.geometry?.coordinates;
+        if (!name || !coords) return;
+        if (!mpaMap[name]) {
+          mpaMap[name] = {
+            name, type, lats: [], lngs: [],
+            ccr: f.properties.Regulation || 'CCR Title 14, Section 632'
+          };
+        }
+        mpaMap[name].lats.push(coords[1]);
+        mpaMap[name].lngs.push(coords[0]);
+      });
+
+      MPAS = Object.values(mpaMap).map(m => {
+        const lat = m.lats.reduce((a,b) => a+b, 0) / m.lats.length;
+        const lng = m.lngs.reduce((a,b) => a+b, 0) / m.lngs.length;
+        const latSpread = Math.max(...m.lats) - Math.min(...m.lats);
+        const lngSpread = Math.max(...m.lngs) - Math.min(...m.lngs);
+        const radius = Math.max(1000, Math.min(15000,
+          Math.max(latSpread, lngSpread) * 111000 * 0.6
+        ));
+        return {
+          name: m.name, type: m.type, lat, lng, radius,
+          restrictions: getRestrictions(m.type),
+          ccr: m.ccr
+        };
+      });
+
+      // Draw circles for coordinate-based fallback
+      MPAS.forEach(mpa => {
+        const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+        const circle = L.circle([mpa.lat, mpa.lng], {
+          radius: mpa.radius, color,
+          fillColor: color,
+          fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
+          weight: 2
+        }).addTo(map);
+        circle.on('click', () => showMPADetail(mpa));
+        mpaLayers.push({ circle, mpa });
+      });
+
+      console.log(`✓ Loaded ${MPAS.length} MPAs from coordinate points API`);
+      setGPSStatus('searching', 'Getting your location…', '');
+      locateUser();
+      return;
+    }
+  } catch(e) {
+    console.warn('Both CDFW APIs failed, using fallback data', e);
+  }
+
+  // Final fallback — use hardcoded list
+  MPAS = MPAS_FALLBACK;
+  MPAS.forEach(mpa => {
+    const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
+    const circle = L.circle([mpa.lat, mpa.lng], {
+      radius: mpa.radius, color,
+      fillColor: color,
+      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
+      weight: 2
+    }).addTo(map);
+    circle.on('click', () => showMPADetail(mpa));
+    mpaLayers.push({ circle, mpa });
+  });
+  setGPSStatus('searching', 'Getting your location…', '');
   locateUser();
 }
 
-function drawMPAs() {
-  mpaLayers.forEach(function(l) { map.removeLayer(l); });
-  mpaLayers = [];
-  MPAS_FALLBACK.forEach(function(mpa) {
-    var color = mpa.type === 'SMR' ? '#cc0000' : mpa.type === 'SMCA' ? '#ff8800' : '#0066cc';
-    var fillOpacity = mpa.type === 'SMR' ? 0.2 : 0.15;
-    var circle = L.circle([mpa.lat, mpa.lng], {
-      radius: mpa.radius,
-      color: color,
-      fillColor: color,
-      fillOpacity: fillOpacity,
-      weight: 2
-    }).addTo(map);
-    circle.on('click', function() { showMPADetail(mpa); });
-    mpaLayers.push(circle);
-  });
+function drawMPAPolygons(geojson) {
+  const geoLayer = L.geoJSON(geojson, {
+    style: feature => {
+      const type = getMPAType(feature.properties);
+      return {
+        color: getMPAColor(type),
+        fillColor: getMPAColor(type),
+        fillOpacity: getMPAFillOpacity(type),
+        weight: 2
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const props = feature.properties;
+      const type = getMPAType(props);
+      const mpa = {
+        name: props.FULLNAME || props.NAME || props.SHORTNAME || 'Marine Protected Area',
+        type,
+        restrictions: getRestrictions(type),
+        ccr: 'CCR Title 14, Section 632'
+      };
+      layer.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        showMPADetail(mpa);
+      });
+      mpaLayers.push({ layer, mpa, isPolygon: true });
+    }
+  }).addTo(map);
+  console.log('Drew MPA polygons from CDFW GeoJSON');
 }
+
+function checkPointInPolygon(lat, lng) {
+  if (!mpaGeoJSON) return null;
+  for (const feature of mpaGeoJSON.features) {
+    try {
+      if (isPointInGeoJSON(lat, lng, feature.geometry)) {
+        const props = feature.properties;
+        const type = getMPAType(props);
+        return {
+          name: props.NAME || props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
+          type,
+          restrictions: getRestrictions(type),
+          ccr: 'CCR Title 14, Section 632'
+        };
+      }
+    } catch(e) {}
+  }
+  return null;
+}
+
+function isPointInGeoJSON(lat, lng, geometry) {
+  if (!geometry) return false;
+  const coords = geometry.type === 'Polygon' ? [geometry.coordinates] :
+                 geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
+  for (const poly of coords) {
+    for (const ring of poly) {
+      if (pointInRing(lng, lat, ring)) return true;
+    }
+  }
+  return false;
+}
+
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function getBBox(geometry) {
+  const coords = [];
+  function extract(c) {
+    if (typeof c[0] === 'number') coords.push(c);
+    else c.forEach(extract);
+  }
+  extract(geometry.coordinates);
+  const lngs = coords.map(c => c[0]);
+  const lats = coords.map(c => c[1]);
+  return {
+    minLat: Math.min(...lats), maxLat: Math.max(...lats),
+    minLng: Math.min(...lngs), maxLng: Math.max(...lngs)
+  };
+}
+
+function estimateRadius(bbox) {
+  const latSpan = (bbox.maxLat - bbox.minLat) * 111000;
+  const lngSpan = (bbox.maxLng - bbox.minLng) * 111000 * Math.cos(bbox.minLat * Math.PI / 180);
+  return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
+}
+
+function updateUserMarker(lat, lng) {
+  if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="width:14px;height:14px;background:#0a3d62;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0a3d62"></div>',
+    iconSize: [14,14], iconAnchor: [7,7]
+  });
+  if (userMarker) userMarker.setLatLng([lat, lng]);
+  else userMarker = L.marker([lat, lng], { icon }).addTo(map);
+}
+
+function centerOnUser() {
+  if (userLat && userLng) {
+    map.setView([userLat, userLng], 14);
+  } else {
+    locateUser();
+  }
+}
+
+function initMap() {
+  try {
+    map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 18
+    }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    map.on('click', function(e) { closeMPADrawer(); });
+    loadMPAs();
+  } catch(e) {
+    document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center">Map failed to load.</div>';
+  }
+}
+
+
 
 function drawSpots() {
   spotMarkers.forEach(function(m) { map.removeLayer(m); });
@@ -283,20 +552,31 @@ function setGPSStatus(cls, msg) {
 }
 
 function checkMPAProximity(lat, lng) {
-  var closest = null, minDist = Infinity;
-  MPAS_FALLBACK.forEach(function(mpa) {
-    var d = Math.hypot(mpa.lat - lat, mpa.lng - lng) * 111000;
-    if (d < mpa.radius * 1.2 && d < minDist) { minDist = d; closest = mpa; }
-  });
-  if (closest) {
-    var inside = minDist <= closest.radius;
+  var userPt = L.latLng(lat, lng);
+  // Use real polygon containment when CDFW data loaded
+  if (mpaGeoJSON) {
+    var inside = checkPointInPolygon(lat, lng);
     if (inside) {
-      setGPSStatus('warning', '⚠️ You are inside ' + closest.name + ' — restrictions apply!');
-    } else {
-      setGPSStatus('caution', '⚠️ Near ' + closest.name + ' — check boundaries');
+      var t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
+      setGPSStatus('warning', '⚠️ INSIDE ' + t + '!', inside.name + ' — ' + (inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'));
+      return;
     }
+    setGPSStatus('safe', '✅ No MPAs detected near your location', '');
+    return;
+  }
+  // Fallback: circle proximity
+  var inside2 = null, nearest = null, nearestDist = Infinity;
+  MPAS_FALLBACK.forEach(function(mpa) {
+    var dist = userPt.distanceTo(L.latLng(mpa.lat, mpa.lng));
+    if (dist <= mpa.radius) { inside2 = mpa; }
+    else if (dist <= mpa.radius * 1.2 && dist < nearestDist) { nearestDist = dist; nearest = mpa; }
+  });
+  if (inside2) {
+    setGPSStatus('warning', '⚠️ You are inside ' + inside2.name, inside2.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted');
+  } else if (nearest) {
+    setGPSStatus('caution', '⚠️ Near ' + nearest.name, 'Check boundaries before fishing');
   } else {
-    setGPSStatus('safe', '✅ No MPAs detected near your location');
+    setGPSStatus('safe', '✅ No MPAs detected near your location', '');
   }
 }
 
@@ -348,6 +628,7 @@ document.getElementById('drawer').addEventListener('touchend', function(e) {
 }, {passive: true});
 
 initMap();
+
 </script>
 </body>
 </html>
