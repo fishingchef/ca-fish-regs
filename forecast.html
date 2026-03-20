@@ -185,22 +185,27 @@ async function loadSpot(locName, lat, lng) {
     } catch(e) { console.warn('Tides failed:', e); }
 
     try {
+      // NWS requires User-Agent header or it returns 403
+      var nwsHeaders = {
+        'User-Agent': 'FishSmarterApp/1.0 (fishsmarter.app)',
+        'Accept': 'application/geo+json'
+      };
       var wxPointUrl = 'https://api.weather.gov/points/' + lat.toFixed(4) + ',' + lng.toFixed(4);
-      var wxPointRes = await fetch(wxPointUrl);
+      var wxPointRes = await fetch(wxPointUrl, { headers: nwsHeaders });
       if (wxPointRes.ok) {
         var wxPoint = await wxPointRes.json();
         if (wxPoint.properties && wxPoint.properties.forecast) {
-          var fRes = await fetch(wxPoint.properties.forecast);
-          var hRes = await fetch(wxPoint.properties.forecastHourly);
+          var fRes = await fetch(wxPoint.properties.forecast, { headers: nwsHeaders });
+          var hRes = await fetch(wxPoint.properties.forecastHourly, { headers: nwsHeaders });
           if (fRes.ok) { var fData = await fRes.json(); forecast = fData.properties && fData.properties.periods; }
           if (hRes.ok) { var hData = await hRes.json(); hourly = hData.properties && hData.properties.periods; }
         }
       }
-    } catch(e) { console.warn('Weather failed:', e); }
+    } catch(e) { console.warn('Weather failed:', e.message); }
 
-    // Render whatever we got — tides only, weather only, or both
-    if (!tideData.predictions.length && !forecast) {
-      showError('Could not load tides or weather for this location. NWS only covers US coastal areas.');
+    // Show tides-only view if weather failed — still useful
+    if (!tideData.predictions || !tideData.predictions.length) {
+      showError('Could not load tide data. NOAA tide service may be temporarily unavailable — try again shortly.');
       return;
     }
 
