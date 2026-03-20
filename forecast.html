@@ -24,7 +24,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .loc-input-wrap input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 0}
 .loc-input-wrap input::placeholder{color:rgba(255,255,255,.6)}
 .btn-search{background:var(--kelp-light);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-.quick-spots{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0 2px}
+.quick-spots{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0 6px;cursor:grab;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .quick-spots::-webkit-scrollbar{display:none}
 .spot-btn{flex-shrink:0;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:none;border-radius:100px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
 .spot-btn:active{background:rgba(255,255,255,.3)}
@@ -406,8 +406,8 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
           var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
           html += '<div class="tide-row">'
             + '<div style="display:flex;align-items:center;gap:10px">'
-            + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#e8f4fd' : '#fdf0e0') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-            + '<span style="font-size:16px">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
+            + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+            + '<span style="font-size:14px;filter:brightness(0) invert(1)">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
             + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
             + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
             + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
@@ -440,8 +440,8 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
         var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
         html += '<div class="tide-row">'
           + '<div style="display:flex;align-items:center;gap:10px">'
-          + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#e8f4fd' : '#fdf0e0') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-          + '<span style="font-size:16px">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
+          + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+          + '<span style="font-size:14px;filter:brightness(0) invert(1)">' + (isH ? '⬆️' : '⬇️') + '</span></div>'
           + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
           + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
           + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
@@ -461,6 +461,27 @@ function switchDay(i) {
     p.classList.toggle('active', idx === i);
   });
 }
+
+// Mouse drag scrolling for quick-spots on desktop
+(function() {
+  var el = document.querySelector('.quick-spots');
+  if (!el) return;
+  var isDown = false, startX, scrollLeft;
+  el.addEventListener('mousedown', function(e) {
+    isDown = true;
+    el.style.cursor = 'grabbing';
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  });
+  el.addEventListener('mouseleave', function() { isDown = false; el.style.cursor = 'grab'; });
+  el.addEventListener('mouseup', function() { isDown = false; el.style.cursor = 'grab'; });
+  el.addEventListener('mousemove', function(e) {
+    if (!isDown) return;
+    e.preventDefault();
+    var x = e.pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX);
+  });
+})();
 
 // Auto-load with GPS on first visit
 useGPS();
