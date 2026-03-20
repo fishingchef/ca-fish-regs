@@ -164,7 +164,18 @@ function useGPS() {
 async function loadSpot(locName, lat, lng) {
   showLoading('Loading forecast for ' + locName + '…');
   try {
+    console.log('[FS] loadSpot called:', locName, lat, lng);
+
+    // Check app.js loaded correctly
+    if (typeof nearestStation === 'undefined') {
+      showError('App script failed to load. Please hard-refresh the page (hold refresh button → Empty Cache and Hard Reload).');
+      console.error('[FS] nearestStation is undefined — js/app.js did not load');
+      return;
+    }
+
     var station = nearestStation(lat, lng);
+    console.log('[FS] nearest station:', station.name, station.id);
+
     var today = new Date();
     var ds = today.toISOString().split('T')[0].replace(/-/g,'');
     var end14 = new Date(today);
@@ -175,43 +186,52 @@ async function loadSpot(locName, lat, lng) {
       + '&end_date=' + de + '&station=' + station.id
       + '&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json';
 
-    // Fetch tides and weather independently — one failure won't kill the other
     var tideData = {predictions: []};
     var forecast = null, hourly = null;
 
     try {
+      console.log('[FS] fetching tides...');
       var tideRes = await fetch(tideUrl);
+      console.log('[FS] tide status:', tideRes.status);
       tideData = await tideRes.json();
-    } catch(e) { console.warn('Tides failed:', e); }
+      console.log('[FS] tide predictions:', tideData.predictions ? tideData.predictions.length : 'none', tideData.error || '');
+    } catch(e) { console.error('[FS] Tides fetch error:', e.message); }
 
     try {
-      // NWS requires User-Agent header or it returns 403
-      var nwsHeaders = {
-        'User-Agent': 'FishSmarterApp/1.0 (fishsmarter.app)',
-        'Accept': 'application/geo+json'
-      };
+      console.log('[FS] fetching NWS weather...');
       var wxPointUrl = 'https://api.weather.gov/points/' + lat.toFixed(4) + ',' + lng.toFixed(4);
-      var wxPointRes = await fetch(wxPointUrl, { headers: nwsHeaders });
+      var wxPointRes = await fetch(wxPointUrl, {
+        headers: { 'User-Agent': 'FishSmarterApp/1.0 (fishsmarter.app)', 'Accept': 'application/geo+json' }
+      });
+      console.log('[FS] NWS points status:', wxPointRes.status);
       if (wxPointRes.ok) {
         var wxPoint = await wxPointRes.json();
         if (wxPoint.properties && wxPoint.properties.forecast) {
-          var fRes = await fetch(wxPoint.properties.forecast, { headers: nwsHeaders });
-          var hRes = await fetch(wxPoint.properties.forecastHourly, { headers: nwsHeaders });
+          console.log('[FS] fetching forecast:', wxPoint.properties.forecast);
+          var fRes = await fetch(wxPoint.properties.forecast);
+          var hRes = await fetch(wxPoint.properties.forecastHourly);
+          console.log('[FS] forecast status:', fRes.status, 'hourly status:', hRes.status);
           if (fRes.ok) { var fData = await fRes.json(); forecast = fData.properties && fData.properties.periods; }
           if (hRes.ok) { var hData = await hRes.json(); hourly = hData.properties && hData.properties.periods; }
+          console.log('[FS] forecast periods:', forecast ? forecast.length : 0);
         }
+      } else {
+        var errText = await wxPointRes.text();
+        console.error('[FS] NWS error:', errText.substring(0, 200));
       }
-    } catch(e) { console.warn('Weather failed:', e.message); }
+    } catch(e) { console.error('[FS] Weather fetch error:', e.message); }
 
-    // Show tides-only view if weather failed — still useful
     if (!tideData.predictions || !tideData.predictions.length) {
-      showError('Could not load tide data. NOAA tide service may be temporarily unavailable — try again shortly.');
+      console.error('[FS] No tide data. tideData:', JSON.stringify(tideData).substring(0, 200));
+      showError('Could not load tide data. NOAA service may be temporarily unavailable — try again in a moment.');
       return;
     }
 
+    console.log('[FS] Rendering forecast...');
     renderForecast(locName, lat, lng, station, tideData, forecast, hourly);
   } catch(e) {
-    showError('Could not load forecast. Check your connection and try again.');
+    console.error('[FS] loadSpot outer catch:', e.message, e.stack);
+    showError('Could not load forecast: ' + e.message);
   }
 }
 
