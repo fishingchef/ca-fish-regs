@@ -17,7 +17,6 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --ocean:#0a3d62; --ocean-mid:#1a5f8a; --ocean-light:#2980b9;
@@ -55,12 +54,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 /* ── Action bar ── */
 .action-bar{padding:10px 16px;display:flex;gap:8px}
 .btn-map{flex:1;padding:10px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn-gps{padding:10px 14px;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap}
-.btn-gps.located{background:#e8f5ee;border-color:var(--success);color:var(--success)}
+
 
 /* ── GPS banner ── */
-.gps-banner{background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px}
-.gps-banner.active{background:#e8f5ee;border-color:var(--success)}
+
 
 /* ── Species list ── */
 .species-list{padding:8px 12px 16px}
@@ -149,7 +146,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <!-- Action bar -->
 <div class="action-bar">
   <button class="btn-map" onclick="window.location.href='map.html'">🗺️ View MPA Map</button>
-  <button class="btn-gps" id="gpsBtn" onclick="locateMe()">📍 My Location</button>
 </div>
 
 <!-- Alert banner (shown when active closures exist) -->
@@ -157,11 +153,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <span>⚠️</span><span id="alertText">Active closure in effect</span><span style="margin-left:auto">›</span>
 </div>
 
-<!-- GPS info bar -->
-<div class="gps-banner" id="gpsBanner" style="display:none">
-  <span id="gpsIcon">📍</span>
-  <span id="gpsText">Detecting location…</span>
-</div>
+
 
 <!-- Species list -->
 <div class="species-list" id="speciesList">
@@ -202,7 +194,6 @@ var allSpecies = [];
 var allRegulations = [];
 var currentFilter = 'all';
 var currentSearch = '';
-var userZone = null;
 
 // ── Load data ────────────────────────────────────────────────
 async function loadData() {
@@ -259,9 +250,6 @@ function renderList() {
     var status = deriveStatus(reg);
     if (currentFilter === 'open' && status !== 'open') return false;
     if (currentFilter === 'caution' && status !== 'seasonal') return false;
-
-    // Zone filter
-    if (userZone === 'saltwater' && sp.water_type === 'freshwater') return false;
 
     // Search
     if (currentSearch) {
@@ -417,37 +405,7 @@ function handleSave(id) {
   if (currentFilter === 'saved') renderList();
 }
 
-// ── GPS / Location ────────────────────────────────────────────
-function locateMe() {
-  var btn = document.getElementById('gpsBtn');
-  var banner = document.getElementById('gpsBanner');
-  btn.textContent = '📍 Locating…';
-  banner.style.display = 'flex';
-  document.getElementById('gpsText').textContent = 'Getting your location…';
-  if (!navigator.geolocation) {
-    document.getElementById('gpsText').textContent = 'Location not supported';
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    var lat = pos.coords.latitude;
-    var zone = lat > 37 ? 'Northern CA Ocean' : 'Southern CA Ocean';
-    if (lat > 37 && lat < 38.5 && pos.coords.longitude > -123) zone = 'SF Bay / Delta';
-    userZone = 'saltwater';
-    document.getElementById('gpsText').textContent = '📍 ' + zone;
-    banner.classList.add('active');
-    btn.textContent = '✅ Located';
-    btn.className = 'btn-gps located';
-    // Auto-filter to saltwater
-    currentFilter = 'saltwater';
-    document.querySelectorAll('.filter-tab').forEach(function(t) {
-      t.classList.toggle('active', t.dataset.filter === 'saltwater');
-    });
-    renderList();
-  }, function() {
-    document.getElementById('gpsText').textContent = 'Location denied — enable in settings';
-    btn.textContent = '📍 My Location';
-  });
-}
+
 
 // ── Events ────────────────────────────────────────────────────
 document.getElementById('searchInput').addEventListener('input', function(e) {
