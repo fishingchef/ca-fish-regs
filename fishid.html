@@ -271,7 +271,9 @@ function renderResult(r, matched) {
   var confClass = conf === 'high' ? 'confidence-high' : conf === 'medium' ? 'confidence-medium' : 'confidence-low';
   var confLabel = conf === 'high' ? '✓ High confidence' : conf === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
 
-  currentLang = 'en';
+  if (typeof currentLang !== 'undefined') currentLang = 'en';
+  var langPillsHtml = (typeof buildLangPills === 'function') ? buildLangPills(speciesName) : '';
+  var txLoadHtml = (typeof buildLangPills === 'function') ? '<span id="translate-loading" style="display:none;font-size:11px;color:var(--text-muted)">Translating…</span>' : '';
 
   var html = '<div class="result-card">'
     + '<div class="result-header" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'

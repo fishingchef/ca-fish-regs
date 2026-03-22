@@ -39,11 +39,13 @@ function getRegionConfig() {
 // Translations are cached in localStorage so each species only translates once per language.
 
 const SUPPORTED_LANGUAGES = {
-  en: { label: 'EN', name: 'English' },
-  es: { label: 'ES', name: 'Español' },
-  vi: { label: 'VI', name: 'Tiếng Việt' },
-  zh: { label: '中文', name: '中文' },
+  en: { label: 'EN',    name: 'English' },
+  es: { label: 'ES',    name: 'Español' },
+  vi: { label: 'VI',    name: 'Tiếng Việt' },
+  zh: { label: '中文',  name: '中文 (简体)' },
   ko: { label: '한국어', name: '한국어' },
+  tl: { label: 'TL',    name: 'Filipino (Tagalog)' },
+  km: { label: 'ខ្មែរ', name: 'ភាសាខ្មែរ (Khmer)' },
 };
 
 var currentLang = 'en';
