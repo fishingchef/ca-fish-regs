@@ -251,6 +251,7 @@ function getRegulationDisplay(sp, reg) {
     badgeText:  'Check Rules',
     cardLimit:  '',
     tileHtml:   '',
+    noteHtml:   '',
     isOpen:     false,
   };
 
@@ -486,8 +487,11 @@ function openDrawer(speciesId) {
   // ── Regulation block — driven by regulation_type ─────────────
   // ── Regulation display — uses getRegulationDisplay() ────────
   html += '<div class="d-section">Regulations</div>';
-  html += buildLangPills(sp.name);
-  html += '<span id="translate-loading" style="display:none;font-size:11px;color:var(--text-muted);padding:2px 0">Translating…</span>';
+  if (typeof buildLangPills === 'function') {
+    if (typeof currentLang !== 'undefined') currentLang = 'en';
+    html += buildLangPills(sp.name);
+    html += '<span id="translate-loading" style="display:none;font-size:11px;color:var(--text-muted);padding:2px 0">Translating…</span>';
+  }
   html += '<div id="translatable-content">';
   html += '<div class="d-grid">';
   var rd2 = getRegulationDisplay(sp, reg);
@@ -504,7 +508,6 @@ function openDrawer(speciesId) {
   html += '<button class="d-save-btn' + (isSaved ? ' saved' : '') + '" id="saveBtn" onclick="handleSave(' + sp.id + ')">'
     + (isSaved ? '⭐ Saved' : '☆ Save Species') + '</button>';
   document.getElementById('drawerBody').innerHTML = html;
-  currentLang = 'en';
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
 }
