@@ -82,33 +82,20 @@ async function translateFields(lang, speciesName, fields) {
 
   var langName = SUPPORTED_LANGUAGES[lang].name;
 
-  var prompt = 'You are a fishing regulation translator. Translate the following fishing regulation fields into ' + langName + '.\n\n' +
-    'Rules:\n' +
-    '- Translate naturally as a native speaker would say it\n' +
-    '- Keep scientific names in Latin (do not translate them)\n' +
-    '- Keep numbers, measurements, and dates as-is\n' +
-    '- Keep species names that have no direct translation (use phonetic or closest equivalent)\n' +
-    '- Do NOT translate URLs or citations like "CCR Title 14"\n' +
-    '- Return ONLY valid JSON with the same keys, nothing else\n\n' +
-    'Fields to translate:\n' + JSON.stringify(toTranslate, null, 2);
-
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        lang: lang,
+        langName: langName,
+        fields: toTranslate
       })
     });
 
     if (!res.ok) return cached;
 
-    var data = await res.json();
-    var text = (data.content || []).map(function(b) { return b.text || ''; }).join('');
-    var clean = text.replace(/```json|```/g, '').trim();
-    var translated = JSON.parse(clean);
+    var translated = await res.json();
 
     // Cache each translated field
     Object.keys(translated).forEach(function(key) {
