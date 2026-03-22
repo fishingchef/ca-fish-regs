@@ -7,7 +7,7 @@ export default async function handler(req) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), {
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not found', env_keys: Object.keys(process.env).filter(k => k.startsWith('ANTHROPIC') || k.startsWith('GEMINI')) }), {
       status: 500, headers: { 'Content-Type': 'application/json' }
     });
   }
@@ -70,7 +70,7 @@ ${JSON.stringify(fields, null, 2)}`;
     });
 
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), {
       status: 500, headers: { 'Content-Type': 'application/json' }
     });
   }
