@@ -33,6 +33,120 @@ function getRegionConfig() {
   return REGION_CONFIG[getUserRegion()] || REGION_CONFIG['california'];
 }
 
+// ── Translation System ─────────────────────────────────────
+// Supports: Spanish (es), Vietnamese (vi), Chinese Simplified (zh), Korean (ko)
+// Scientific names, numbers, URLs, and legal citations are never translated.
+// Translations are cached in localStorage so each species only translates once per language.
+
+const SUPPORTED_LANGUAGES = {
+  en: { label: 'EN',    name: 'English' },
+  es: { label: 'ES',    name: 'Español' },
+  vi: { label: 'VI',    name: 'Tiếng Việt' },
+  zh: { label: '中文',  name: '中文 (简体)' },
+  ko: { label: '한국어', name: '한국어' },
+  tl: { label: 'TL',    name: 'Filipino (Tagalog)' },
+  km: { label: 'ខ្មែរ', name: 'ភាសាខ្មែរ (Khmer)' },
+};
+
+var currentLang = 'en';
+
+function getLangCacheKey(lang, speciesName, fieldKey) {
+  return 'fs_tx_' + lang + '_' + speciesName.replace(/\s+/g, '_').toLowerCase() + '_' + fieldKey;
+}
+
+function getCachedTranslation(lang, speciesName, fieldKey) {
+  try { return localStorage.getItem(getLangCacheKey(lang, speciesName, fieldKey)); }
+  catch(e) { return null; }
+}
+
+function setCachedTranslation(lang, speciesName, fieldKey, value) {
+  try { localStorage.setItem(getLangCacheKey(lang, speciesName, fieldKey), value); }
+  catch(e) {}
+}
+
+// Translate a batch of text fields for a species
+// Returns { fieldKey: translatedText, ... } or null on error
+async function translateFields(lang, speciesName, fields) {
+  if (lang === 'en') return null; // nothing to do
+
+  // Check cache first — only translate uncached fields
+  var toTranslate = {};
+  var cached = {};
+  Object.keys(fields).forEach(function(key) {
+    var c = getCachedTranslation(lang, speciesName, key);
+    if (c) cached[key] = c;
+    else if (fields[key]) toTranslate[key] = fields[key];
+  });
+
+  if (Object.keys(toTranslate).length === 0) return cached;
+
+  var langName = SUPPORTED_LANGUAGES[lang].name;
+
+  var prompt = 'You are a fishing regulation translator. Translate the following fishing regulation fields into ' + langName + '.\n\n' +
+    'Rules:\n' +
+    '- Translate naturally as a native speaker would say it\n' +
+    '- Keep scientific names in Latin (do not translate them)\n' +
+    '- Keep numbers, measurements, and dates as-is\n' +
+    '- Keep species names that have no direct translation (use phonetic or closest equivalent)\n' +
+    '- Do NOT translate URLs or citations like "CCR Title 14"\n' +
+    '- Return ONLY valid JSON with the same keys, nothing else\n\n' +
+    'Fields to translate:\n' + JSON.stringify(toTranslate, null, 2);
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) return cached;
+
+    var data = await res.json();
+    var text = (data.content || []).map(function(b) { return b.text || ''; }).join('');
+    var clean = text.replace(/```json|```/g, '').trim();
+    var translated = JSON.parse(clean);
+
+    // Cache each translated field
+    Object.keys(translated).forEach(function(key) {
+      setCachedTranslation(lang, speciesName, key, translated[key]);
+      cached[key] = translated[key];
+    });
+
+    return cached;
+  } catch(e) {
+    console.warn('[FS] Translation failed:', e.message);
+    return cached;
+  }
+}
+
+// Build language pill selector HTML — uses data-name attribute to avoid quote escaping
+function buildLangPills(speciesName) {
+  var html = '<div class="lang-pills" id="langPills">';
+  Object.keys(SUPPORTED_LANGUAGES).forEach(function(code) {
+    var lang = SUPPORTED_LANGUAGES[code];
+    var isActive = code === currentLang;
+    html += '<button class="lang-pill' + (isActive ? ' active' : '') + '" ' +
+      'data-lang="' + code + '" ' +
+      'data-species="' + speciesName.replace(/"/g, '&quot;') + '" ' +
+      'onclick="handleLangPill(this)">' +
+      lang.label + '</button>';
+  });
+  html += '</div>';
+  return html;
+}
+
+// Called by pill onclick — reads data attributes to avoid quote issues
+function handleLangPill(btn) {
+  var lang = btn.getAttribute('data-lang');
+  var speciesName = btn.getAttribute('data-species');
+  selectLang(lang, speciesName, btn);
+}
+
+
 // ── Active nav item ─────────────────────────────────────────
 function setActiveNav(page) {
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -189,4 +303,62 @@ function nearestStation(lat, lng) {
     const d = Math.hypot(s.lat - lat, s.lng - lng);
     return d < Math.hypot(best.lat - lat, best.lng - lng) ? s : best;
   });
+}
+
+// selectLang — called when user taps a language pill
+// Finds the nearest translatable block and re-renders it in the chosen language
+async function selectLang(lang, speciesName, btn) {
+  if (lang === currentLang) return;
+  currentLang = lang;
+
+  // Update pill styles
+  var container = btn.closest('.lang-pills');
+  if (container) {
+    container.querySelectorAll('.lang-pill').forEach(function(b) {
+      var active = b.getAttribute('data-lang') === lang;
+      b.classList.toggle('active', active);
+      b.style.background = active ? 'var(--ocean)' : 'var(--bg)';
+      b.style.color = active ? '#fff' : 'var(--text)';
+      b.style.borderColor = active ? 'var(--ocean)' : 'var(--border)';
+    });
+  }
+
+  // Find the translatable content block
+  var block = document.getElementById('translatable-content');
+  if (!block) return;
+
+  if (lang === 'en') {
+    // Restore original content
+    if (block._originalHtml) block.innerHTML = block._originalHtml;
+    return;
+  }
+
+  // Save original on first translation
+  if (!block._originalHtml) block._originalHtml = block.innerHTML;
+
+  // Show loading indicator
+  var loadingEl = document.getElementById('translate-loading');
+  if (loadingEl) {
+    loadingEl.textContent = 'Translating…';
+    loadingEl.style.display = 'block';
+  }
+
+  // Extract translatable fields from data attributes on the block
+  var fields = {};
+  block.querySelectorAll('[data-translate]').forEach(function(el) {
+    var key = el.getAttribute('data-translate');
+    if (el.textContent.trim()) fields[key] = el.textContent.trim();
+  });
+
+  var translations = await translateFields(lang, speciesName, fields);
+
+  // Apply translations
+  if (translations) {
+    block.querySelectorAll('[data-translate]').forEach(function(el) {
+      var key = el.getAttribute('data-translate');
+      if (translations[key]) el.textContent = translations[key];
+    });
+  }
+
+  if (loadingEl) loadingEl.style.display = 'none';
 }
