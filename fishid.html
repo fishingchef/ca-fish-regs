@@ -265,10 +265,13 @@ async function identifyFish() {
 function renderResult(r, matched) {
   var reg = matched && matched.regulations && matched.regulations[0];
   var status = deriveStatus(reg);
+  var speciesName = r.commonName || 'Unknown species';
 
   var conf = r.confidence || 'medium';
   var confClass = conf === 'high' ? 'confidence-high' : conf === 'medium' ? 'confidence-medium' : 'confidence-low';
   var confLabel = conf === 'high' ? '✓ High confidence' : conf === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
+
+  currentLang = 'en';
 
   var html = '<div class="result-card">'
     + '<div class="result-header" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
@@ -276,12 +279,14 @@ function renderResult(r, matched) {
     + (r.doubleChecked ? '<span class="confidence-pill" style="background:#e8eef8;color:#1a5276">✓ Double-checked</span>' : '')
     + (r.imageQuality === 'poor' ? '<span class="confidence-pill" style="background:#fdf0e0;color:#7a4f00">⚠ Poor image</span>' : '')
     + '</div>'
-    + '<div class="result-name">' + (r.commonName || 'Unknown species') + '</div>'
+    + '<div class="result-name">' + speciesName + '</div>'
     + (r.scientificName ? '<div class="result-sci">' + r.scientificName + '</div>' : '')
-    + '<div style="height:10px"></div>';
+    + buildLangPills(speciesName)
+    + '<span id="translate-loading" style="display:none;font-size:11px;color:var(--text-muted);padding:2px 0">Translating…</span>'
+    + '<div id="translatable-content">';
 
   if (r.confidenceReason) {
-    html += '<div class="result-desc">' + r.confidenceReason + '</div>';
+    html += '<div class="result-desc" data-translate="confidenceReason">' + r.confidenceReason + '</div>';
   }
   if (r.alternateId) {
     html += '<div class="reg-note warning" style="margin-bottom:10px">⚠️ Alternate ID: AI also suggested <strong>' + r.alternateId + '</strong> — verify carefully before keeping.</div>';
@@ -293,7 +298,6 @@ function renderResult(r, matched) {
     html += '<div class="reg-tile"><div class="reg-tile-label">Status</div>'
       + '<div class="reg-tile-value" style="font-size:13px;color:' + (status === 'open' ? 'var(--success)' : status === 'closed' ? 'var(--danger)' : 'var(--warning)') + '">'
       + (status === 'open' ? '✅ Open' : status === 'closed' ? '🚫 Closed' : '📅 Seasonal') + '</div></div>';
-
     if (reg && reg.bag_limit === 0) {
       html += '<div class="reg-tile"><div class="reg-tile-label">Take</div><div class="reg-tile-value" style="font-size:13px;color:var(--danger)">NO TAKE</div></div>';
     } else if (reg && reg.bag_limit) {
@@ -306,14 +310,19 @@ function renderResult(r, matched) {
         + '<div class="reg-tile-value">' + reg.size_min_inches + '"</div></div>';
     }
     html += '</div>';
+    if (reg && reg.season_note) {
+      html += '<div class="reg-note" style="margin-bottom:8px"><strong>Season:</strong> <span data-translate="season">' + reg.season_note + '</span></div>';
+    }
+    if (reg && reg.gear_restricted) {
+      html += '<div class="reg-note" style="margin-bottom:8px"><strong>Gear:</strong> <span data-translate="gear">' + reg.gear_restricted + '</span></div>';
+    }
     if (reg && reg.special_notes) {
       var noteClass = reg.special_notes.includes('⚠️') || reg.special_notes.toUpperCase().includes('PROHIBITED') ? 'danger' : 'warning';
-      html += '<div class="reg-note ' + noteClass + '">' + reg.special_notes + '</div>';
+      html += '<div class="reg-note ' + noteClass + '"><span data-translate="notes">' + reg.special_notes + '</span></div>';
     }
   } else {
-    // No DB match — show AI-provided regulation data as fallback
     html += '<div style="font-size:11px;font-weight:600;color:var(--ocean-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 AI-Estimated Regulations</div>';
-    html += '<div class="reg-note warning" style="margin-bottom:10px">⚠️ Not in our database — showing AI estimates. Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a></div>';
+    html += '<div class="reg-note warning" style="margin-bottom:10px">⚠️ Not in our database — always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a></div>';
     if (r.legalStatus && r.legalStatus !== 'unknown') {
       var statusColor = r.legalStatus === 'closed' || r.legalStatus === 'protected' ? 'var(--danger)' : r.legalStatus === 'legal' ? 'var(--success)' : 'var(--warning)';
       html += '<div class="reg-grid">';
@@ -323,21 +332,22 @@ function renderResult(r, matched) {
       if (r.minSize) html += '<div class="reg-tile"><div class="reg-tile-label">Min Size</div><div class="reg-tile-value" style="font-size:13px">' + r.minSize + '</div></div>';
       html += '</div>';
     }
-    if (r.season) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Season:</strong> ' + r.season + '</div>';
-    if (r.gearAllowed) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Gear:</strong> ' + r.gearAllowed + '</div>';
-    if (r.legalStatusNote) html += '<div class="reg-note warning">' + r.legalStatusNote + '</div>';
+    if (r.season) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Season:</strong> <span data-translate="season">' + r.season + '</span></div>';
+    if (r.gearAllowed) html += '<div class="reg-note" style="margin-bottom:8px"><strong>Gear:</strong> <span data-translate="gear">' + r.gearAllowed + '</span></div>';
+    if (r.legalStatusNote) html += '<div class="reg-note warning"><span data-translate="legalNote">' + r.legalStatusNote + '</span></div>';
   }
 
   if (r.legalStatusNote) {
-    html += '<div class="reg-note warning">' + r.legalStatusNote + '</div>';
+    html += '<div class="reg-note warning"><span data-translate="legalNote">' + r.legalStatusNote + '</span></div>';
   }
   if (r.identificationTips) {
-    html += '<div class="reg-note"><strong>ID Tips:</strong> ' + r.identificationTips + '</div>';
+    html += '<div class="reg-note"><strong>ID Tips:</strong> <span data-translate="idTips">' + r.identificationTips + '</span></div>';
   }
   if (r.lookAlikes && r.lookAlikes !== 'none' && r.lookAlikes !== '') {
-    html += '<div class="reg-note warning">⚠️ Look-alikes: ' + r.lookAlikes + '</div>';
+    html += '<div class="reg-note warning">⚠️ Look-alikes: <span data-translate="lookAlikes">' + r.lookAlikes + '</span></div>';
   }
 
+  html += '</div>';
   html += '<div class="disclaimer">AI identification can make mistakes. Always confirm species identification visually and verify current regulations at wildlife.ca.gov before keeping any catch.</div>';
   html += '<button class="second-opinion" onclick="identifyFish()">🔄 Get Second Opinion</button>';
   html += '</div>';
