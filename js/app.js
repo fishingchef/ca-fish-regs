@@ -199,9 +199,13 @@ function deriveStatus(reg) {
   if (!reg) return 'unknown';
   if (reg.bag_limit === 0) return 'closed';
   const sn = (reg.season_note || '').toLowerCase();
-  if (sn.includes('closed') || sn.includes('prohibited')) return 'closed';
+  // Only mark fully closed if the note STARTS with closed/prohibited
+  // Partial area closures like "Year-round. SF Bay closed Apr 1-Jul 31" should NOT trigger closed
+  if (/^(closed|prohibited|no take|no recreational)/.test(sn)) return 'closed';
   if (sn.includes('year-round') || sn.includes('open year')) return 'open';
   if (sn.includes('seasonal') || sn.includes('season')) return 'seasonal';
+  // "closed" appearing mid-sentence = partial area restriction, treat as open
+  if (sn.includes('closed') || sn.includes('prohibited')) return 'open';
   const now = new Date();
   if (reg.season_open && reg.season_close) {
     const open = new Date(reg.season_open + '/2024');
