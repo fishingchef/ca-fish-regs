@@ -112,6 +112,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .lang-pill.active{background:var(--ocean);color:#fff;border-color:var(--ocean)}
 .d-save-btn{width:100%;padding:13px;background:var(--bg);color:var(--ocean);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px}
 .d-save-btn.saved{background:#fff8e1;border-color:var(--warning);color:#7a4f00}
+.d-tile-value{word-break:break-word;overflow-wrap:break-word;white-space:normal}
+.d-tile-sub,.d-note,.reg-note{word-break:break-word;overflow-wrap:break-word}
 
 /* ── Bottom Nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
@@ -355,26 +357,26 @@ function getRegulationDisplay(sp, reg) {
       display.tileHtml +=
         '<div class="d-tile"><div class="d-tile-label">Bag Limit</div>' +
         '<div class="d-tile-value">' + reg.bag_limit + '</div>' +
-        '<div class="d-tile-sub">' + (bagUnit === 'fish' ? 'fish per day' : bagUnit + ' per day') + '</div></div>';
+        '<div class="d-tile-sub"><span data-translate="bagUnit">' + (bagUnit === 'fish' ? 'fish per day' : bagUnit + ' per day') + '</span></div></div>';
     }
     if (reg.size_min_inches) {
       display.tileHtml +=
         '<div class="d-tile"><div class="d-tile-label">Min Size</div>' +
         '<div class="d-tile-value">' + reg.size_min_inches + '"</div>' +
-        '<div class="d-tile-sub">total length</div></div>';
+        '<div class="d-tile-sub"><span data-translate="sizeUnit">total length</span></div></div>';
     }
     if (reg.season_note) {
       display.tileHtml +=
         '<div class="d-tile" style="grid-column:1/-1"><div class="d-tile-label">Season</div>' +
-        '<div class="d-tile-value" style="font-size:13px">' + reg.season_note + '</div></div>';
+        '<div class="d-tile-value" style="font-size:13px"><span data-translate="season">' + reg.season_note + '</span></div></div>';
     }
     if (reg.gear_restricted) {
       display.tileHtml +=
         '<div class="d-tile" style="grid-column:1/-1"><div class="d-tile-label">Gear</div>' +
-        '<div class="d-tile-value" style="font-size:13px">' + reg.gear_restricted + '</div></div>';
+        '<div class="d-tile-value" style="font-size:13px"><span data-translate="gear">' + reg.gear_restricted + '</span></div></div>';
     }
     if (reg.special_notes) {
-      display.tileHtml += '<div class="reg-note" style="margin-top:8px">' + reg.special_notes + '</div>';
+      display.tileHtml += '<div class="reg-note" style="margin-top:8px"><span data-translate="notes">' + reg.special_notes + '</span></div>';
     }
   }
   return display;
@@ -484,7 +486,7 @@ function openDrawer(speciesId) {
     + '</div>';
 
   if (sp.description) {
-    html += '<div class="d-note">' + sp.description + '</div>';
+    html += '<div class="d-note"><span data-translate="description">' + sp.description + '</span></div>';
   }
 
   // ── Regulation block — driven by regulation_type ─────────────
