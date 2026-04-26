@@ -535,9 +535,11 @@ document.getElementById('drawer').addEventListener('touchstart', function(e) {
 document.getElementById('drawer').addEventListener('touchend', function(e) {
   if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer();
 }, {passive:true});
-
+ 
 // ── Init ──────────────────────────────────────────────────────
 loadData();
 </script>
+<script src="js/auth.js"></script>        
+<script src="js/auth-sheet.js"></script> 
 </body>
 </html>
