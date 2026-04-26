@@ -9,10 +9,6 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── Region config ───────────────────────────────────────────
-// Single source of truth for the active region.
-// Stored in localStorage so user preference persists.
-// When expanding to Oregon/Washington: just update this value
-// or let users pick from the regions table — zero other code changes needed.
 const REGION_CONFIG = {
   california: { name: 'California', admin1: 'California', country_code: 'US', bbox: { minLat: 32.5, maxLat: 42.0, minLng: -124.5, maxLng: -114.1 } },
   oregon:     { name: 'Oregon',     admin1: 'Oregon',     country_code: 'US', bbox: { minLat: 41.9, maxLat: 46.3, minLng: -124.6, maxLng: -116.5 } },
@@ -34,10 +30,6 @@ function getRegionConfig() {
 }
 
 // ── Translation System ─────────────────────────────────────
-// Supports: Spanish (es), Vietnamese (vi), Chinese Simplified (zh), Korean (ko)
-// Scientific names, numbers, URLs, and legal citations are never translated.
-// Translations are cached in localStorage so each species only translates once per language.
-
 const SUPPORTED_LANGUAGES = {
   en: { label: 'EN',    name: 'English' },
   es: { label: 'ES',    name: 'Español' },
@@ -53,23 +45,17 @@ var currentLang = 'en';
 function getLangCacheKey(lang, speciesName, fieldKey) {
   return 'fs_tx_' + lang + '_' + speciesName.replace(/\s+/g, '_').toLowerCase() + '_' + fieldKey;
 }
-
 function getCachedTranslation(lang, speciesName, fieldKey) {
   try { return localStorage.getItem(getLangCacheKey(lang, speciesName, fieldKey)); }
   catch(e) { return null; }
 }
-
 function setCachedTranslation(lang, speciesName, fieldKey, value) {
   try { localStorage.setItem(getLangCacheKey(lang, speciesName, fieldKey), value); }
   catch(e) {}
 }
 
-// Translate a batch of text fields for a species
-// Returns { fieldKey: translatedText, ... } or null on error
 async function translateFields(lang, speciesName, fields) {
-  if (lang === 'en') return null; // nothing to do
-
-  // Check cache first — only translate uncached fields
+  if (lang === 'en') return null;
   var toTranslate = {};
   var cached = {};
   Object.keys(fields).forEach(function(key) {
@@ -77,32 +63,20 @@ async function translateFields(lang, speciesName, fields) {
     if (c) cached[key] = c;
     else if (fields[key]) toTranslate[key] = fields[key];
   });
-
   if (Object.keys(toTranslate).length === 0) return cached;
-
   var langName = SUPPORTED_LANGUAGES[lang].name;
-
   try {
     var res = await fetch('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lang: lang,
-        langName: langName,
-        fields: toTranslate
-      })
+      body: JSON.stringify({ lang: lang, langName: langName, fields: toTranslate })
     });
-
     if (!res.ok) return cached;
-
     var translated = await res.json();
-
-    // Cache each translated field
     Object.keys(translated).forEach(function(key) {
       setCachedTranslation(lang, speciesName, key, translated[key]);
       cached[key] = translated[key];
     });
-
     return cached;
   } catch(e) {
     console.warn('[FS] Translation failed:', e.message);
@@ -110,7 +84,6 @@ async function translateFields(lang, speciesName, fields) {
   }
 }
 
-// Build language pill selector HTML — uses data-name attribute to avoid quote escaping
 function buildLangPills(speciesName) {
   var html = '<div class="lang-pills" id="langPills">';
   Object.keys(SUPPORTED_LANGUAGES).forEach(function(code) {
@@ -119,20 +92,17 @@ function buildLangPills(speciesName) {
     html += '<button class="lang-pill' + (isActive ? ' active' : '') + '" ' +
       'data-lang="' + code + '" ' +
       'data-species="' + speciesName.replace(/"/g, '&quot;') + '" ' +
-      'onclick="handleLangPill(this)">' +
-      lang.label + '</button>';
+      'onclick="handleLangPill(this)">' + lang.label + '</button>';
   });
   html += '</div>';
   return html;
 }
 
-// Called by pill onclick — reads data attributes to avoid quote issues
 function handleLangPill(btn) {
   var lang = btn.getAttribute('data-lang');
   var speciesName = btn.getAttribute('data-species');
   selectLang(lang, speciesName, btn);
 }
-
 
 // ── Active nav item ─────────────────────────────────────────
 function setActiveNav(page) {
@@ -199,12 +169,9 @@ function deriveStatus(reg) {
   if (!reg) return 'unknown';
   if (reg.bag_limit === 0) return 'closed';
   const sn = (reg.season_note || '').toLowerCase();
-  // Only mark fully closed if the note STARTS with closed/prohibited
-  // Partial area closures like "Year-round. SF Bay closed Apr 1-Jul 31" should NOT trigger closed
   if (/^(closed|prohibited|no take|no recreational)/.test(sn)) return 'closed';
   if (sn.includes('year-round') || sn.includes('open year')) return 'open';
   if (sn.includes('seasonal') || sn.includes('season')) return 'seasonal';
-  // "closed" appearing mid-sentence = partial area restriction, treat as open
   if (sn.includes('closed') || sn.includes('prohibited')) return 'open';
   const now = new Date();
   if (reg.season_open && reg.season_close) {
@@ -246,32 +213,147 @@ function getWxIcon(text) {
 }
 
 // ── Fishing score ───────────────────────────────────────────
-function calcFishingScore(temp, wind, forecastText) {
-  let score = 70;
+// Inputs:
+//   temp         — air temp string e.g. "62" (°F), from NWS forecast
+//   wind         — wind string e.g. "7 mph", from NWS forecast
+//   forecastText — NWS short forecast e.g. "Partly Sunny"
+//   tides        — array of NOAA hi/lo predictions for the day [{t, v, type}], optional
+//   targetDate   — Date object for the day being scored, optional (defaults to now)
+//
+// Score breakdown:
+//   Baseline:       60
+//   Temperature:   -20 to +18
+//   Wind:          -35 to +15
+//   Weather:       -40 to +10
+//   Tide state:     -8 to +18  (only when tides provided)
+//   Tidal range:     0 to  +6  (only when tides provided)
+//   Time of day:    -5 to +10
+//   Total range:    10–99
+
+function calcFishingScore(temp, wind, forecastText, tides, targetDate) {
+  var score = 60;
+
+  // ── 1. Air temperature ─────────────────────────────────────
+  // Coastal CA sweet spot: 55–72°F. Fish are most active in mild temps.
   if (temp) {
-    const t = parseInt(temp);
-    if (t >= 55 && t <= 75) score += 15;
-    else if (t < 45 || t > 85) score -= 20;
+    var t = parseInt(temp);
+    if (t >= 58 && t <= 70)      score += 18;
+    else if (t >= 50 && t < 58)  score += 10;
+    else if (t > 70 && t <= 80)  score += 10;
+    else if (t > 80 && t <= 88)  score += 0;
+    else if (t > 88)             score -= 15;
+    else if (t >= 40 && t < 50)  score -= 5;
+    else if (t < 40)             score -= 20;
   }
+
+  // ── 2. Wind speed ──────────────────────────────────────────
+  // Calm = glassy water, good casting, fish near surface.
+  // Strong = rough, dangerous, fish go deep.
   if (wind) {
-    const spd = parseInt(wind);
-    if (spd <= 10) score += 15;
-    else if (spd <= 15) score += 5;
-    else if (spd <= 20) score -= 10;
-    else score -= 25;
+    var spd = parseInt(wind);
+    if (spd <= 5)        score += 15;
+    else if (spd <= 10)  score += 12;
+    else if (spd <= 15)  score += 4;
+    else if (spd <= 20)  score -= 12;
+    else if (spd <= 25)  score -= 22;
+    else                 score -= 35;
   }
+
+  // ── 3. Weather condition ───────────────────────────────────
+  // Overcast is often GOOD — fish less spooked, feed near surface.
+  // Storm = dangerous and terrible bite.
   if (forecastText) {
-    const f = forecastText.toLowerCase();
-    if (f.includes('clear') || f.includes('sunny')) score += 5;
-    if (f.includes('thunder') || f.includes('storm')) score -= 30;
-    if (f.includes('rain')) score -= 10;
-    if (f.includes('fog')) score -= 5;
+    var f = forecastText.toLowerCase();
+    if (f.includes('thunder') || f.includes('storm'))           score -= 35;
+    else if (f.includes('hurricane') || f.includes('gale'))     score -= 40;
+    else if (f.includes('heavy rain') || f.includes('heavy shower')) score -= 18;
+    else if (f.includes('rain') || f.includes('shower'))        score -= 8;
+    else if (f.includes('overcast') || f.includes('mostly cloudy')) score += 5;
+    else if (f.includes('partly cloudy') || f.includes('partly sunny')) score += 8;
+    else if (f.includes('clear') || f.includes('sunny'))        score += 5;
+    if (f.includes('fog'))                                       score -= 5;
+    // Pressure cues: approaching front = fish feed before it hits (brief bite window)
+    if (f.includes('becoming') && (f.includes('rain') || f.includes('storm'))) score += 6;
+    // Clearing after rain = pressure rising = reliable bite window
+    if (f.includes('clearing') || f.includes('decreasing clouds')) score += 10;
   }
+
+  // ── 4. Tide state ──────────────────────────────────────────
+  // The single strongest fishing predictor we have real data for.
+  // Incoming (flood) tide: fish push into shallows to feed — best bite.
+  // Around high tide: fish are positioned, good but slowing.
+  // Outgoing (ebb): fish follow food washing out — decent.
+  // Around low tide: fish scatter to deeper water — toughest bite.
+  if (tides && tides.length > 0) {
+    var checkDate = targetDate ? new Date(targetDate) : new Date();
+    var nowMin = checkDate.getHours() * 60 + checkDate.getMinutes();
+
+    var tidePts = tides.map(function(tide) {
+      var parts = tide.t.split(' ')[1].split(':');
+      return {
+        min: parseInt(parts[0]) * 60 + parseInt(parts[1]),
+        ht: parseFloat(tide.v),
+        type: tide.type
+      };
+    }).sort(function(a, b) { return a.min - b.min; });
+
+    // Find the two tide events bracketing our target time
+    var before = null, after = null;
+    for (var i = 0; i < tidePts.length; i++) {
+      if (tidePts[i].min <= nowMin) before = tidePts[i];
+      else if (!after) after = tidePts[i];
+    }
+
+    if (before && after) {
+      var elapsed = nowMin - before.min;
+      var window = after.min - before.min;
+      var pct = elapsed / window; // 0 = just after 'before', 1 = just before 'after'
+
+      if (before.type === 'L' && after.type === 'H') {
+        // Incoming (flood) tide — prime fishing
+        if (pct < 0.15)      score += 8;
+        else if (pct < 0.50) score += 18;
+        else if (pct < 0.85) score += 14;
+        else                 score += 8;
+      } else if (before.type === 'H' && after.type === 'L') {
+        // Outgoing (ebb) tide — decent
+        if (pct < 0.15)      score += 8;
+        else if (pct < 0.50) score += 2;
+        else if (pct < 0.85) score -= 5;
+        else                 score -= 8;
+      }
+
+      // Tidal range bonus — bigger swing = more water movement = more active fish
+      var range = Math.abs(after.ht - before.ht);
+      if (range >= 4.0)      score += 6;
+      else if (range >= 2.5) score += 3;
+
+    } else if (before) {
+      // Edge of day — minor nudge based on last tide type
+      score += before.type === 'H' ? 3 : -3;
+    }
+  }
+
+  // ── 5. Time of day ─────────────────────────────────────────
+  // Dawn and dusk are peak feeding windows for most species.
+  // Only meaningful when we have a real time context.
+  if (targetDate || tides) {
+    var timeRef = targetDate ? new Date(targetDate) : new Date();
+    var hr = timeRef.getHours();
+    if (hr >= 5 && hr < 8)        score += 10; // dawn — golden hour
+    else if (hr >= 8 && hr < 10)  score += 5;  // morning
+    else if (hr >= 17 && hr < 20) score += 10; // dusk — golden hour
+    else if (hr >= 20)            score -= 5;  // night
+  }
+
   return Math.max(10, Math.min(99, score));
 }
-function scoreColor(s) { return s >= 70 ? '#27ae60' : s >= 45 ? '#f0a500' : '#c0392b'; }
+
+function scoreColor(s) {
+  return s >= 70 ? '#27ae60' : s >= 45 ? '#f0a500' : '#c0392b';
+}
 function scoreDesc(s) {
-  if (s >= 80) return 'Excellent';
+  if (s >= 85) return 'Excellent';
   if (s >= 70) return 'Good';
   if (s >= 55) return 'Fair';
   if (s >= 40) return 'Marginal';
@@ -296,13 +378,10 @@ function nearestStation(lat, lng) {
   });
 }
 
-// selectLang — called when user taps a language pill
-// Finds the nearest translatable block and re-renders it in the chosen language
+// ── selectLang ─────────────────────────────────────────────
 async function selectLang(lang, speciesName, btn) {
   if (lang === currentLang) return;
   currentLang = lang;
-
-  // Update pill styles
   var container = btn.closest('.lang-pills');
   if (container) {
     container.querySelectorAll('.lang-pill').forEach(function(b) {
@@ -313,43 +392,26 @@ async function selectLang(lang, speciesName, btn) {
       b.style.borderColor = active ? 'var(--ocean)' : 'var(--border)';
     });
   }
-
-  // Find the translatable content block
   var block = document.getElementById('translatable-content');
   if (!block) return;
-
   if (lang === 'en') {
-    // Restore original content
     if (block._originalHtml) block.innerHTML = block._originalHtml;
     return;
   }
-
-  // Save original on first translation
   if (!block._originalHtml) block._originalHtml = block.innerHTML;
-
-  // Show loading indicator
   var loadingEl = document.getElementById('translate-loading');
-  if (loadingEl) {
-    loadingEl.textContent = 'Translating…';
-    loadingEl.style.display = 'block';
-  }
-
-  // Extract translatable fields from data attributes on the block
+  if (loadingEl) { loadingEl.textContent = 'Translating…'; loadingEl.style.display = 'block'; }
   var fields = {};
   block.querySelectorAll('[data-translate]').forEach(function(el) {
     var key = el.getAttribute('data-translate');
     if (el.textContent.trim()) fields[key] = el.textContent.trim();
   });
-
   var translations = await translateFields(lang, speciesName, fields);
-
-  // Apply translations
   if (translations) {
     block.querySelectorAll('[data-translate]').forEach(function(el) {
       var key = el.getAttribute('data-translate');
       if (translations[key]) el.textContent = translations[key];
     });
   }
-
   if (loadingEl) loadingEl.style.display = 'none';
 }
