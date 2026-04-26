@@ -417,16 +417,11 @@ function renderList() {
       var nameMatch = sp.name && sp.name.toLowerCase().includes(q);
       var sciMatch = sp.scientific_name && sp.scientific_name.toLowerCase().includes(q);
       var catMatch = sp.category && sp.category.toLowerCase().includes(q);
-      if (!nameMatch && !sciMatch && !catMatch) return false;
-    }
-    return true;
+      if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(err) {
+    console.warn('[FS] Service worker registration failed:', err);
   });
-
-  if (!list.length) {
-    document.getElementById('speciesList').innerHTML =
-      '<div class="no-results"><div class="no-results-icon">🔍</div><h3>No species found</h3><p>Try a different search or filter</p></div>';
-    return;
-  }
+}
 
   var html = '<div class="section-label">' + list.length + ' species</div>';
   list.forEach(function(sp) {
