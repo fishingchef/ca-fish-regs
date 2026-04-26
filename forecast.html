@@ -107,6 +107,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .extended-header-text .ext-title{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:#fff;letter-spacing:.5px}
 .extended-header-text .ext-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
 
+
+/* ── Tide graph drawer ── */
+.tide-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .3s}
+.tide-drawer-overlay.open{opacity:1;pointer-events:all}
+.tide-drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;z-index:301;transition:transform .35s cubic-bezier(.4,0,.2,1);padding-bottom:env(safe-area-inset-bottom);max-height:88vh;overflow-y:auto}
+.tide-drawer.open{transform:translateX(-50%) translateY(0)}
+.tide-drawer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.tide-drawer-body{padding:16px 20px 28px}
+.tide-row{cursor:pointer;transition:background .15s;border-radius:6px;padding:8px 6px;margin:0 -6px;border-bottom:1px solid var(--border)}
+.tide-row:last-child{border-bottom:none}
+.tide-row:hover{background:var(--bg)}
+.tide-row-tap-hint{font-size:10px;color:var(--text-muted);text-align:center;padding:6px 0 2px;font-style:italic}
 /* ── Loading / error ── */
 .loading-state{padding:40px 20px;text-align:center;color:var(--text-muted)}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
@@ -391,6 +403,7 @@ async function loadSpot(locName, lat, lng) {
 }
 
 function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) {
+  _tideDrawerData = {};
   var tidesByDate = {};
   (tideData.predictions||[]).forEach(function(t) {
     var dk = t.t.split(' ')[0];
@@ -496,8 +509,10 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
       html += '<div class="section-label">Tides — '+station.name+'</div>';
       html += '<div class="tide-card">';
       if (dayTides.length) {
+        html += '<div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px 0 6px;font-style:italic">Tap a row to see tide chart</div>';
+        var _isToday = (i===0);
         dayTides.forEach(function(t) {
-          html += buildTideRow(t);
+          html += buildTideRow(t, dayTides, _isToday);
         });
       } else {
         html += '<div style="font-size:13px;color:var(--text-muted);padding:8px">No tide data for this day</div>';
@@ -524,7 +539,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
       html += '<div class="tide-card" style="margin-bottom:10px">'
         +'<div style="font-size:13px;font-weight:600;margin-bottom:8px">'
         +DAYS[d.getDay()]+', '+MONTHS[d.getMonth()]+' '+d.getDate()+'</div>';
-      ts.forEach(function(t) { html += buildTideRow(t); });
+      ts.forEach(function(t) { html += buildTideRow(t, ts, false); });
       html += '</div>';
     });
   }
@@ -532,20 +547,219 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   document.getElementById('content').innerHTML = html;
 }
 
-function buildTideRow(t) {
+// Store tides by date for drawer lookup
+var _tideDrawerData = {};
+
+function buildTideRow(t, allDayTides, isToday) {
   var isH = t.type==='H';
   var parts = t.t.split(' ')[1].split(':');
   var h = parseInt(parts[0]), mn = parts[1];
   var ampm = h>=12?'PM':'AM';
   var h12 = h>12?h-12:(h===0?12:h);
-  return '<div class="tide-row">'
+  // Encode allDayTides as a data attribute for the click handler
+  var dataId = t.t.replace(/[^0-9]/g,'');
+  _tideDrawerData[dataId] = {tides: allDayTides, clickedT: t, isToday: !!isToday};
+  return '<div class="tide-row" onclick="openTideDrawer(''+dataId+'')" title="Tap to see tide chart">'
     +'<div style="display:flex;align-items:center;gap:10px">'
     +'<div style="width:32px;height:32px;border-radius:8px;background:'+(isH?'#1a6390':'#e07b39')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
     +'<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">'+(isH?'↑':'↓')+'</span></div>'
     +'<div><div class="tide-type">'+(isH?'High Tide':'Low Tide')+'</div>'
     +'<div class="tide-time">'+h12+':'+mn+' '+ampm+'</div></div></div>'
-    +'<div class="tide-ht" style="color:'+(isH?'#1a6390':'#e07b39')+'">'+parseFloat(t.v).toFixed(1)+' ft</div></div>';
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<div class="tide-ht" style="color:'+(isH?'#1a6390':'#e07b39')+'">'+parseFloat(t.v).toFixed(1)+' ft</div>'
+    +'<div style="font-size:16px;color:var(--text-muted);opacity:.5">›</div>'
+    +'</div></div>';
 }
+
+// ── Tide graph drawer ─────────────────────────────────────────
+function openTideDrawer(dataId) {
+  var d = _tideDrawerData[dataId];
+  if (!d) return;
+  var tides = d.tides;
+  var isToday = d.isToday;
+
+  // Date label from first tide entry
+  var dateStr = tides[0].t.split(' ')[0];
+  var dp = new Date(dateStr+'T12:00:00');
+  var DAYS2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var dayLabel = (isToday ? 'Today · ' : DAYS2[dp.getDay()]+' · ')
+    + MONTHS2[dp.getMonth()]+' '+dp.getDate();
+
+  // ── Sine interpolation ──────────────────────────────────────
+  // Parse hi/lo times into minutes-since-midnight + heights
+  function parseMinutes(tStr) {
+    var p = tStr.split(' ')[1].split(':');
+    return parseInt(p[0])*60 + parseInt(p[1]);
+  }
+  var points = tides.map(function(t) {
+    return { m: parseMinutes(t.t), h: parseFloat(t.v), isH: t.type==='H' };
+  }).sort(function(a,b){return a.m-b.m;});
+
+  // Extend with virtual prev/next points to anchor the sine at day boundaries
+  // by mirroring the first/last point across midnight
+  var extended = [];
+  if (points.length > 0) {
+    var first = points[0], last = points[points.length-1];
+    // Virtual point before 0:00 — mirror of first real point
+    extended.push({ m: first.m - 2*(first.m), h: first.h, isH: !first.isH, virtual: true });
+  }
+  extended = extended.concat(points);
+  if (points.length > 0) {
+    var lastP = points[points.length-1];
+    extended.push({ m: lastP.m + 2*(1440-lastP.m), h: lastP.h, isH: !lastP.isH, virtual: true });
+  }
+
+  // Interpolate height at any minute using cosine between adjacent hi/lo pairs
+  function heightAt(min) {
+    for (var i = 0; i < extended.length-1; i++) {
+      var a = extended[i], b = extended[i+1];
+      if (min >= a.m && min <= b.m) {
+        var t = (min - a.m) / (b.m - a.m);
+        // Cosine interpolation
+        var ct = (1 - Math.cos(Math.PI * t)) / 2;
+        return a.h + (b.h - a.h) * ct;
+      }
+    }
+    return extended[extended.length-1].h;
+  }
+
+  // Sample every 15 minutes across the day
+  var samples = [];
+  for (var min = 0; min <= 1440; min += 15) {
+    samples.push({ m: min, h: heightAt(min) });
+  }
+
+  var allH = samples.map(function(s){return s.h;});
+  var minH = Math.min.apply(null, allH);
+  var maxH = Math.max.apply(null, allH);
+  var range = maxH - minH || 1;
+
+  // ── SVG dimensions ──────────────────────────────────────────
+  var W = 440, H = 180, PL = 36, PR = 16, PT = 16, PB = 32;
+  var gW = W - PL - PR, gH = H - PT - PB;
+
+  function xOf(m)  { return PL + (m / 1440) * gW; }
+  function yOf(ht) { return PT + gH - ((ht - minH) / range) * gH; }
+
+  // Build smooth SVG path
+  var path = '';
+  var areaPath = '';
+  samples.forEach(function(s, i) {
+    var x = xOf(s.m).toFixed(1), y = yOf(s.h).toFixed(1);
+    if (i === 0) { path += 'M'+x+','+y; areaPath += 'M'+x+','+(PT+gH)+' L'+x+','+y; }
+    else { path += ' L'+x+','+y; areaPath += ' L'+x+','+y; }
+  });
+  areaPath += ' L'+xOf(1440).toFixed(1)+','+(PT+gH)+' Z';
+
+  // Time axis labels
+  var axisLabels = ['12a','3a','6a','9a','12p','3p','6p','9p','12a'];
+  var axisMins   = [0, 180, 360, 540, 720, 900, 1080, 1260, 1440];
+
+  // Current time line (today only)
+  var nowMin = -1;
+  if (isToday) {
+    var now = new Date();
+    nowMin = now.getHours()*60 + now.getMinutes();
+  }
+
+  // Build SVG
+  var svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg">';
+  // Defs: gradient fill
+  svg += '<defs>'
+    +'<linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0%" stop-color="#1a6390" stop-opacity="0.25"/>'
+    +'<stop offset="100%" stop-color="#1a6390" stop-opacity="0.03"/>'
+    +'</linearGradient></defs>';
+
+  // Grid lines
+  for (var gi = 0; gi <= 4; gi++) {
+    var gy = PT + (gi/4)*gH;
+    svg += '<line x1="'+PL+'" y1="'+gy.toFixed(1)+'" x2="'+(PL+gW)+'" y2="'+gy.toFixed(1)+'" stroke="#dce3ea" stroke-width="0.5"/>';
+  }
+
+  // Area fill + curve
+  svg += '<path d="'+areaPath+'" fill="url(#tideGrad)"/>';
+  svg += '<path d="'+path+'" fill="none" stroke="#1a6390" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+
+  // Hi/Lo markers
+  points.forEach(function(p) {
+    var x = xOf(p.m), y = yOf(p.h);
+    var col = p.isH ? '#1a6390' : '#e07b39';
+    svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="'+col+'" stroke="#fff" stroke-width="1.5"/>';
+    // Height label
+    var labelY = p.isH ? y - 8 : y + 14;
+    svg += '<text x="'+x.toFixed(1)+'" y="'+labelY.toFixed(1)+'" text-anchor="middle" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" fill="'+col+'">'+p.h.toFixed(1)+'ft</text>';
+    // Time label
+    var hh = Math.floor(p.m/60), mm2 = p.m%60;
+    var ap = hh>=12?'p':'a', h12t = hh>12?hh-12:(hh===0?12:hh);
+    var tLabel = h12t+':'+(mm2<10?'0':'')+mm2+ap;
+    var tlY = p.isH ? y - 18 : y + 24;
+    svg += '<text x="'+x.toFixed(1)+'" y="'+tlY.toFixed(1)+'" text-anchor="middle" font-size="8" font-family="DM Sans,sans-serif" fill="#5a6473">'+tLabel+'</text>';
+  });
+
+  // Current time line
+  if (nowMin >= 0 && nowMin <= 1440) {
+    var nx = xOf(nowMin);
+    svg += '<line x1="'+nx.toFixed(1)+'" y1="'+PT+'" x2="'+nx.toFixed(1)+'" y2="'+(PT+gH)+'" stroke="#52b788" stroke-width="1.5" stroke-dasharray="3,3"/>';
+    svg += '<circle cx="'+nx.toFixed(1)+'" cy="'+yOf(heightAt(nowMin)).toFixed(1)+'" r="5" fill="#52b788" stroke="#fff" stroke-width="1.5"/>';
+    svg += '<text x="'+nx.toFixed(1)+'" y="'+(PT-4)+'" text-anchor="middle" font-size="8" font-family="DM Sans,sans-serif" font-weight="600" fill="#52b788">Now</text>';
+  }
+
+  // X axis labels
+  axisLabels.forEach(function(lbl, li) {
+    var ax = xOf(axisMins[li]);
+    svg += '<text x="'+ax.toFixed(1)+'" y="'+(PT+gH+12)+'" text-anchor="middle" font-size="8" font-family="DM Sans,sans-serif" fill="#5a6473">'+lbl+'</text>';
+  });
+
+  // Y axis labels
+  var yTicks = [minH, (minH+maxH)/2, maxH];
+  yTicks.forEach(function(yt) {
+    var ay = yOf(yt);
+    svg += '<text x="'+(PL-4)+'" y="'+(ay+3).toFixed(1)+'" text-anchor="end" font-size="8" font-family="DM Sans,sans-serif" fill="#5a6473">'+yt.toFixed(1)+'</text>';
+  });
+
+  svg += '</svg>';
+
+  // Legend
+  var legend = '<div style="display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap">'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:#1a6390"></div><span style="font-size:11px;color:var(--text-muted)">High tide</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:#e07b39"></div><span style="font-size:11px;color:var(--text-muted)">Low tide</span></div>'
+    +(isToday?'<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:2px;background:#52b788;border-radius:1px"></div><span style="font-size:11px;color:var(--text-muted)">Current time</span></div>':'')
+    +'</div>';
+
+  // Tide list summary
+  var list = '<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">';
+  points.forEach(function(p) {
+    var col = p.isH ? '#1a6390' : '#e07b39';
+    var hh = Math.floor(p.m/60), mm2 = p.m%60;
+    var ap = hh>=12?'PM':'AM', h12t = hh>12?hh-12:(hh===0?12:hh);
+    list += '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:28px;height:28px;border-radius:7px;background:'+col+';display:flex;align-items:center;justify-content:center">'
+      +'<span style="font-size:13px;font-weight:700;color:#fff;line-height:1">'+(p.isH?'↑':'↓')+'</span></div>'
+      +'<div><div style="font-size:13px;font-weight:500">'+(p.isH?'High':'Low')+' Tide</div>'
+      +'<div style="font-size:11px;color:var(--text-muted)">'+h12t+':'+(mm2<10?'0':'')+mm2+' '+ap+'</div>'
+      +'</div></div>'
+      +'<div style="font-family:Unbounded,sans-serif;font-size:15px;font-weight:700;color:'+col+'">'+p.h.toFixed(1)+' ft</div>'
+      +'</div>';
+  });
+  list += '</div>';
+
+  document.getElementById('tideDrawerBody').innerHTML =
+    '<div style="font-family:Unbounded,sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">🌊 '+dayLabel+'</div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Tap anywhere outside to close</div>'
+    + svg + legend + list;
+
+  document.getElementById('tideDrawerOverlay').classList.add('open');
+  document.getElementById('tideDrawer').classList.add('open');
+}
+
+function closeTideDrawer() {
+  document.getElementById('tideDrawerOverlay').classList.remove('open');
+  document.getElementById('tideDrawer').classList.remove('open');
+}
+
 
 function switchDay(i) {
   document.querySelectorAll('.week-cell').forEach(function(c,idx) {
@@ -567,10 +781,27 @@ function switchDay(i) {
   el.addEventListener('mousemove',function(e){if(!isDown)return;e.preventDefault();el.scrollLeft=scrollLeft-(e.pageX-el.offsetLeft-startX);});
 })();
 
+
+// Swipe down to close tide drawer
+(function() {
+  var td = document.getElementById('tideDrawer');
+  var tsY = 0;
+  if (!td) return;
+  td.addEventListener('touchstart', function(e){ tsY = e.touches[0].clientY; }, {passive:true});
+  td.addEventListener('touchend', function(e){ if (e.changedTouches[0].clientY - tsY > 80) closeTideDrawer(); }, {passive:true});
+})();
+
 // ── Init ──────────────────────────────────────────────────────
 renderFavsBar();
 updateStarIcons();
 useGPS();
 </script>
+
+<!-- Tide graph drawer -->
+<div class="tide-drawer-overlay" id="tideDrawerOverlay" onclick="closeTideDrawer()"></div>
+<div class="tide-drawer" id="tideDrawer">
+  <div class="tide-drawer-handle"></div>
+  <div class="tide-drawer-body" id="tideDrawerBody"></div>
+</div>
 </body>
 </html>
