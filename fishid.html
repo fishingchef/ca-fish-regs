@@ -16,11 +16,11 @@
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
 .header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
-.header-content{position:relative;z-index:1}
-.app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:400;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
-.page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff;line-height:1.2}
-.page-title span{color:var(--kelp-light)}
-.page-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:6px}
+.header-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between}
+.header-left .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:400;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.header-left .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff;line-height:1.2}
+.header-left .page-title span{color:var(--kelp-light)}
+.header-left .page-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:6px}
 .content{padding:20px 16px 16px}
 .upload-zone{background:var(--white);border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .upload-zone:active,.upload-zone.drag{background:var(--bg);border-color:var(--ocean-light)}
@@ -57,6 +57,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .loading-text{font-size:15px;font-weight:500}
 .loading-sub{font-size:13px;opacity:.7}
 .second-opinion{width:100%;padding:12px;background:var(--bg);color:var(--ocean);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-log-catch{width:100%;padding:13px;background:var(--kelp-light);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
 .lang-pills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px}
 .lang-pill{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .lang-pill.active{background:var(--ocean);color:#fff;border-color:var(--ocean)}
@@ -72,14 +73,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <div class="header">
   <div class="header-wave"></div>
   <div class="header-content">
-    <div class="app-eyebrow">Fish Smarter</div>
-    <div class="page-title">Fish <span>ID</span></div>
-    <div class="page-sub">Snap a photo — get instant AI identification + regulations</div>
+    <div class="header-left">
+      <div class="app-eyebrow">Fish Smarter</div>
+      <div class="page-title">Fish <span>ID</span></div>
+      <div class="page-sub">Snap a photo — get instant AI identification + regulations</div>
+    </div>
+    <a href="account.html" id="profileAvatar" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none;flex-shrink:0;margin-top:4px">👤</a>
   </div>
 </div>
 
 <div class="content">
-  <!-- Upload zone -->
   <div class="upload-zone" id="uploadZone" onclick="document.getElementById('galleryInput').click()">
     <div id="uploadPrompt">
       <div class="upload-icon">🐟</div>
@@ -89,11 +92,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
     <img id="previewImg" style="display:none">
   </div>
 
-  <!-- Hidden file inputs -->
   <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
   <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
 
-  <!-- Action buttons -->
   <div class="actions">
     <button class="btn-camera" onclick="document.getElementById('cameraInput').click()">📷 Camera</button>
     <button class="btn-gallery" onclick="document.getElementById('galleryInput').click()">🖼 Gallery</button>
@@ -103,31 +104,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
     🔍 Identify & Check Regulations
   </button>
 
-  <!-- Result -->
   <div id="resultArea"></div>
 </div>
 
-<!-- Loading overlay -->
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text">Analyzing your catch…</div>
   <div class="loading-sub">Analyzing your catch with AI…</div>
 </div>
 
-<!-- Bottom Nav -->
 <nav class="bottom-nav">
-  <a class="nav-item" data-page="species" href="index.html">
-    <span class="nav-icon">🐟</span><span>Species</span>
-  </a>
-  <a class="nav-item active" data-page="fishid" href="fishid.html">
-    <span class="nav-icon">📷</span><span>Fish ID</span>
-  </a>
-  <a class="nav-item" data-page="forecast" href="forecast.html">
-    <span class="nav-icon">🌊</span><span>Forecast</span>
-  </a>
-  <a class="nav-item" data-page="account" href="account.html">
-    <span class="nav-icon">👤</span><span>Account</span>
-  </a>
+  <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
+  <a class="nav-item active" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
+  <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
+  <a class="nav-item" href="catchlog.html"><span class="nav-icon">📓</span><span>Catches</span></a>
 </nav>
 
 <script src="js/app.js"></script>
@@ -142,7 +132,6 @@ function handlePhoto(input) {
   reader.onload = function(e) {
     var img = new Image();
     img.onload = function() {
-      // Compress to max 1024px
       var maxSize = 1024;
       var w = img.width, h = img.height;
       if (w > maxSize || h > maxSize) {
@@ -155,8 +144,6 @@ function handlePhoto(input) {
       var compressed = canvas.toDataURL('image/jpeg', 0.8);
       imageBase64 = compressed.split(',')[1];
       imageType = 'image/jpeg';
-
-      // Show preview
       var preview = document.getElementById('previewImg');
       var prompt = document.getElementById('uploadPrompt');
       var zone = document.getElementById('uploadZone');
@@ -192,7 +179,6 @@ async function identifyFish() {
 
     var result = await res.json();
 
-    // Handle specific 422 errors with user-friendly messages
     if (res.status === 422) {
       var icon = '🔍', userMsg = result.message || 'Could not identify species.';
       if (result.error === 'not_a_fish') icon = '📷';
@@ -208,32 +194,24 @@ async function identifyFish() {
 
     if (!res.ok) throw new Error(result.error || 'API error ' + res.status);
 
-    // Look up species in DB — try exact full name first, then scientific, then partial
     var matched = null;
     if (result.commonName) {
-      // 1. Try exact full name match first
       var exactRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', result.commonName).limit(1);
-      if (exactRes.data && exactRes.data.length > 0) {
-        matched = exactRes.data[0];
-      }
-      // 2. Try scientific name match (most accurate)
+      if (exactRes.data && exactRes.data.length > 0) matched = exactRes.data[0];
       if (!matched && result.scientificName) {
         var sciGenus = result.scientificName.split(' ')[0];
         var sciRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('scientific_name', sciGenus + '%').limit(3);
         if (sciRes.data && sciRes.data.length > 0) {
           matched = sciRes.data[0];
-          // Prefer exact species match over genus-only
           var fullSciMatch = sciRes.data.find(function(s) {
             return s.scientific_name && s.scientific_name.toLowerCase() === result.scientificName.toLowerCase();
           });
           if (fullSciMatch) matched = fullSciMatch;
         }
       }
-      // 3. Last resort: full name contains search
       if (!matched) {
         var partialRes = await db.from('species').select('id,name,scientific_name,image_url,regulations(*)').ilike('name', '%' + result.commonName + '%').limit(5);
         if (partialRes.data && partialRes.data.length > 0) {
-          // Score by how closely the name matches
           var nameLower = result.commonName.toLowerCase();
           var best = partialRes.data.reduce(function(prev, curr) {
             var prevScore = prev.name.toLowerCase() === nameLower ? 2 : prev.name.toLowerCase().includes(nameLower) ? 1 : 0;
@@ -275,8 +253,6 @@ function renderResult(r, matched) {
   var confLabel = conf === 'high' ? '✓ High confidence' : conf === 'medium' ? '~ Medium confidence' : '⚠ Low confidence';
 
   if (typeof currentLang !== 'undefined') currentLang = 'en';
-  var langPillsHtml = (typeof buildLangPills === 'function') ? buildLangPills(speciesName) : '';
-  var txLoadHtml = (typeof buildLangPills === 'function') ? '<span id="translate-loading" style="display:none;font-size:11px;color:var(--text-muted)">Translating…</span>' : '';
 
   var html = '<div class="result-card">'
     + '<div class="result-header" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
@@ -355,13 +331,50 @@ function renderResult(r, matched) {
   html += '</div>';
   html += '<div class="disclaimer">AI identification can make mistakes. Always confirm species identification visually and verify current regulations at wildlife.ca.gov before keeping any catch.</div>';
   html += '<button class="second-opinion" onclick="identifyFish()">🔄 Get Second Opinion</button>';
+  html += '<button class="btn-log-catch" onclick="logThisCatch(\'' + speciesName.replace(/'/g, "\\'") + '\')">📓 Log this catch</button>';
   html += '</div>';
 
   document.getElementById('resultArea').innerHTML = html;
   document.getElementById('resultArea').scrollIntoView({behavior:'smooth', block:'start'});
 }
+
+// ── Log this catch ────────────────────────────────────────────
+// Stores species + photo in sessionStorage then navigates to
+// the catch log entry screen. catchlog-new.html reads and clears
+// this prefill on load.
+function logThisCatch(speciesName) {
+  var prefill = { speciesName: speciesName };
+  if (imageBase64) {
+    prefill.photoBase64 = imageBase64;
+    prefill.photoType   = imageType || 'image/jpeg';
+  }
+  try { sessionStorage.setItem('fs_catchlog_prefill', JSON.stringify(prefill)); } catch(e) {}
+  window.location.href = 'catchlog-new.html';
+}
 </script>
 <script src="js/auth.js"></script>
 <script src="js/auth-sheet.js"></script>
+<script>
+// ── Profile avatar ────────────────────────────────────────────
+document.addEventListener('fsa:authchange', function(e) {
+  var avatar = document.getElementById('profileAvatar');
+  if (!avatar) return;
+  var user = e.detail.user;
+  if (user) {
+    var name = (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0] || '';
+    var initials = name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2) || '👤';
+    avatar.textContent = initials;
+    avatar.style.background = 'rgba(82,183,136,.4)';
+    avatar.style.fontSize = '12px';
+    avatar.style.fontWeight = '700';
+    avatar.style.color = '#fff';
+    avatar.style.fontFamily = 'Unbounded,sans-serif';
+  } else {
+    avatar.textContent = '👤';
+    avatar.style.background = 'rgba(255,255,255,.2)';
+    avatar.style.fontSize = '16px';
+  }
+});
+</script>
 </body>
 </html>
