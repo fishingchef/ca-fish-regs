@@ -466,16 +466,38 @@ function selectMethod(chip) {
 }
 
 // ── Location ──────────────────────────────────────────────────
+// Reverse geocode lat/lng to a human-readable place name
+// Uses Nominatim (OpenStreetMap) — free, no key needed
+async function reverseGeocode(lat, lng) {
+  try {
+    var res = await fetch(
+      'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json&zoom=10',
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    var data = await res.json();
+    if (!data || !data.address) return null;
+    var a = data.address;
+    // Build a clean fishing-friendly location name
+    // Priority: bay/body of water > city > town > county
+    var parts = [];
+    if (a.bay || a.sea || a.ocean || a.strait) parts.push(a.bay || a.sea || a.ocean || a.strait);
+    if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village);
+    else if (a.county) parts.push(a.county);
+    if (a.state) parts.push(a.state);
+    return parts.length ? parts.join(', ') : null;
+  } catch(e) {
+    return null;
+  }
+}
+
 function useGPSLocation() {
   if (!navigator.geolocation) return;
   document.getElementById('locationInput').value = 'Getting location…';
-  navigator.geolocation.getCurrentPosition(function(pos) {
+  navigator.geolocation.getCurrentPosition(async function(pos) {
     currentLat = pos.coords.latitude;
     currentLng = pos.coords.longitude;
-    // Reverse geocode using Open-Meteo geocoding
-    fetch('https://geocoding-api.open-meteo.com/v1/search?name=&latitude=' + currentLat + '&longitude=' + currentLng + '&count=1&format=json')
-      .catch(function() {});
-    document.getElementById('locationInput').value = currentLat.toFixed(4) + ', ' + currentLng.toFixed(4);
+    var placeName = await reverseGeocode(currentLat, currentLng);
+    document.getElementById('locationInput').value = placeName || (currentLat.toFixed(4) + ', ' + currentLng.toFixed(4));
   }, function() {
     document.getElementById('locationInput').value = '';
   });
@@ -483,11 +505,12 @@ function useGPSLocation() {
 
 // Auto-get GPS on load
 if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(function(pos) {
+  navigator.geolocation.getCurrentPosition(async function(pos) {
     currentLat = pos.coords.latitude;
     currentLng = pos.coords.longitude;
     if (!document.getElementById('locationInput').value) {
-      document.getElementById('locationInput').value = currentLat.toFixed(4) + ', ' + currentLng.toFixed(4);
+      var placeName = await reverseGeocode(currentLat, currentLng);
+      document.getElementById('locationInput').value = placeName || (currentLat.toFixed(4) + ', ' + currentLng.toFixed(4));
     }
   }, function() {}, { timeout: 5000, maximumAge: 60000 });
 }
@@ -579,23 +602,28 @@ async function saveCatch() {
     var bait = document.getElementById('baitInput').value.trim() || null;
     var notes = document.getElementById('notesInput').value.trim() || null;
 
+    // For public catches: store only city/bay level location, never exact GPS
+    // Private catches keep full location name and exact GPS
+    var publicLat  = isPublic ? (currentLat  ? parseFloat(currentLat.toFixed(1))  : null) : currentLat;
+    var publicLng  = isPublic ? (currentLng  ? parseFloat(currentLng.toFixed(1))  : null) : currentLng;
+
     var row = {
-      user_id:      user.id,
-      species_id:   selectedSpeciesId || null,
-      species_name: speciesName,
-      caught_at:    new Date().toISOString(),
+      user_id:       user.id,
+      species_id:    selectedSpeciesId || null,
+      species_name:  speciesName,
+      caught_at:     new Date().toISOString(),
       location_name: location,
-      lat:          currentLat,
-      lng:          currentLng,
-      method:       selectedMethod,
-      bait_lure:    bait,
-      weight_lbs:   weight,
+      lat:           publicLat,
+      lng:           publicLng,
+      method:        selectedMethod,
+      bait_lure:     bait,
+      weight_lbs:    weight,
       length_inches: length,
-      notes:        notes,
-      photo_url:    photoResult ? photoResult.url : null,
-      photo_key:    photoResult ? photoResult.key : null,
+      notes:         notes,
+      photo_url:     photoResult ? photoResult.url : null,
+      photo_key:     photoResult ? photoResult.key : null,
       fishing_score: fishingScore,
-      is_public:    isPublic,
+      is_public:     isPublic,
     };
 
     var { error } = await db.from('catch_logs').insert(row);
