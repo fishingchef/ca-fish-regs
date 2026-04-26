@@ -18,13 +18,20 @@ export default async function handler(req) {
   }
 
   const prompt = `You are a content moderation system for a fishing app.
-Analyze this image and determine if it is safe to publish on a family-friendly fishing platform.
+Users can upload any photo — fish, crabs, their pets, funny memes, food, scenery — all fine.
+Only block content that is clearly harmful.
 
 Reply with ONLY these exact fields, one per line, no markdown, no JSON, no extra text:
 
 SAFE: yes or no
 REASON: (one sentence — only if not safe, otherwise leave blank)
-CATEGORY: fishing_content or other_content or unsafe_content`;
+
+Only answer SAFE: no if the image contains:
+- Graphic violence, gore, or real injury
+- Nudity or sexual content
+- Hate symbols or extremist content
+
+Everything else — pets, memes, food, scenery, non-fish catches — should be SAFE: yes`;
 
   try {
     const res = await fetch(
@@ -82,9 +89,8 @@ CATEGORY: fishing_content or other_content or unsafe_content`;
 
     const safe     = get('SAFE').toLowerCase() === 'yes';
     const reason   = get('REASON');
-    const category = get('CATEGORY');
 
-    return new Response(JSON.stringify({ safe, reason, category }), {
+    return new Response(JSON.stringify({ safe, reason }), {
       status: 200, headers: { 'Content-Type': 'application/json' }
     });
 
