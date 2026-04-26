@@ -671,6 +671,7 @@ async function saveCatch() {
       user_id:       user.id,
       species_id:    selectedSpeciesId || null,
       species_name:  speciesName,
+      display_name:  (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0] || 'Angler',
       caught_at:     new Date().toISOString(),
       location_name: location,
       lat:           publicLat,
