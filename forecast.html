@@ -499,9 +499,10 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
       var sc = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, t, d);
       var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       var monNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var label = i===0 ? 'Today' : i===1 ? 'Tomorrow' : dayNames[d.getDay()] + ', ' + monNames[d.getMonth()] + ' ' + d.getDate();
+      // Score card title: "Today's" / "Tomorrow's" take possessive; named days don't
+      var shortLabel = i===0 ? 'Today' : i===1 ? 'Tomorrow' : dayNames[d.getDay()]+', '+monNames[d.getMonth()]+' '+d.getDate();
       var sub = scoreDesc(sc) + (p.temperature ? ' · ' + p.temperature + '°F' : '') + ' · ' + p.windSpeed + ' · ' + p.shortForecast;
-      return { score: sc, label: label, sub: sub, color: scoreColor(sc) };
+      return { score: sc, label: shortLabel, sub: sub, color: scoreColor(sc) };
     });
     window._daySummaries = daySummaries;
 
@@ -842,10 +843,18 @@ function switchDay(i) {
   var numEl  = document.getElementById('scoreNum');
   var titleEl = document.getElementById('scoreTitle');
   var subEl  = document.getElementById('scoreSub');
-  if (banner)  banner.style.background = d.color;
-  if (numEl)   numEl.textContent = d.score;
-  if (titleEl) titleEl.textContent = d.label + "'s Fishing Score";
-  if (subEl)   subEl.textContent = d.sub;
+  if (banner) banner.style.background = d.color;
+  if (numEl)  numEl.textContent = d.score;
+  if (titleEl) {
+    // "Today" and "Tomorrow" take possessive apostrophe; named days (e.g. "Mon, Apr 28") don't
+    var lbl = d.label;
+    if (lbl === 'Today' || lbl === 'Tomorrow') {
+      titleEl.textContent = lbl + "'s Fishing Score";
+    } else {
+      titleEl.textContent = 'Fishing Score — ' + lbl;
+    }
+  }
+  if (subEl)  subEl.textContent = d.sub;
 }
 
 // ── Mouse drag scroll for spots row ──────────────────────────
@@ -871,7 +880,10 @@ function switchDay(i) {
 
 // ── Score info helpers ───────────────────────────────────────
 function scoreInfoRow(label, status, bgColor, textColor) {
-  return '<div style="display:flex;justify-content:space-between;align-items:center">'    +'<div style="font-size:12px;color:var(--text)">'+label+'</div>'    +'<div style="font-size:11px;color:'+textColor+';background:'+bgColor+';padding:2px 9px;border-radius:100px;white-space:nowrap">'+status+'</div>'    +'</div>';
+  return '<div style="display:flex;justify-content:space-between;align-items:center">'
+    +'<div style="font-size:12px;color:var(--text)">'+label+'</div>'
+    +'<div style="font-size:11px;color:'+textColor+';background:'+bgColor+';padding:2px 9px;border-radius:100px;white-space:nowrap">'+status+'</div>'
+    +'</div>';
 }
 
 function toggleScoreInfo() {
@@ -883,8 +895,8 @@ function toggleScoreInfo() {
 // ── Init ──────────────────────────────────────────────────────
 renderFavsBar();
 updateStarIcons();
-// Only auto-request GPS if user has previously granted it
-// Avoids infinite spinner when permission is blocked or dismissed
+// Only auto-request GPS if user has previously granted it.
+// Avoids infinite spinner when permission is blocked or dismissed.
 // Never auto-spin on load. The initial HTML already shows the idle state.
 // If user previously used GPS, quietly attempt it — but only replace content on success.
 (function() {
