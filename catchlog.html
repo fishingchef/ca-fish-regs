@@ -102,7 +102,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <div class="stats-strip" id="statsStrip" style="display:none">
   <div class="stat-pill"><div class="stat-pill-num" id="statTotal">0</div><div class="stat-pill-lbl">Total</div></div>
   <div class="stat-pill"><div class="stat-pill-num" id="statSpecies">0</div><div class="stat-pill-lbl">Species</div></div>
-  <div class="stat-pill"><div class="stat-pill-num" id="statBest">–</div><div class="stat-pill-lbl">Best score</div></div>
+  <div class="stat-pill"><div class="stat-pill-num" id="statBest">–</div><div class="stat-pill-lbl">PB</div></div>
 </div>
 
 <div class="filter-bar" id="filterBar" style="display:none">
@@ -192,8 +192,8 @@ function renderStats(data) {
   document.getElementById('statsStrip').style.display = 'flex';
   document.getElementById('statTotal').textContent = data.length;
   document.getElementById('statSpecies').textContent = new Set(data.map(function(c) { return c.species_name; })).size;
-  var scores = data.filter(function(c) { return c.fishing_score; }).map(function(c) { return c.fishing_score; });
-  document.getElementById('statBest').textContent = scores.length ? Math.max.apply(null, scores) : '–';
+  var weights = data.filter(function(c) { return c.weight_lbs; }).map(function(c) { return parseFloat(c.weight_lbs); });
+  document.getElementById('statBest').textContent = weights.length ? Math.max.apply(null, weights) + ' lbs' : '–';
 }
 
 function renderMyCatches(data) {
