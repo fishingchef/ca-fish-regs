@@ -6,6 +6,7 @@
 <title>Fish Smarter — Tides & Forecast</title>
 <meta name="theme-color" content="#0a3d62">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -462,9 +463,32 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     +' · '+curWind+' · '+curFcast+'</div></div></div>';
 
   // ── Score info disclosure ─────────────────────────────────
-  html += '<button onclick="toggleScoreInfo()" style="background:none;border:none;font-size:11px;color:var(--text-muted);cursor:pointer;padding:2px 0 14px;display:flex;align-items:center;gap:4px;font-family:DM Sans,sans-serif;">'    +'<span style="font-size:14px">&#9432;</span> How is this score calculated?'    +'</button>';
-
-  html += '<div id="scoreInfoPanel" style="display:none;background:var(--off-white);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:16px;">'    +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">What goes into the score</div>'    +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">'    +scoreInfoRow('&#127777;&#65039; Air temperature','included','#e8f5ee','#2d7d46')'    +scoreInfoRow('&#128168; Wind speed','included','#e8f5ee','#2d7d46')'    +scoreInfoRow('&#127780;&#65039; Weather condition','included','#e8f5ee','#2d7d46')'    +scoreInfoRow('&#127754; Tide state (incoming vs outgoing)','included','#e8f5ee','#2d7d46')'    +scoreInfoRow('&#128336; Time of day (dawn &amp; dusk bonus)','included','#e8f5ee','#2d7d46')'    +'</div>'    +'<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">'    +'<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Not yet factored in</div>'    +'<div style="display:flex;flex-direction:column;gap:7px">'    +scoreInfoRow('&#127777;&#65039; Water temperature','not included','#f0f4f8','#5a6473')'    +scoreInfoRow('&#127769; Moon phase','not included','#f0f4f8','#5a6473')'    +scoreInfoRow('&#128200; Barometric pressure trend','not included','#f0f4f8','#5a6473')'    +scoreInfoRow('&#129416; Species-specific behavior','not included','#f0f4f8','#5a6473')'    +'</div></div>'    +'<div style="background:#fff3cd;border-left:3px solid #f0a500;border-radius:6px;padding:10px 12px;font-size:11px;color:#7a4f00;line-height:1.6">'    +'&#9888;&#65039; This score is a general guide — not a guarantee of fish activity. '    +'Local knowledge, recent reports, and your own experience will always be the best inputs. '    +'Verify conditions before heading out.'    +'</div>'    +'</div>';
+  html += '<button onclick="toggleScoreInfo()" style="background:none;border:none;font-size:11px;color:var(--text-muted);cursor:pointer;padding:2px 0 14px;display:flex;align-items:center;gap:4px;font-family:DM Sans,sans-serif;">';
+  html += '<span style="font-size:14px">&#9432;</span> How is this score calculated?';
+  html += '</button>';
+  html += '<div id="scoreInfoPanel" style="display:none;background:var(--off-white);border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:16px;">';
+  html += '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">What goes into the score</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">';
+  html += scoreInfoRow('&#127777; Air temperature', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#128168; Wind speed', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#127780; Weather condition', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#127754; Tide state (incoming vs outgoing)', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#128336; Time of day (dawn & dusk bonus)', 'included', '#e8f5ee', '#2d7d46');
+  html += '</div>';
+  html += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">';
+  html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Not yet factored in</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:7px">';
+  html += scoreInfoRow('&#127777; Water temperature', 'not included', '#f0f4f8', '#5a6473');
+  html += scoreInfoRow('&#127769; Moon phase', 'not included', '#f0f4f8', '#5a6473');
+  html += scoreInfoRow('&#128200; Barometric pressure trend', 'not included', '#f0f4f8', '#5a6473');
+  html += scoreInfoRow('&#129416; Species-specific behavior', 'not included', '#f0f4f8', '#5a6473');
+  html += '</div></div>';
+  html += '<div style="background:#fff3cd;border-left:3px solid #f0a500;border-radius:6px;padding:10px 12px;font-size:11px;color:#7a4f00;line-height:1.6">';
+  html += 'This score is a general guide, not a guarantee of fish activity. ';
+  html += 'Local knowledge, recent reports, and your own experience are the best inputs. ';
+  html += 'Always verify conditions before heading out.';
+  html += '</div>';
+  html += '</div>';
 
   if (dayForecasts.length > 0) {
 
