@@ -182,6 +182,20 @@ async function migrateLocalStorage(userId) {
 //     var user = e.detail.user; // null if signed out
 //   });
 (function initAuthListener() {
+  // Immediately try to restore session from storage so pages don't
+  // flash logged-out state while waiting for onAuthStateChange.
+  // getSession() reads from localStorage synchronously via the SDK.
+  db.auth.getSession().then(function(result) {
+    var session = result.data && result.data.session;
+    if (session && session.user && !window._fsUser) {
+      window._fsUser = session.user;
+      document.dispatchEvent(new CustomEvent('fsa:authchange', {
+        detail: { user: session.user, event: 'INITIAL_SESSION' }
+      }));
+    }
+  }).catch(function() {});
+
+  // Then keep listening for changes (sign in, sign out, token refresh)
   db.auth.onAuthStateChange(async function(event, session) {
     var user = session ? session.user : null;
     window._fsUser = user;
