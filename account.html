@@ -7,32 +7,67 @@
 <meta name="theme-color" content="#0a3d62">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--ocean:#0a3d62;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#fff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
-.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+
+.header{background:var(--ocean);padding:48px 20px 24px;position:relative;overflow:hidden}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1}
 .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
 .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff}
 .page-title span{color:var(--kelp-light)}
-.content{padding:16px}
+
+.content{padding:20px 16px}
 .section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:0 0 10px}
-.saved-card{background:var(--white);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;text-decoration:none;color:inherit}
-.saved-card:active{opacity:.8}
-.saved-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg)}
-.saved-placeholder{width:48px;height:48px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.saved-name{font-size:14px;font-weight:600}
-.saved-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
-.empty-state{background:var(--white);border-radius:var(--radius-sm);padding:32px 20px;text-align:center;color:var(--text-muted);margin-bottom:16px}
-.coming-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.coming-icon{font-size:28px;flex-shrink:0}
-.coming-title{font-size:13px;font-weight:600}
-.coming-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.card{background:var(--white);border-radius:var(--radius);padding:20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+
+/* ── Logged-out state ── */
+.signin-hero{text-align:center;padding:8px 0 16px}
+.signin-icon{font-size:48px;margin-bottom:12px}
+.signin-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:var(--text);margin-bottom:8px;line-height:1.3}
+.signin-sub{font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:20px}
+.btn-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:10px;transition:background .2s}
+.btn-google:active{background:#e0e8f0}
+.divider{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.divider-line{flex:1;height:1px;background:var(--border)}
+.divider-text{font-size:12px;color:var(--text-muted)}
+.email-row{display:flex;gap:8px;margin-bottom:8px}
+.email-row input{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;color:var(--text);background:#fff;transition:border-color .2s}
+.email-row input:focus{border-color:var(--ocean-mid)}
+.btn-send{padding:11px 16px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.email-msg{font-size:12px;color:#27ae60;margin-bottom:8px;line-height:1.5;display:none}
+.auth-error{font-size:12px;color:#c0392b;margin-bottom:8px;display:none}
+.feature-list{list-style:none;text-align:left;margin-bottom:4px}
+.feature-list li{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-muted);padding:6px 0;border-bottom:1px solid var(--bg)}
+.feature-list li:last-child{border-bottom:none}
+.feature-check{color:var(--kelp-light);font-size:16px;flex-shrink:0}
+
+/* ── Logged-in state ── */
+.profile-row{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--ocean);display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.profile-name{font-size:17px;font-weight:600;color:var(--text)}
+.profile-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-tile{background:var(--bg);border-radius:var(--radius-sm);padding:12px 8px;text-align:center}
+.stat-num{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:var(--ocean);line-height:1}
+.stat-lbl{font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.3}
+.btn-signout{width:100%;padding:11px;background:transparent;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;transition:all .2s}
+.btn-signout:active{background:var(--bg)}
+
+/* ── Coming soon tiles ── */
+.coming-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.coming-tile{background:var(--white);border-radius:var(--radius-sm);padding:14px;border:1.5px dashed var(--border);position:relative;opacity:.75}
+.coming-badge{position:absolute;top:8px;right:8px;background:#f0f4f8;color:var(--text-muted);font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:100px}
+.coming-icon{font-size:22px;margin-bottom:6px}
+.coming-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.coming-sub{font-size:11px;color:var(--text-muted);line-height:1.4}
+
+/* ── Bottom nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
 .nav-item.active{color:var(--ocean)}
@@ -46,32 +81,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <div class="header-content">
     <div class="app-eyebrow">Fish Smarter</div>
     <div class="page-title">My <span>Account</span></div>
-    <div id="adminTrigger" style="position:absolute;top:0;right:0;width:60px;height:60px;z-index:10;cursor:default;-webkit-tap-highlight-color:transparent"></div>
   </div>
 </div>
 
-<div class="content">
-  <!-- Saved species -->
-  <div class="section-label" style="margin-top:4px">⭐ Saved Species</div>
-  <div id="savedList"></div>
-
-  <!-- Coming soon -->
-  <div class="section-label" style="margin-top:20px">🚀 Coming Soon</div>
-  <div class="coming-card">
-    <span class="coming-icon">📔</span>
-    <div><div class="coming-title">Catch Log</div><div class="coming-sub">Track every trip and species caught</div></div>
-  </div>
-  <div class="coming-card">
-    <span class="coming-icon">📡</span>
-    <div><div class="coming-title">Live Catch Reports</div><div class="coming-sub">See what's biting near you right now</div></div>
-  </div>
-  <div class="coming-card">
-    <span class="coming-icon">🔔</span>
-    <div><div class="coming-title">Season Alerts</div><div class="coming-sub">Get notified when your target species opens</div></div>
-  </div>
-  <div class="coming-card">
-    <span class="coming-icon">👥</span>
-    <div><div class="coming-title">Community Feed</div><div class="coming-sub">Share catches and tips with other anglers</div></div>
+<div class="content" id="accountContent">
+  <!-- Rendered by JS based on auth state -->
+  <div style="padding:40px 0;text-align:center;color:var(--text-muted)">
+    <div class="spinner" style="width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
 </div>
 
@@ -79,74 +96,217 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
   <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
   <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
-  <a class="nav-item active" href="account.html" id="accountNavItem" onclick="handleAccountTap(event)"><span class="nav-icon">👤</span><span>Account</span></a>
+  <a class="nav-item active" href="account.html"><span class="nav-icon">👤</span><span>Account</span></a>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/auth-sheet.js"></script>
 <script>
-async function loadSaved() {
-  var ids = getSavedIds();
-  var list = document.getElementById('savedList');
-  if (!ids.length) {
-    list.innerHTML = '<div class="empty-state">'
-      + '<div style="font-size:40px;margin-bottom:10px">⭐</div>'
-      + '<div style="font-weight:600;margin-bottom:4px">No saved species yet</div>'
-      + '<div style="font-size:13px">Go to Species and tap ☆ Save on any species</div>'
-      + '</div>';
-    return;
-  }
-  try {
-    var res = await db.from('species').select('id,name,scientific_name,water_type,category,image_url').in('id', ids);
-    var species = res.data || [];
-    if (!species.length) {
-      list.innerHTML = '<div class="empty-state">No saved species found.</div>';
+
+// ── Render logged-out state ────────────────────────────────────
+function renderLoggedOut() {
+  document.getElementById('accountContent').innerHTML =
+    '<div class="card">' +
+      '<div class="signin-hero">' +
+        '<div class="signin-icon">🎣</div>' +
+        '<div class="signin-title">Save your fishing life</div>' +
+        '<div class="signin-sub">Create a free account to save species, bookmark spots, and unlock features as they launch</div>' +
+      '</div>' +
+
+      '<button class="btn-google" id="accBtnGoogle">' +
+        '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>' +
+        'Continue with Google' +
+      '</button>' +
+
+      '<div class="divider"><div class="divider-line"></div><span class="divider-text">or</span><div class="divider-line"></div></div>' +
+
+      '<div class="email-row">' +
+        '<input id="accEmailInput" type="email" placeholder="your@email.com">' +
+        '<button class="btn-send" id="accBtnEmail">Send link</button>' +
+      '</div>' +
+      '<div class="email-msg" id="accEmailMsg"></div>' +
+      '<div class="auth-error" id="accAuthError"></div>' +
+
+      '<ul class="feature-list">' +
+        '<li><span class="feature-check">✓</span> Save species across devices</li>' +
+        '<li><span class="feature-check">✓</span> Bookmark favourite fishing spots</li>' +
+        '<li><span class="feature-check">✓</span> Catch log — coming soon</li>' +
+        '<li><span class="feature-check">✓</span> Score alerts — coming soon</li>' +
+      '</ul>' +
+    '</div>';
+
+  document.getElementById('accBtnGoogle').onclick = async function() {
+    this.textContent = 'Opening Google…';
+    this.disabled = true;
+    var { error } = await signInWithGoogle();
+    if (error) {
+      document.getElementById('accAuthError').style.display = 'block';
+      document.getElementById('accAuthError').textContent = 'Could not open Google sign-in. Try email instead.';
+      this.innerHTML = 'Continue with Google';
+      this.disabled = false;
+    }
+  };
+
+  document.getElementById('accBtnEmail').onclick = async function() {
+    var email = (document.getElementById('accEmailInput').value || '').trim();
+    if (!email || !email.includes('@')) {
+      document.getElementById('accAuthError').style.display = 'block';
+      document.getElementById('accAuthError').textContent = 'Enter a valid email address.';
       return;
     }
-    list.innerHTML = species.map(function(sp) {
-      return '<a class="saved-card" href="index.html">'
-        + (sp.image_url
-          ? '<img class="saved-thumb" src="' + sp.image_url + '" alt="' + sp.name + '" onerror="this.style.display=\'none\'">'
-          : '<div class="saved-placeholder">' + getEmoji(sp.name) + '</div>')
-        + '<div style="flex:1;min-width:0">'
-        + '<div class="saved-name">' + sp.name + '</div>'
-        + '<div class="saved-sub">' + (sp.water_type || '') + (sp.category ? ' · ' + sp.category : '') + '</div>'
-        + '</div>'
-        + '<span style="color:var(--ocean-light);font-size:16px">›</span>'
-        + '</a>';
-    }).join('');
-  } catch(e) {
-    list.innerHTML = '<div class="empty-state">Could not load saved species.</div>';
+    this.textContent = 'Sending…';
+    this.disabled = true;
+    var { error } = await signInWithEmail(email);
+    if (error) {
+      document.getElementById('accAuthError').style.display = 'block';
+      document.getElementById('accAuthError').textContent = 'Could not send link. Try again.';
+      this.textContent = 'Send link';
+      this.disabled = false;
+      return;
+    }
+    document.getElementById('accEmailMsg').style.display = 'block';
+    document.getElementById('accEmailMsg').textContent =
+      'Magic link sent to ' + email + ' — check your inbox.';
+    this.textContent = 'Sent ✓';
+  };
+}
+
+// ── Render logged-in state ─────────────────────────────────────
+async function renderLoggedIn(user) {
+  // Get initials for avatar
+  var email = user.email || '';
+  var name  = (user.user_metadata && user.user_metadata.full_name) || email.split('@')[0] || 'Angler';
+  var initials = name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+  var memberSince = new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Count saved species (from localStorage — source of truth after migration)
+  var savedCount = 0;
+  try { savedCount = JSON.parse(localStorage.getItem('fishsmarter_saved') || '[]').length; } catch(e) {}
+
+  // Count saved spots
+  var spotsCount = 0;
+  try { spotsCount = JSON.parse(localStorage.getItem('fs_favspots') || '[]').length; } catch(e) {}
+
+  document.getElementById('accountContent').innerHTML =
+    // Profile card
+    '<div class="card">' +
+      '<div class="profile-row">' +
+        '<div class="avatar">' + initials + '</div>' +
+        '<div>' +
+          '<div class="profile-name">' + name + '</div>' +
+          '<div class="profile-sub">Member since ' + memberSince + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="stats-grid">' +
+        '<div class="stat-tile"><div class="stat-num">' + savedCount + '</div><div class="stat-lbl">saved species</div></div>' +
+        '<div class="stat-tile"><div class="stat-num">' + spotsCount + '</div><div class="stat-lbl">my spots</div></div>' +
+        '<div class="stat-tile"><div class="stat-num">0</div><div class="stat-lbl">catches logged</div></div>' +
+      '</div>' +
+
+      '<button class="btn-signout" id="signOutBtn">Sign out</button>' +
+    '</div>' +
+
+    // Coming soon
+    '<div class="section-label" style="margin-top:8px">Coming soon</div>' +
+    '<div class="coming-grid">' +
+      '<div class="coming-tile">' +
+        '<div class="coming-badge">Next up</div>' +
+        '<div class="coming-icon">📓</div>' +
+        '<div class="coming-title">Catch log</div>' +
+        '<div class="coming-sub">Log catches, track gear, review your season</div>' +
+      '</div>' +
+      '<div class="coming-tile">' +
+        '<div class="coming-badge">Soon</div>' +
+        '<div class="coming-icon">🔔</div>' +
+        '<div class="coming-title">Score alerts</div>' +
+        '<div class="coming-sub">Get notified when conditions look great at your spots</div>' +
+      '</div>' +
+      '<div class="coming-tile">' +
+        '<div class="coming-badge">Soon</div>' +
+        '<div class="coming-icon">📡</div>' +
+        '<div class="coming-title">Offline mode</div>' +
+        '<div class="coming-sub">Download species and regs for no-signal areas</div>' +
+      '</div>' +
+      '<div class="coming-tile">' +
+        '<div class="coming-badge">Later</div>' +
+        '<div class="coming-icon">🌐</div>' +
+        '<div class="coming-title">Community feed</div>' +
+        '<div class="coming-sub">See what other anglers are catching near you</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Settings
+    '<div class="section-label" style="margin-top:8px">Settings</div>' +
+    '<div class="card" style="padding:0">' +
+      '<div id="fishingTypeRow" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="changeFishingType()">' +
+        '<div>' +
+          '<div style="font-size:14px;font-weight:500">Default filter</div>' +
+          '<div style="font-size:12px;color:var(--text-muted)" id="fishingTypeSub">Loading…</div>' +
+        '</div>' +
+        '<span style="color:var(--ocean-light);font-size:18px">›</span>' +
+      '</div>' +
+      '<a href="https://fishsmarter.app/privacy" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;text-decoration:none">' +
+        '<div style="font-size:14px;font-weight:500;color:var(--text)">Privacy policy</div>' +
+        '<span style="color:var(--ocean-light);font-size:18px">›</span>' +
+      '</a>' +
+    '</div>';
+
+  // Set fishing type label
+  var ftLabel = { saltwater: '🌊 Saltwater', freshwater: '🏞 Freshwater', both: '🎣 Both', all: '🐟 All species' };
+  var ft = 'all';
+  try { ft = localStorage.getItem('fs_fishing_type') || 'all'; } catch(e) {}
+  var subEl = document.getElementById('fishingTypeSub');
+  if (subEl) subEl.textContent = ftLabel[ft] || 'All species';
+
+  document.getElementById('signOutBtn').onclick = async function() {
+    this.textContent = 'Signing out…';
+    this.disabled = true;
+    await signOut();
+    renderLoggedOut();
+  };
+}
+
+// ── Change fishing type ────────────────────────────────────────
+window.changeFishingType = function() {
+  if (typeof showAuthSheet === 'function') {
+    // Reuse the onboarding UI by showing the sheet and triggering the onboard pane
+    // Simpler: just cycle through options inline
   }
-}
+  var options = ['all', 'saltwater', 'freshwater', 'both'];
+  var ft = 'all';
+  try { ft = localStorage.getItem('fs_fishing_type') || 'all'; } catch(e) {}
+  var next = options[(options.indexOf(ft) + 1) % options.length];
+  try { localStorage.setItem('fs_fishing_type', next); } catch(e) {}
+  var ftLabel = { saltwater: '🌊 Saltwater', freshwater: '🏞 Freshwater', both: '🎣 Both', all: '🐟 All species' };
+  var subEl = document.getElementById('fishingTypeSub');
+  if (subEl) subEl.textContent = ftLabel[next] || 'All species';
+  var user = getUser();
+  if (user && next !== 'all') saveFishingType(user.id, next);
+};
 
-loadSaved();
+// ── Auth state listener ────────────────────────────────────────
+document.addEventListener('fsa:authchange', function(e) {
+  var user = e.detail.user;
+  if (user) renderLoggedIn(user);
+  else renderLoggedOut();
+});
 
-// Secret admin: tap top-right corner of header 5 times within 3 seconds
-var adminTaps = 0, adminTimer = null;
-function handleAccountTap(e) {}
-var adminEl = document.getElementById('adminTrigger');
-if (adminEl) {
-  adminEl.addEventListener('touchend', function(e) {
-    e.preventDefault();
-    adminTaps++;
-    clearTimeout(adminTimer);
-    adminTimer = setTimeout(function() { adminTaps = 0; }, 3000);
-    if (adminTaps >= 5) {
-      adminTaps = 0;
-      window.location.href = 'admin.html';
-    }
-  });
-  adminEl.addEventListener('click', function() {
-    adminTaps++;
-    clearTimeout(adminTimer);
-    adminTimer = setTimeout(function() { adminTaps = 0; }, 3000);
-    if (adminTaps >= 5) {
-      adminTaps = 0;
-      window.location.href = 'admin.html';
-    }
-  });
-}
+// ── Init: check session on load ────────────────────────────────
+// auth.js fires fsa:authchange on load via onAuthStateChange.
+// If it hasn't fired yet (race), check manually after a tick.
+setTimeout(function() {
+  var user = getUser();
+  if (user) renderLoggedIn(user);
+  else {
+    // Only render logged-out if content still shows spinner
+    var content = document.getElementById('accountContent');
+    if (content && content.querySelector('.spinner')) renderLoggedOut();
+  }
+}, 600);
+
 </script>
 </body>
 </html>
