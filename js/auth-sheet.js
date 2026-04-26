@@ -260,6 +260,10 @@
     var user = e.detail.user;
     var event = e.detail.event;
 
+    // INITIAL_SESSION = session restored from storage on page load.
+    // Don't show onboarding or complete pending actions — user is just navigating.
+    if (event === 'INITIAL_SESSION') return;
+
     if (user && event === 'SIGNED_IN') {
       // Complete any pending save action first
       var action = getPendingAction();
