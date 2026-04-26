@@ -60,6 +60,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── Detail drawer ── */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;z-index:201;transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+.drawer.open{transform:translateX(-50%) translateY(0)}
+.drawer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.drawer-body{padding:0 0 32px}
+.detail-photo{width:100%;max-height:360px;object-fit:cover;display:block}
+.detail-photo-placeholder{height:140px;background:var(--ocean);display:flex;align-items:center;justify-content:center;font-size:56px}
+.detail-info{padding:16px 20px}
+.detail-species{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:var(--text);margin-bottom:4px}
+.detail-date{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.detail-tile{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.detail-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.detail-tile-value{font-size:15px;font-weight:700;color:var(--ocean)}
+.detail-notes{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px}
+.detail-delete{width:100%;padding:12px;background:transparent;border:1.5px solid #fde8e8;border-radius:var(--radius-sm);color:var(--danger);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px}
+
 /* ── Bottom nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
@@ -102,6 +121,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
     <div class="spinner"></div>
     <div>Loading your catches…</div>
   </div>
+</div>
+
+<!-- Catch detail drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDetail()"></div>
+<div class="drawer" id="detailDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-body" id="detailBody"></div>
 </div>
 
 <!-- Bottom nav -->
@@ -189,9 +215,8 @@ function renderFeed(data) {
     var dateStr = date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     var emoji = getEmoji(c.species_name);
 
-    html += '<div class="catch-card">';
+    html += '<div class="catch-card" onclick="openDetail(' + c.id + ')" style="cursor:pointer">';
 
-    // Photo or placeholder
     if (c.photo_url) {
       html += '<img class="catch-photo" src="' + c.photo_url + '" alt="' + c.species_name + '" loading="lazy">';
     } else {
@@ -204,14 +229,12 @@ function renderFeed(data) {
     if (c.is_public) html += '<div class="catch-public">🌐 Shared</div>';
     html += '</div>';
 
-    // Chips
     var chips = [];
     if (c.method) chips.push(methodEmoji(c.method) + ' ' + capitalize(c.method));
     if (c.location_name) chips.push('📍 ' + c.location_name);
     if (c.bait_lure) chips.push('🪝 ' + c.bait_lure);
     if (chips.length) html += '<div class="catch-chips">' + chips.map(function(ch) { return '<span class="catch-chip">' + ch + '</span>'; }).join('') + '</div>';
 
-    // Measurements
     if (c.weight_lbs || c.length_inches) {
       html += '<div class="catch-measurements">';
       if (c.weight_lbs) html += '<span class="catch-measurement">⚖️ ' + c.weight_lbs + ' lbs</span>';
@@ -220,13 +243,78 @@ function renderFeed(data) {
     }
 
     if (c.notes) html += '<div class="catch-notes">' + c.notes + '</div>';
-
-    html += '<span class="catch-delete" onclick="deleteCatch(' + c.id + ')">Delete</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted);margin-top:6px;display:inline-block">Tap to view full details</span>';
     html += '</div></div>';
   });
 
   feed.innerHTML = html;
 }
+
+// ── Detail drawer ─────────────────────────────────────────────
+function openDetail(id) {
+  var c = catches.find(function(x) { return x.id === id; });
+  if (!c) return;
+
+  var date = new Date(c.caught_at);
+  var dateStr = date.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  var emoji = getEmoji(c.species_name);
+
+  var html = '';
+
+  // Full photo
+  if (c.photo_url) {
+    html += '<img class="detail-photo" src="' + c.photo_url + '" alt="' + c.species_name + '">';
+  } else {
+    html += '<div class="detail-photo-placeholder">' + emoji + '</div>';
+  }
+
+  html += '<div class="detail-info">';
+  html += '<div class="detail-species">' + c.species_name + '</div>';
+  html += '<div class="detail-date">' + dateStr + (c.is_public ? ' · 🌐 Shared' : '') + '</div>';
+
+  // Detail tiles
+  var tiles = [];
+  if (c.method)        tiles.push({ label: 'Method',   value: methodEmoji(c.method) + ' ' + capitalize(c.method) });
+  if (c.location_name) tiles.push({ label: 'Location', value: c.location_name });
+  if (c.weight_lbs)    tiles.push({ label: 'Weight',   value: c.weight_lbs + ' lbs' });
+  if (c.length_inches) tiles.push({ label: 'Length',   value: c.length_inches + '"' });
+  if (c.bait_lure)     tiles.push({ label: 'Bait / Lure', value: c.bait_lure });
+  if (c.fishing_score) tiles.push({ label: 'Score at catch', value: c.fishing_score });
+
+  if (tiles.length) {
+    html += '<div class="detail-grid">';
+    tiles.forEach(function(t) {
+      html += '<div class="detail-tile"><div class="detail-tile-label">' + t.label + '</div>'
+        + '<div class="detail-tile-value">' + t.value + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  if (c.notes) {
+    html += '<div class="detail-notes">' + c.notes + '</div>';
+  }
+
+  html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
+  html += '</div>';
+
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('detailDrawer').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('detailDrawer').classList.remove('open');
+}
+
+// Swipe down to close
+(function() {
+  var drawer = document.getElementById('detailDrawer');
+  if (!drawer) return;
+  var tsY = 0;
+  drawer.addEventListener('touchstart', function(e) { tsY = e.touches[0].clientY; }, { passive: true });
+  drawer.addEventListener('touchend', function(e) { if (e.changedTouches[0].clientY - tsY > 80) closeDetail(); }, { passive: true });
+})();
 
 // ── Delete ────────────────────────────────────────────────────
 async function deleteCatch(id) {
