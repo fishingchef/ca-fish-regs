@@ -455,10 +455,10 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     +'📍 '+locName+' · Tide station: '+station.name+'</div>';
 
   // Today score card
-  html += '<div class="score-card" style="background:'+scoreColor(todayScore)+'">'
-    +'<div class="score-num">'+todayScore+'</div>'
-    +'<div><div class="score-info-title">Today\'s Fishing Score</div>'
-    +'<div class="score-info-sub">'+scoreDesc(todayScore)
+  html += '<div class="score-card" id="scoreBanner" style="background:'+scoreColor(todayScore)+'">'
+    +'<div class="score-num" id="scoreNum">'+todayScore+'</div>'
+    +'<div><div class="score-info-title" id="scoreTitle">Today\'s Fishing Score</div>'
+    +'<div class="score-info-sub" id="scoreSub">'+scoreDesc(todayScore)
     +(curTemp?' · '+curTemp+'°F':'')
     +' · '+curWind+' · '+curFcast+'</div></div></div>';
 
@@ -491,6 +491,19 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   html += '</div>';
 
   if (dayForecasts.length > 0) {
+
+    // Build per-day score data for live score card updates on day switch
+    var daySummaries = dayForecasts.slice(0,7).map(function(p,i) {
+      var d = new Date(fcDateKeys[i]+'T12:00:00');
+      var t = tidesByDate[fcDateKeys[i]] || [];
+      var sc = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, t, d);
+      var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      var monNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var label = i===0 ? 'Today' : i===1 ? 'Tomorrow' : dayNames[d.getDay()] + ', ' + monNames[d.getMonth()] + ' ' + d.getDate();
+      var sub = scoreDesc(sc) + (p.temperature ? ' · ' + p.temperature + '°F' : '') + ' · ' + p.windSpeed + ' · ' + p.shortForecast;
+      return { score: sc, label: label, sub: sub, color: scoreColor(sc) };
+    });
+    window._daySummaries = daySummaries;
 
     // ── 7-day grid ────────────────────────────────────────────
     html += '<div class="section-label">7-Day Forecast</div>';
@@ -821,6 +834,18 @@ function switchDay(i) {
   document.querySelectorAll('.day-panel').forEach(function(p,idx) {
     p.classList.toggle('active', idx===i);
   });
+  // Update score card to reflect the selected day
+  var sums = window._daySummaries;
+  if (!sums || !sums[i]) return;
+  var d = sums[i];
+  var banner = document.getElementById('scoreBanner');
+  var numEl  = document.getElementById('scoreNum');
+  var titleEl = document.getElementById('scoreTitle');
+  var subEl  = document.getElementById('scoreSub');
+  if (banner)  banner.style.background = d.color;
+  if (numEl)   numEl.textContent = d.score;
+  if (titleEl) titleEl.textContent = d.label + "'s Fishing Score";
+  if (subEl)   subEl.textContent = d.sub;
 }
 
 // ── Mouse drag scroll for spots row ──────────────────────────
