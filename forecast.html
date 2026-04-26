@@ -352,8 +352,15 @@ function useGPS() {
   if (!navigator.geolocation) { showError('Location not supported on this device.'); return; }
   showLoading('Getting your location…');
   navigator.geolocation.getCurrentPosition(
-    function(pos) { loadSpot('My Location', pos.coords.latitude, pos.coords.longitude); },
-    function() { showError('Location access denied. Enable location in browser settings.'); }
+    function(pos) {
+      try { localStorage.setItem('fs_used_gps','1'); } catch(e){}
+      loadSpot('My Location', pos.coords.latitude, pos.coords.longitude);
+    },
+    function(err) {
+      if (err.code === 1) showError('Location access denied. Enable location in browser settings, or search a spot above.');
+      else showError('Could not get your location. Try searching a spot above.');
+    },
+    { timeout: 8000, maximumAge: 60000 }
   );
 }
 
@@ -794,7 +801,24 @@ function switchDay(i) {
 // ── Init ──────────────────────────────────────────────────────
 renderFavsBar();
 updateStarIcons();
-useGPS();
+// Only auto-request GPS if user has previously granted it
+// Avoids infinite spinner when permission is blocked or dismissed
+(function() {
+  var usedGps = false;
+  try { usedGps = localStorage.getItem('fs_used_gps') === '1'; } catch(e) {}
+  if (usedGps) {
+    useGPS();
+  } else {
+    // Show idle state — user can tap My Location or search manually
+    document.getElementById('content').innerHTML =
+      '<div class="loading-state" style="padding-top:48px">'
+      + '<div style="font-size:48px;margin-bottom:16px">🎣</div>'
+      + '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Where are you fishing?</div>'
+      + '<div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">Search a location or tap <strong>My Location</strong> above</div>'
+      + '<button onclick="useGPS()" style="background:var(--ocean);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer">📍 Use My Location</button>'
+      + '</div>';
+  }
+})();
 </script>
 
 <!-- Tide graph drawer -->
