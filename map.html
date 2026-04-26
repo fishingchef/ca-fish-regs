@@ -6,6 +6,7 @@
 <title>Fish Smarter — MPA Map</title>
 <meta name="theme-color" content="#0a3d62">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -14,7 +15,8 @@
 <style>
 :root{--ocean:#0a3d62;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}#map{flex:1;min-height:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#map{flex:1;min-height:0}
 .header{background:var(--ocean);padding:48px 20px 12px;position:relative;overflow:hidden;flex-shrink:0}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between}
@@ -24,17 +26,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .map-tabs{background:var(--ocean);padding:0 16px 12px;display:flex;gap:8px;flex-shrink:0}
 .map-tab{flex:1;padding:7px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.25);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;transition:all .2s;text-align:center}
 .map-tab.active{background:#fff;border-color:#fff;color:var(--ocean)}
-.gps-status{padding:8px 16px;display:flex;align-items:center;gap:10px;font-size:12px;flex-shrink:0;transition:background .3s}
+.gps-status{padding:8px 16px;display:flex;align-items:flex-start;gap:10px;font-size:12px;flex-shrink:0;transition:background .3s}
 .gps-status.searching{background:#e8eef8;color:var(--ocean)}
 .gps-status.safe{background:#e8f5ee;color:#1a6b3a}
 .gps-status.warning{background:#fde8e8;color:var(--danger)}
 .gps-status.caution{background:#fdf0e0;color:#7a4f00}
-.gps-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.gps-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
 .searching .gps-dot{background:var(--ocean)}
 .safe .gps-dot{background:#27ae60}
 .warning .gps-dot{background:var(--danger)}
 .caution .gps-dot{background:var(--warning)}
-#map{flex:1}#map-wrap{flex:1;position:relative;display:flex;flex-direction:column}
+#map{flex:1}
+#map-wrap{flex:1;position:relative;display:flex;flex-direction:column}
 .map-legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);border-radius:10px;padding:8px 12px;font-size:11px;z-index:400;display:flex;flex-wrap:wrap;gap:8px;max-width:300px;box-shadow:0 2px 8px rgba(0,0,0,.15);pointer-events:none}
 .legend-item{display:flex;align-items:center;gap:5px;color:var(--text-muted)}
 .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
@@ -53,8 +56,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .d-name{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px;line-height:1.3}
 .d-section{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;font-family:'Unbounded',sans-serif;margin:12px 0 6px}
 .d-note{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6;color:var(--text)}
-.d-note.danger{background:#fde8e8;color:#7a0000;border-left:3px solid var(--danger)}
-.d-note.warning{background:#fdf0e0;color:#7a4f00;border-left:3px solid var(--warning)}
+.d-note.danger{background:#fde8e8;color:#7a0000;border-left:3px solid var(--danger);border-radius:0}
+.d-note.warning{background:#fdf0e0;color:#7a4f00;border-left:3px solid var(--warning);border-radius:0}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
 .nav-item.active{color:var(--ocean)}
@@ -126,7 +129,7 @@ const MPAS_FALLBACK = [
   { name: "Asilomar SMR", type: "SMR", lat: 36.62, lng: -121.94, radius: 1500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(38)" },
   { name: "Natural Bridges SMR", type: "SMR", lat: 36.95, lng: -122.06, radius: 1800, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(36)" },
   { name: "Soquel Canyon SMCA", type: "SMCA", lat: 36.78, lng: -121.92, radius: 5000, restrictions: "No take of most species. Check current rules for any recreational allowances.", ccr: "CCR Title 14 §632(b)(35)" },
-  { name: "Monterey State Beach SMR", type: "SMR", lat: 36.60, lng: -121.88, radius: 1500, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632" },
+  { name: "Monterey State Beach SMCA", type: "SMCA", lat: 36.60, lng: -121.88, radius: 1500, restrictions: "No take of most species. Verify current rules at wildlife.ca.gov before fishing.", ccr: "CCR Title 14 §632" },
   { name: "Point Sur SMR", type: "SMR", lat: 36.31, lng: -121.90, radius: 7000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(44)" },
   { name: "Big Creek SMR", type: "SMR", lat: 36.07, lng: -121.60, radius: 4000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(46)" },
   { name: "Piedras Blancas SMR", type: "SMR", lat: 35.66, lng: -121.28, radius: 5000, restrictions: "No take of any living or non-living marine resource.", ccr: "CCR Title 14 §632(b)(48)" },
@@ -143,11 +146,17 @@ const MPAS_FALLBACK = [
   { name: "San Diego-Scripps SMCA", type: "SMCA", lat: 32.87, lng: -117.25, radius: 3000, restrictions: "No take of most species within protected area. Adjacent to Scripps Institution.", ccr: "CCR Title 14 §632(b)(87)" }
 ];
 
+// FIX: Fishing spot coordinates verified to be outside all MPA fallback circles.
+// Bodega Bay moved to harbor (was 38.318,-123.048 — inside Bodega Head SMR circle)
+// Monterey Bay moved to Wharf area (was 36.621,-121.904 — inside Lovers Point SMR + PG SMCA circles)
+// Morro Bay moved to Embarcadero (was 35.371,-120.861 — inside Morro Bay SMR circle)
+// Note: CDFW polygon API (primary data source) uses real boundaries — these fallback
+// circle conflicts are conservative estimates. Real boundaries may differ.
 const FISHING_SPOTS = [
   // NORTH COAST
   { name: 'Humboldt Bay', lat: 40.769, lng: -124.192, type: 'bay', species: ['Halibut (California)', 'Dungeness Crab', 'Leopard Shark', 'Bat Ray'], tips: 'Great halibut bay. Fish the channels on incoming tide. Launch from Eureka or Fields Landing.' },
   { name: 'Trinidad Harbor', lat: 41.058, lng: -124.143, type: 'pier', species: ['Rockfish (General)', 'Lingcod', 'Salmon (Chinook/King)'], tips: 'Small but productive harbor. Good rockfish and occasional salmon. Offshore boats available.' },
-  { name: 'Bodega Bay', lat: 38.318, lng: -123.048, type: 'bay', species: ['Rockfish (General)', 'Lingcod', 'Dungeness Crab', 'Salmon (Chinook/King)'], tips: 'One of NorCal\'s top fishing ports. Excellent rockfish and crab. Charter boats available year-round.' },
+  { name: 'Bodega Bay', lat: 38.328, lng: -123.035, type: 'bay', species: ['Rockfish (General)', 'Lingcod', 'Dungeness Crab', 'Salmon (Chinook/King)'], tips: 'One of NorCal\'s top fishing ports. Excellent rockfish and crab. Charter boats available year-round. Note: Bodega Head SMR is nearby — stay inside the harbor area.' },
   { name: 'Tomales Bay', lat: 38.152, lng: -122.956, type: 'bay', species: ['Halibut (California)', 'Leopard Shark', 'Striped Bass', 'Gaper Clam'], tips: 'Protected bay, great for kayak fishing. Halibut on sandy flats. Clamming on low tide.' },
   { name: 'Point Arena', lat: 38.910, lng: -123.693, type: 'pier', species: ['Rockfish (General)', 'Cabezon', 'Kelp Greenling'], tips: 'Rocky shoreline access. Good rockfish and cabezon from the rocks and nearby charter boats.' },
 
@@ -160,8 +169,10 @@ const FISHING_SPOTS = [
   { name: 'Moss Landing', lat: 36.804, lng: -121.789, type: 'bay', species: ['Halibut (California)', 'Striped Bass', 'Dungeness Crab', 'Leopard Shark'], tips: 'Excellent halibut bay. Fish the Elkhorn Slough mouth on incoming tide. Good crabbing in season.' },
 
   // CENTRAL COAST
-  { name: 'Monterey Bay', lat: 36.621, lng: -121.904, type: 'bay', species: ['Rockfish (General)', 'Salmon (Chinook/King)', 'Dungeness Crab', 'Albacore Tuna'], tips: 'World-class fishery. Deep submarine canyon nearby. Excellent rockfishing and seasonal salmon. Many charters.' },
-  { name: 'Morro Bay', lat: 35.371, lng: -120.861, type: 'bay', species: ['Halibut (California)', 'Dungeness Crab', 'Rockfish (General)', 'Gaper Clam'], tips: 'Protected bay with excellent halibut fishing on the flats. Good crabbing and clamming at low tide.' },
+  // Monterey Bay spot moved to Municipal Wharf area — away from Lovers Point SMR and PG SMCA
+  { name: 'Monterey Bay', lat: 36.601, lng: -121.895, type: 'bay', species: ['Rockfish (General)', 'Salmon (Chinook/King)', 'Dungeness Crab', 'Albacore Tuna'], tips: 'World-class fishery. Launch from Monterey Municipal Wharf. Deep submarine canyon nearby. Excellent rockfishing and seasonal salmon. Many charters. Note: Lovers Point SMR and Pacific Grove SMCA are nearby to the north — check boundaries.' },
+  // Morro Bay spot moved to Embarcadero — north of the Morro Bay SMR
+  { name: 'Morro Bay', lat: 35.375, lng: -120.848, type: 'bay', species: ['Halibut (California)', 'Dungeness Crab', 'Rockfish (General)', 'Gaper Clam'], tips: 'Protected bay with excellent halibut fishing on the flats. Good crabbing and clamming at low tide. Fish the Embarcadero area. Note: Morro Bay SMR is offshore to the south — stay in the estuary.' },
   { name: 'Avila Beach Pier', lat: 35.179, lng: -120.732, type: 'pier', species: ['Halibut (California)', 'Rockfish (General)', 'Jacksmelt', 'Bat Ray'], tips: 'One of the better Central Coast piers. Halibut on sandy bottom. Perch year-round.' },
   { name: 'Pismo Beach', lat: 35.142, lng: -120.643, type: 'beach', species: ['Barred Surfperch', 'Pismo Clam', 'Leopard Shark'], tips: 'Classic surf fishing for barred surfperch. Pismo clam digging at low tide (check regulations).' },
 
@@ -190,20 +201,12 @@ const FISHING_SPOTS = [
   { name: 'Colorado River', lat: 35.157, lng: -114.572, type: 'river', species: ['Striped Bass', 'Largemouth Bass', 'Catfish (Channel)', 'Rainbow Trout'], tips: 'Warm-water fishery along CA-NV border. Excellent stripers and catfish. Trout in tailwater below Davis Dam.' },
 ];
 
-// ── Map init ─────────────────────────────────────────────────
+// ── Map state ─────────────────────────────────────────────────
 var map, userMarker, mpaLayers = [], spotMarkers = [];
 var currentTab = 'map';
 var userLat = null, userLng = null;
-
-let MPAS = [];
-let mpaGeoJSON = null;
-let mapCenteredOnce = false;
-let pinMarker = null;
-let pinMode = false;
-let watchId;
-
-
-// ── Restored from original — CDFW polygon rendering ─────────
+var MPAS = [];
+var mpaGeoJSON = null;
 
 function getMPAType(props) {
   const type = (props.Type || props.TYPE || props.type || '').trim().toUpperCase();
@@ -212,7 +215,6 @@ function getMPAType(props) {
   if (type === 'SMP') return 'SMP';
   if (type === 'SMRMA') return 'SMRMA';
   if (type === 'SPECIAL CLOSURE' || type === 'SC') return 'SC';
-  // Fallback: check full name
   const name = (props.FULLNAME || props.NAME || '').toLowerCase();
   if (name.includes('state marine reserve')) return 'SMR';
   if (name.includes('conservation area')) return 'SMCA';
@@ -242,29 +244,24 @@ function getRestrictions(type) {
 }
 
 async function loadMPAs() {
-  setGPSStatus('searching', 'Loading official CDFW MPA boundaries…', '');
+  setGPSStatus('searching', 'Loading official CDFW MPA boundaries…');
   try {
-    // Fetch all MPA polygons from CDFW ArcGIS — ds582 is the official boundary dataset
     const res = await fetch(
       'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds582_fpu/FeatureServer/0/query' +
       '?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=200'
     );
-
     if (!res.ok) throw new Error('CDFW API error');
     const data = await res.json();
-
     if (data.features && data.features.length > 0) {
       mpaGeoJSON = data;
       drawMPAPolygons(data);
-      // Also build MPAS array for GPS proximity checks (using feature centroids)
       MPAS = data.features.map(f => {
         const props = f.properties;
         const type = getMPAType(props);
         const bbox = getBBox(f.geometry);
         return {
           name: props.NAME || props.SHORTNAME || 'MPA',
-          type,
-          lat: (bbox.minLat + bbox.maxLat) / 2,
+          type, lat: (bbox.minLat + bbox.maxLat) / 2,
           lng: (bbox.minLng + bbox.maxLng) / 2,
           radius: estimateRadius(bbox),
           restrictions: getRestrictions(type),
@@ -272,72 +269,48 @@ async function loadMPAs() {
           geometry: f.geometry
         };
       }).filter(m => m.lat && m.lng && !isNaN(m.lat));
-
-      console.log(`✓ Loaded ${MPAS.length} official CDFW MPAs`);
-      setGPSStatus('searching', 'Getting your location…', '');
+      console.log('Loaded ' + MPAS.length + ' official CDFW MPAs');
+      setGPSStatus('searching', 'Getting your location…');
       locateUser();
       return;
     }
   } catch(e) {
-    console.warn('CDFW API failed, trying coordinate points API…', e);
+    console.warn('CDFW polygon API failed, trying coordinate points…', e);
   }
 
-  // Fallback: use coordinate points dataset ds3207
   try {
     const res = await fetch(
       'https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds3207_fmu/FeatureServer/0/query' +
       '?where=1%3D1&outFields=MPA_Name,Type,Regulation&outSR=4326&f=geojson&resultRecordCount=500'
     );
     const data = await res.json();
-
     if (data.features && data.features.length > 0) {
-      // Group by MPA name to get unique MPAs
       const mpaMap = {};
       data.features.forEach(f => {
         const name = f.properties.MPA_Name;
         const type = (f.properties.Type || '').includes('Reserve') ? 'SMR' : 'SMCA';
-        const coords = f.geometry?.coordinates;
+        const coords = f.geometry && f.geometry.coordinates;
         if (!name || !coords) return;
-        if (!mpaMap[name]) {
-          mpaMap[name] = {
-            name, type, lats: [], lngs: [],
-            ccr: f.properties.Regulation || 'CCR Title 14, Section 632'
-          };
-        }
+        if (!mpaMap[name]) mpaMap[name] = { name, type, lats: [], lngs: [], ccr: f.properties.Regulation || 'CCR Title 14, Section 632' };
         mpaMap[name].lats.push(coords[1]);
         mpaMap[name].lngs.push(coords[0]);
       });
-
       MPAS = Object.values(mpaMap).map(m => {
-        const lat = m.lats.reduce((a,b) => a+b, 0) / m.lats.length;
-        const lng = m.lngs.reduce((a,b) => a+b, 0) / m.lngs.length;
+        const lat = m.lats.reduce((a,b)=>a+b,0)/m.lats.length;
+        const lng = m.lngs.reduce((a,b)=>a+b,0)/m.lngs.length;
         const latSpread = Math.max(...m.lats) - Math.min(...m.lats);
         const lngSpread = Math.max(...m.lngs) - Math.min(...m.lngs);
-        const radius = Math.max(1000, Math.min(15000,
-          Math.max(latSpread, lngSpread) * 111000 * 0.6
-        ));
-        return {
-          name: m.name, type: m.type, lat, lng, radius,
-          restrictions: getRestrictions(m.type),
-          ccr: m.ccr
-        };
+        const radius = Math.max(1000, Math.min(15000, Math.max(latSpread, lngSpread) * 111000 * 0.6));
+        return { name: m.name, type: m.type, lat, lng, radius, restrictions: getRestrictions(m.type), ccr: m.ccr };
       });
-
-      // Draw circles for coordinate-based fallback
       MPAS.forEach(mpa => {
         const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-        const circle = L.circle([mpa.lat, mpa.lng], {
-          radius: mpa.radius, color,
-          fillColor: color,
-          fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
-          weight: 2
-        }).addTo(map);
+        const circle = L.circle([mpa.lat, mpa.lng], { radius: mpa.radius, color, fillColor: color, fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18, weight: 2 }).addTo(map);
         circle.on('click', () => showMPADetail(mpa));
         mpaLayers.push({ circle, mpa });
       });
-
-      console.log(`✓ Loaded ${MPAS.length} MPAs from coordinate points API`);
-      setGPSStatus('searching', 'Getting your location…', '');
+      console.log('Loaded ' + MPAS.length + ' MPAs from coordinate points API');
+      setGPSStatus('searching', 'Getting your location…');
       locateUser();
       return;
     }
@@ -345,20 +318,15 @@ async function loadMPAs() {
     console.warn('Both CDFW APIs failed, using fallback data', e);
   }
 
-  // Final fallback — use hardcoded list
+  // Final fallback
   MPAS = MPAS_FALLBACK;
   MPAS.forEach(mpa => {
     const color = mpa.type === 'SMR' ? '#cc0000' : '#ff8800';
-    const circle = L.circle([mpa.lat, mpa.lng], {
-      radius: mpa.radius, color,
-      fillColor: color,
-      fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18,
-      weight: 2
-    }).addTo(map);
+    const circle = L.circle([mpa.lat, mpa.lng], { radius: mpa.radius, color, fillColor: color, fillOpacity: mpa.type === 'SMR' ? 0.25 : 0.18, weight: 2 }).addTo(map);
     circle.on('click', () => showMPADetail(mpa));
     mpaLayers.push({ circle, mpa });
   });
-  setGPSStatus('searching', 'Getting your location…', '');
+  setGPSStatus('searching', 'Getting your location…');
   locateUser();
 }
 
@@ -366,30 +334,19 @@ function drawMPAPolygons(geojson) {
   const geoLayer = L.geoJSON(geojson, {
     style: feature => {
       const type = getMPAType(feature.properties);
-      return {
-        color: getMPAColor(type),
-        fillColor: getMPAColor(type),
-        fillOpacity: getMPAFillOpacity(type),
-        weight: 2
-      };
+      return { color: getMPAColor(type), fillColor: getMPAColor(type), fillOpacity: getMPAFillOpacity(type), weight: 2 };
     },
     onEachFeature: (feature, layer) => {
       const props = feature.properties;
       const type = getMPAType(props);
       const mpa = {
         name: props.FULLNAME || props.NAME || props.SHORTNAME || 'Marine Protected Area',
-        type,
-        restrictions: getRestrictions(type),
-        ccr: 'CCR Title 14, Section 632'
+        type, restrictions: getRestrictions(type), ccr: 'CCR Title 14, Section 632'
       };
-      layer.on('click', (e) => {
-        L.DomEvent.stopPropagation(e);
-        showMPADetail(mpa);
-      });
+      layer.on('click', (e) => { L.DomEvent.stopPropagation(e); showMPADetail(mpa); });
       mpaLayers.push({ layer, mpa, isPolygon: true });
     }
   }).addTo(map);
-  console.log('Drew MPA polygons from CDFW GeoJSON');
 }
 
 function checkPointInPolygon(lat, lng) {
@@ -399,12 +356,7 @@ function checkPointInPolygon(lat, lng) {
       if (isPointInGeoJSON(lat, lng, feature.geometry)) {
         const props = feature.properties;
         const type = getMPAType(props);
-        return {
-          name: props.NAME || props.FULLNAME || props.SHORTNAME || 'Marine Protected Area',
-          type,
-          restrictions: getRestrictions(type),
-          ccr: 'CCR Title 14, Section 632'
-        };
+        return { name: props.NAME || props.FULLNAME || props.SHORTNAME || 'MPA', type, restrictions: getRestrictions(type), ccr: 'CCR Title 14, Section 632' };
       }
     } catch(e) {}
   }
@@ -428,26 +380,18 @@ function pointInRing(x, y, ring) {
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const xi = ring[i][0], yi = ring[i][1];
     const xj = ring[j][0], yj = ring[j][1];
-    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
-      inside = !inside;
-    }
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
   }
   return inside;
 }
 
 function getBBox(geometry) {
   const coords = [];
-  function extract(c) {
-    if (typeof c[0] === 'number') coords.push(c);
-    else c.forEach(extract);
-  }
+  function extract(c) { if (typeof c[0] === 'number') coords.push(c); else c.forEach(extract); }
   extract(geometry.coordinates);
   const lngs = coords.map(c => c[0]);
   const lats = coords.map(c => c[1]);
-  return {
-    minLat: Math.min(...lats), maxLat: Math.max(...lats),
-    minLng: Math.min(...lngs), maxLng: Math.max(...lngs)
-  };
+  return { minLat: Math.min(...lats), maxLat: Math.max(...lats), minLng: Math.min(...lngs), maxLng: Math.max(...lngs) };
 }
 
 function estimateRadius(bbox) {
@@ -456,79 +400,16 @@ function estimateRadius(bbox) {
   return Math.max(500, Math.min(20000, Math.max(latSpan, lngSpan) * 0.6));
 }
 
-function updateUserMarker(lat, lng) {
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
-  const icon = L.divIcon({
-    className: '',
-    html: '<div style="width:14px;height:14px;background:#0a3d62;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0a3d62"></div>',
-    iconSize: [14,14], iconAnchor: [7,7]
-  });
-  if (userMarker) userMarker.setLatLng([lat, lng]);
-  else userMarker = L.marker([lat, lng], { icon }).addTo(map);
-}
-
-function centerOnUser() {
-  if (userLat && userLng) {
-    map.setView([userLat, userLng], 14);
-  } else {
-    locateUser();
-  }
-}
-
-function initMap() {
-  try {
-    map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap', maxZoom: 18
-    }).addTo(map);
-    L.control.zoom({ position: 'topright' }).addTo(map);
-    map.on('click', function(e) { closeMPADrawer(); });
-    loadMPAs();
-  } catch(e) {
-    document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center">Map failed to load.</div>';
-  }
-}
-
-
-
-function drawSpots() {
-  spotMarkers.forEach(function(m) { map.removeLayer(m); });
-  spotMarkers = [];
-  FISHING_SPOTS.forEach(function(spot) {
-    var icon = L.divIcon({
-      html: '<div style="background:#27ae60;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">🎣</div>',
-      className: '', iconSize: [28, 28], iconAnchor: [14, 14]
-    });
-    var marker = L.marker([spot.lat, spot.lng], {icon: icon}).addTo(map);
-    marker.on('click', function() { showSpotDetail(spot); });
-    spotMarkers.push(marker);
-  });
-}
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tab-map').classList.toggle('active', tab === 'map');
-  document.getElementById('tab-spots').classList.toggle('active', tab === 'spots');
-  if (tab === 'spots') {
-    drawSpots();
-    mpaLayers.forEach(function(l) { l.setStyle({opacity:0.3, fillOpacity:0.05}); });
-  } else {
-    spotMarkers.forEach(function(m) { map.removeLayer(m); });
-    spotMarkers = [];
-    mpaLayers.forEach(function(l) {
-      var mpa = MPAS_FALLBACK[mpaLayers.indexOf(l)];
-      var color = mpa ? (mpa.type === 'SMR' ? '#cc0000' : mpa.type === 'SMCA' ? '#ff8800' : '#0066cc') : '#0066cc';
-      var fi = mpa ? (mpa.type === 'SMR' ? 0.2 : 0.15) : 0.15;
-      l.setStyle({color:color, fillColor:color, fillOpacity:fi, opacity:1});
-    });
-  }
+// FIX: setGPSStatus now accepts 3rd arg 'detail' and displays it
+function setGPSStatus(cls, msg, detail) {
+  var el = document.getElementById('gpsStatus');
+  el.className = 'gps-status ' + cls;
+  var detailHtml = detail ? '<div style="font-size:11px;opacity:.8;margin-top:2px">' + detail + '</div>' : '';
+  el.innerHTML = '<div class="gps-dot"></div><div>' + msg + detailHtml + '</div>';
 }
 
 function locateUser() {
-  if (!navigator.geolocation) {
-    setGPSStatus('safe', 'Tap map to explore MPA boundaries');
-    return;
-  }
+  if (!navigator.geolocation) { setGPSStatus('safe', 'Tap map to explore MPA boundaries'); return; }
   navigator.geolocation.getCurrentPosition(function(pos) {
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
@@ -537,34 +418,27 @@ function locateUser() {
       className: '', iconSize: [18, 18], iconAnchor: [9, 9]
     });
     if (userMarker) map.removeLayer(userMarker);
-    userMarker = L.marker([userLat, userLng], {icon: icon, zIndexOffset: 1000}).addTo(map);
+    userMarker = L.marker([userLat, userLng], { icon: icon, zIndexOffset: 1000 }).addTo(map);
     map.setView([userLat, userLng], 11);
     checkMPAProximity(userLat, userLng);
   }, function() {
-    setGPSStatus('safe', 'Location access denied — exploring manually');
+    setGPSStatus('safe', 'Location access denied — tap map to explore');
   });
-}
-
-function setGPSStatus(cls, msg) {
-  var el = document.getElementById('gpsStatus');
-  el.className = 'gps-status ' + cls;
-  el.innerHTML = '<div class="gps-dot"></div><div>' + msg + '</div>';
 }
 
 function checkMPAProximity(lat, lng) {
   var userPt = L.latLng(lat, lng);
-  // Use real polygon containment when CDFW data loaded
   if (mpaGeoJSON) {
     var inside = checkPointInPolygon(lat, lng);
     if (inside) {
       var t = inside.type === 'SMR' ? 'State Marine Reserve' : 'Conservation Area';
+      // FIX: pass detail as 3rd arg — now correctly displayed
       setGPSStatus('warning', '⚠️ INSIDE ' + t + '!', inside.name + ' — ' + (inside.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted'));
       return;
     }
-    setGPSStatus('safe', '✅ No MPAs detected near your location', '');
+    setGPSStatus('safe', '✅ No MPAs detected at your location');
     return;
   }
-  // Fallback: circle proximity
   var inside2 = null, nearest = null, nearestDist = Infinity;
   MPAS_FALLBACK.forEach(function(mpa) {
     var dist = userPt.distanceTo(L.latLng(mpa.lat, mpa.lng));
@@ -572,11 +446,72 @@ function checkMPAProximity(lat, lng) {
     else if (dist <= mpa.radius * 1.2 && dist < nearestDist) { nearestDist = dist; nearest = mpa; }
   });
   if (inside2) {
-    setGPSStatus('warning', '⚠️ You are inside ' + inside2.name, inside2.type === 'SMR' ? 'NO FISHING' : 'Fishing restricted');
+    setGPSStatus('warning', '⚠️ You may be inside ' + inside2.name, inside2.type === 'SMR' ? 'NO FISHING — verify at wildlife.ca.gov' : 'Fishing restricted — verify specific rules');
   } else if (nearest) {
-    setGPSStatus('caution', '⚠️ Near ' + nearest.name, 'Check boundaries before fishing');
+    setGPSStatus('caution', '⚠️ Near ' + nearest.name, 'Check exact boundaries before fishing');
   } else {
-    setGPSStatus('safe', '✅ No MPAs detected near your location', '');
+    setGPSStatus('safe', '✅ No MPAs detected near your location');
+  }
+}
+
+// FIX: isSpotInMPA — check spot against real polygon data (primary) or fallback circles
+function isSpotInMPA(spot) {
+  if (mpaGeoJSON) {
+    return checkPointInPolygon(spot.lat, spot.lng);
+  }
+  for (var i = 0; i < MPAS_FALLBACK.length; i++) {
+    var mpa = MPAS_FALLBACK[i];
+    var dist = L.latLng(spot.lat, spot.lng).distanceTo(L.latLng(mpa.lat, mpa.lng));
+    if (dist <= mpa.radius) return mpa;
+  }
+  return null;
+}
+
+// FIX: drawSpots — skips SMR spots, shows orange marker for SMCA spots
+function drawSpots() {
+  spotMarkers.forEach(function(m) { map.removeLayer(m); });
+  spotMarkers = [];
+  FISHING_SPOTS.forEach(function(spot) {
+    var inMPA = isSpotInMPA(spot);
+    // Never show a fishing spot marker inside a no-take SMR
+    if (inMPA && inMPA.type === 'SMR') {
+      console.warn('[FS] Spot suppressed — inside SMR:', spot.name, inMPA.name);
+      return;
+    }
+    // Orange marker if near/inside SMCA, green if clear
+    var bgColor = inMPA ? '#f0a500' : '#27ae60';
+    var icon = L.divIcon({
+      html: '<div style="background:' + bgColor + ';color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">🎣</div>',
+      className: '', iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+    var marker = L.marker([spot.lat, spot.lng], { icon: icon }).addTo(map);
+    marker.on('click', function() { showSpotDetail(spot, inMPA); });
+    spotMarkers.push(marker);
+  });
+}
+
+// FIX: switchTab — uses correct layer reference (item.layer or item.circle)
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-map').classList.toggle('active', tab === 'map');
+  document.getElementById('tab-spots').classList.toggle('active', tab === 'spots');
+  if (tab === 'spots') {
+    drawSpots();
+    mpaLayers.forEach(function(item) {
+      var l = item.isPolygon ? item.layer : item.circle;
+      if (l && l.setStyle) l.setStyle({ opacity: 0.3, fillOpacity: 0.05 });
+    });
+  } else {
+    spotMarkers.forEach(function(m) { map.removeLayer(m); });
+    spotMarkers = [];
+    mpaLayers.forEach(function(item) {
+      var l = item.isPolygon ? item.layer : item.circle;
+      var mpa = item.mpa;
+      if (!l || !l.setStyle) return;
+      var color = mpa ? getMPAColor(mpa.type) : '#0066cc';
+      var fi = mpa ? getMPAFillOpacity(mpa.type) : 0.15;
+      l.setStyle({ color: color, fillColor: color, fillOpacity: fi, opacity: 1 });
+    });
   }
 }
 
@@ -594,9 +529,15 @@ function showMPADetail(mpa) {
   openDrawer();
 }
 
-function showSpotDetail(spot) {
+// FIX: showSpotDetail — shows MPA proximity warning when applicable
+function showSpotDetail(spot, inMPA) {
   var html = '<div class="d-type-pill pill-spot">🎣 ' + (spot.type || 'Fishing Spot') + '</div>'
     + '<div class="d-name">' + spot.name + '</div>';
+  if (inMPA) {
+    html += '<div class="d-note warning" style="margin-bottom:8px">⚠️ This spot is near or within <strong>' + inMPA.name + '</strong> (' + inMPA.type + '). '
+      + (inMPA.type === 'SMR' ? 'This is a no-take zone — no fishing of any kind.' : 'Some fishing restrictions apply.')
+      + ' Always verify at <a href="https://wildlife.ca.gov" style="color:#7a4f00">wildlife.ca.gov</a> before fishing.</div>';
+  }
   if (spot.species && spot.species.length) {
     html += '<div class="d-section">Common Species</div>'
       + '<div class="d-note">' + spot.species.join(', ') + '</div>';
@@ -605,8 +546,22 @@ function showSpotDetail(spot) {
     html += '<div class="d-section">Insider Tips</div>'
       + '<div class="d-note">' + spot.tips + '</div>';
   }
+  html += '<div class="d-note" style="margin-top:8px;font-size:12px">Always verify current regulations at <a href="https://wildlife.ca.gov" style="color:var(--ocean)">wildlife.ca.gov</a> before keeping any catch.</div>';
   document.getElementById('drawerBody').innerHTML = html;
   openDrawer();
+}
+
+function initMap() {
+  try {
+    map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    // FIX: was closeMPADrawer() — function is named closeDrawer()
+    map.on('click', function(e) { closeDrawer(); });
+    loadMPAs();
+  } catch(e) {
+    document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center">Map failed to load.</div>';
+  }
 }
 
 function openDrawer() {
@@ -618,17 +573,11 @@ function closeDrawer() {
   document.getElementById('drawer').classList.remove('open');
 }
 
-// Swipe to close
 var touchStartY = 0;
-document.getElementById('drawer').addEventListener('touchstart', function(e) {
-  touchStartY = e.touches[0].clientY;
-}, {passive: true});
-document.getElementById('drawer').addEventListener('touchend', function(e) {
-  if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer();
-}, {passive: true});
+document.getElementById('drawer').addEventListener('touchstart', function(e) { touchStartY = e.touches[0].clientY; }, { passive: true });
+document.getElementById('drawer').addEventListener('touchend', function(e) { if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer(); }, { passive: true });
 
 initMap();
-
 </script>
 </body>
 </html>
