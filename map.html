@@ -70,8 +70,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <div class="header-wave"></div>
   <div class="header-content">
     <div class="header-title">MPA <span>Map</span></div>
-    <button class="btn-back" onclick="window.location.href='index.html'">← Species</button>
-  </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn-back" onclick="window.location.href='index.html'">← Species</button>
+      <a href="account.html" id="profileAvatar" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none;flex-shrink:0">👤</a>
+    </div>
 </div>
 
 <div class="map-tabs">
@@ -105,7 +107,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
   <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
   <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
-  <a class="nav-item" href="account.html"><span class="nav-icon">👤</span><span>Account</span></a>
+  <a class="nav-item" href="catchlog.html"><span class="nav-icon">📓</span><span>Catches</span></a>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -581,5 +583,28 @@ initMap();
 </script>
 <script src="js/auth.js"></script>
 <script src="js/auth-sheet.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/auth-sheet.js"></script>
+<script>
+document.addEventListener('fsa:authchange', function(e) {
+  var avatar = document.getElementById('profileAvatar');
+  if (!avatar) return;
+  var user = e.detail.user;
+  if (user) {
+    var name = (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0] || '';
+    var initials = name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2) || '👤';
+    avatar.textContent = initials;
+    avatar.style.background = 'rgba(82,183,136,.4)';
+    avatar.style.fontSize = '12px';
+    avatar.style.fontWeight = '700';
+    avatar.style.color = '#fff';
+    avatar.style.fontFamily = 'Unbounded,sans-serif';
+  } else {
+    avatar.textContent = '👤';
+    avatar.style.background = 'rgba(255,255,255,.2)';
+    avatar.style.fontSize = '16px';
+  }
+});
+</script>
 </body>
 </html>
