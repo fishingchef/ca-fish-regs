@@ -175,22 +175,29 @@ function renderLoggedOut() {
 
 // ── Render logged-in state ─────────────────────────────────────
 async function renderLoggedIn(user) {
-  // Get initials for avatar
   var email = user.email || '';
   var name  = (user.user_metadata && user.user_metadata.full_name) || email.split('@')[0] || 'Angler';
   var initials = name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
   var memberSince = new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Count saved species (from localStorage — source of truth after migration)
+  // Count saved species from localStorage
   var savedCount = 0;
   try { savedCount = JSON.parse(localStorage.getItem('fishsmarter_saved') || '[]').length; } catch(e) {}
 
-  // Count saved spots
+  // Count saved spots from localStorage
   var spotsCount = 0;
   try { spotsCount = JSON.parse(localStorage.getItem('fs_favspots') || '[]').length; } catch(e) {}
 
+  // Count catches from Supabase — localStorage doesn't have this
+  var catchCount = 0;
+  try {
+    var { count } = await db.from('catch_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    catchCount = count || 0;
+  } catch(e) {}
+
   document.getElementById('accountContent').innerHTML =
-    // Profile card
     '<div class="card">' +
       '<div class="profile-row">' +
         '<div class="avatar">' + initials + '</div>' +
@@ -203,21 +210,23 @@ async function renderLoggedIn(user) {
       '<div class="stats-grid">' +
         '<div class="stat-tile"><div class="stat-num">' + savedCount + '</div><div class="stat-lbl">saved species</div></div>' +
         '<div class="stat-tile"><div class="stat-num">' + spotsCount + '</div><div class="stat-lbl">my spots</div></div>' +
-        '<div class="stat-tile"><div class="stat-num">0</div><div class="stat-lbl">catches logged</div></div>' +
+        '<div class="stat-tile" style="cursor:pointer" onclick="window.location.href=\'catchlog.html\'">' +
+          '<div class="stat-num">' + catchCount + '</div><div class="stat-lbl">catches logged</div>' +
+        '</div>' +
       '</div>' +
 
       '<button class="btn-signout" id="signOutBtn">Sign out</button>' +
     '</div>' +
 
-    // Coming soon
-    '<div class="section-label" style="margin-top:8px">Coming soon</div>' +
+    // Features — catch log is live, others coming soon
+    '<div class="section-label" style="margin-top:8px">Features</div>' +
     '<div class="coming-grid">' +
-      '<div class="coming-tile">' +
-        '<div class="coming-badge">Next up</div>' +
+      '<a href="catchlog.html" class="coming-tile" style="text-decoration:none;opacity:1;border:1.5px solid var(--kelp-light)">' +
+        '<div class="coming-badge" style="background:#e8f5ee;color:#1a5c38">Live</div>' +
         '<div class="coming-icon">📓</div>' +
         '<div class="coming-title">Catch log</div>' +
-        '<div class="coming-sub">Log catches, track gear, review your season</div>' +
-      '</div>' +
+        '<div class="coming-sub">Log catches, AI size estimates, review your season</div>' +
+      '</a>' +
       '<div class="coming-tile">' +
         '<div class="coming-badge">Soon</div>' +
         '<div class="coming-icon">🔔</div>' +
