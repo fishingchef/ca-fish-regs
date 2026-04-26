@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Fish Smarter — My Catches</title>
+<title>Fish Smarter — Catches</title>
 <meta name="theme-color" content="#0a3d62">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
@@ -13,54 +13,52 @@
 :root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--success:#27ae60;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#fff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
-
-/* ── Header ── */
-.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+.header{background:var(--ocean);padding:48px 20px 0;position:relative;overflow:hidden}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
-.header-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between}
+.header-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:14px}
 .header-text .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
 .header-text .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff}
 .header-text .page-title span{color:var(--kelp-light)}
 .btn-log{background:var(--kelp-light);border:none;border-radius:100px;padding:8px 16px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px}
-
-/* ── Stats strip ── */
+.tab-bar{position:relative;z-index:1;display:flex;border-top:1px solid rgba(255,255,255,.1)}
+.tab-btn{flex:1;padding:12px;background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab-btn.active{color:#fff;border-bottom-color:var(--kelp-light)}
 .stats-strip{background:var(--ocean);padding:0 20px 16px;display:flex;gap:8px}
 .stat-pill{flex:1;background:rgba(255,255,255,.1);border-radius:var(--radius-sm);padding:10px;text-align:center}
 .stat-pill-num{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#fff;line-height:1}
 .stat-pill-lbl{font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
-
-/* ── Content ── */
+.filter-bar{padding:10px 12px;background:var(--white);border-bottom:1px solid var(--border);display:flex;gap:8px}
+.filter-input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color:var(--text);background:var(--bg)}
+.filter-input:focus{border-color:var(--ocean-mid)}
 .content{padding:12px 12px 16px}
-
-/* ── Catch card ── */
-.catch-card{background:var(--white);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer}
-.catch-photo{width:100%;height:200px;object-fit:cover;display:block}
+.catch-card{background:var(--white);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;transition:box-shadow .15s}
+.catch-card:active{box-shadow:0 0 0 2px var(--ocean-mid)}
+.catch-photo{width:100%;height:220px;object-fit:cover;display:block}
 .catch-photo-placeholder{height:80px;background:var(--ocean);display:flex;align-items:center;justify-content:center;font-size:36px}
 .catch-body{padding:14px}
-.catch-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.catch-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
 .catch-species{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--text)}
 .catch-date{font-size:11px;color:var(--text-muted);margin-top:2px}
+.catch-angler{font-size:11px;color:var(--text-muted);margin-top:1px}
 .catch-public{font-size:10px;font-weight:600;color:var(--kelp-light);background:#e8f5ee;padding:2px 8px;border-radius:100px;flex-shrink:0}
 .catch-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .catch-chip{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 9px;border-radius:100px}
 .catch-measurements{display:flex;gap:12px;margin-bottom:6px}
 .catch-measurement{font-size:13px;font-weight:600;color:var(--ocean)}
-.catch-notes{font-size:12px;color:var(--text-muted);line-height:1.5}
-.catch-delete{font-size:12px;color:var(--danger);margin-top:8px;cursor:pointer;display:inline-block}
-
-/* ── Empty state ── */
+.catch-notes{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px}
+.reaction-bar{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:4px}
+.reaction-btn{display:flex;align-items:center;gap:5px;background:none;border:1.5px solid var(--border);border-radius:100px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text-muted);transition:all .15s}
+.reaction-btn.reacted{background:#e8f5ee;border-color:var(--kelp-light);color:#1a5c38}
+.reaction-count{font-weight:600}
+.catch-tap-hint{font-size:11px;color:var(--text-muted)}
 .empty-state{padding:48px 20px;text-align:center}
 .empty-icon{font-size:56px;margin-bottom:16px}
 .empty-title{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px}
 .empty-sub{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6}
 .btn-first-catch{padding:14px 28px;background:var(--kelp-light);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
-
-/* ── Loading ── */
 .loading-state{padding:40px 20px;text-align:center;color:var(--text-muted)}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Detail drawer ── */
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
 .drawer-overlay.open{opacity:1;pointer-events:all}
 .drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;z-index:201;transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
@@ -71,15 +69,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .detail-photo-placeholder{height:140px;background:var(--ocean);display:flex;align-items:center;justify-content:center;font-size:56px}
 .detail-info{padding:16px 20px}
 .detail-species{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:var(--text);margin-bottom:4px}
-.detail-date{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+.detail-meta{font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .detail-tile{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
 .detail-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .detail-tile-value{font-size:15px;font-weight:700;color:var(--ocean)}
 .detail-notes{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px}
 .detail-delete{width:100%;padding:12px;background:transparent;border:1.5px solid #fde8e8;border-radius:var(--radius-sm);color:var(--danger);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px}
-
-/* ── Bottom nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
 .nav-item.active{color:var(--ocean)}
@@ -97,40 +93,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
     </div>
     <button class="btn-log" onclick="window.location.href='catchlog-new.html'">+ Log catch</button>
   </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabMine" onclick="switchTab('mine')">My Catches</button>
+    <button class="tab-btn" id="tabCommunity" onclick="switchTab('community')">🌐 Community</button>
+  </div>
 </div>
 
-<!-- Stats strip -->
 <div class="stats-strip" id="statsStrip" style="display:none">
-  <div class="stat-pill">
-    <div class="stat-pill-num" id="statTotal">0</div>
-    <div class="stat-pill-lbl">Total</div>
-  </div>
-  <div class="stat-pill">
-    <div class="stat-pill-num" id="statSpecies">0</div>
-    <div class="stat-pill-lbl">Species</div>
-  </div>
-  <div class="stat-pill">
-    <div class="stat-pill-num" id="statBest">–</div>
-    <div class="stat-pill-lbl">Best score</div>
-  </div>
+  <div class="stat-pill"><div class="stat-pill-num" id="statTotal">0</div><div class="stat-pill-lbl">Total</div></div>
+  <div class="stat-pill"><div class="stat-pill-num" id="statSpecies">0</div><div class="stat-pill-lbl">Species</div></div>
+  <div class="stat-pill"><div class="stat-pill-num" id="statBest">–</div><div class="stat-pill-lbl">Best score</div></div>
 </div>
 
-<!-- Catch feed -->
+<div class="filter-bar" id="filterBar" style="display:none">
+  <input class="filter-input" id="filterInput" type="text" placeholder="Filter by species or location…" oninput="filterCommunity(this.value)">
+</div>
+
 <div class="content" id="catchFeed">
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <div>Loading your catches…</div>
-  </div>
+  <div class="loading-state"><div class="spinner"></div><div>Loading…</div></div>
 </div>
 
-<!-- Catch detail drawer -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDetail()"></div>
 <div class="drawer" id="detailDrawer">
   <div class="drawer-handle"></div>
   <div class="drawer-body" id="detailBody"></div>
 </div>
 
-<!-- Bottom nav -->
 <nav class="bottom-nav">
   <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
   <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
@@ -145,158 +133,223 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <script>
 
 var catches = [];
+var community = [];
+var communityFiltered = [];
+var myReactions = {};
+var reactionCounts = {};
+var currentTab = 'mine';
+var currentUser = null;
 
-// ── Auth guard ─────────────────────────────────────────────────
 document.addEventListener('fsa:authchange', function(e) {
-  if (e.detail.user) {
-    loadCatches(e.detail.user);
+  currentUser = e.detail.user;
+  if (currentTab === 'mine') {
+    if (currentUser) loadMyCatches(currentUser);
+    else renderLoggedOut();
   } else {
-    renderLoggedOut();
+    loadCommunity();
   }
 });
 
 setTimeout(function() {
-  var user = getUser();
-  if (user) loadCatches(user);
-  else {
-    var feed = document.getElementById('catchFeed');
-    if (feed && feed.querySelector('.spinner')) renderLoggedOut();
+  currentUser = getUser();
+  if (currentTab === 'mine') {
+    if (currentUser) loadMyCatches(currentUser);
+    else {
+      var feed = document.getElementById('catchFeed');
+      if (feed && feed.querySelector('.spinner')) renderLoggedOut();
+    }
   }
 }, 600);
 
-// ── Load catches ──────────────────────────────────────────────
-async function loadCatches(user) {
-  var { data, error } = await db
-    .from('catch_logs')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('caught_at', { ascending: false });
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabMine').classList.toggle('active', tab === 'mine');
+  document.getElementById('tabCommunity').classList.toggle('active', tab === 'community');
+  document.getElementById('statsStrip').style.display = (tab === 'mine' && catches.length) ? 'flex' : 'none';
+  document.getElementById('filterBar').style.display = (tab === 'community') ? 'flex' : 'none';
+  document.querySelector('.btn-log').style.display = (tab === 'mine') ? 'block' : 'none';
 
-  if (error) {
-    document.getElementById('catchFeed').innerHTML =
-      '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load catches. Check your connection.</p></div>';
-    return;
+  if (tab === 'mine') {
+    if (currentUser) { renderStats(catches); renderMyCatches(catches); }
+    else renderLoggedOut();
+  } else {
+    if (community.length) renderCommunity(communityFiltered.length ? communityFiltered : community);
+    else loadCommunity();
   }
-
-  catches = data || [];
-  renderStats(catches);
-  renderFeed(catches);
 }
 
-// ── Stats ─────────────────────────────────────────────────────
+async function loadMyCatches(user) {
+  document.getElementById('catchFeed').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading your catches…</div></div>';
+  var { data, error } = await db.from('catch_logs').select('*').eq('user_id', user.id).order('caught_at', { ascending: false });
+  if (error) { document.getElementById('catchFeed').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load catches.</p></div>'; return; }
+  catches = data || [];
+  renderStats(catches);
+  renderMyCatches(catches);
+}
+
 function renderStats(data) {
-  if (!data.length) return;
+  if (!data.length) { document.getElementById('statsStrip').style.display = 'none'; return; }
   document.getElementById('statsStrip').style.display = 'flex';
   document.getElementById('statTotal').textContent = data.length;
-  var uniqueSpecies = new Set(data.map(function(c) { return c.species_name; })).size;
-  document.getElementById('statSpecies').textContent = uniqueSpecies;
+  document.getElementById('statSpecies').textContent = new Set(data.map(function(c) { return c.species_name; })).size;
   var scores = data.filter(function(c) { return c.fishing_score; }).map(function(c) { return c.fishing_score; });
   document.getElementById('statBest').textContent = scores.length ? Math.max.apply(null, scores) : '–';
 }
 
-// ── Feed ──────────────────────────────────────────────────────
-function renderFeed(data) {
+function renderMyCatches(data) {
   var feed = document.getElementById('catchFeed');
-
   if (!data.length) {
-    feed.innerHTML =
-      '<div class="empty-state">'
-      + '<div class="empty-icon">🎣</div>'
+    feed.innerHTML = '<div class="empty-state"><div class="empty-icon">🎣</div>'
       + '<div class="empty-title">No catches yet</div>'
-      + '<div class="empty-sub">Log your first catch — add a photo and let AI estimate the size for you</div>'
-      + '<button class="btn-first-catch" onclick="window.location.href=\'catchlog-new.html\'">Log my first catch</button>'
-      + '</div>';
+      + '<div class="empty-sub">Log your first catch — add a photo and let AI estimate the size</div>'
+      + '<button class="btn-first-catch" onclick="window.location.href=\'catchlog-new.html\'">Log my first catch</button></div>';
     return;
   }
-
-  var html = '';
-  data.forEach(function(c) {
-    var date = new Date(c.caught_at);
-    var dateStr = date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-    var emoji = getEmoji(c.species_name);
-
-    html += '<div class="catch-card" onclick="openDetail(' + c.id + ')" style="cursor:pointer">';
-
-    if (c.photo_url) {
-      html += '<img class="catch-photo" src="' + c.photo_url + '" alt="' + c.species_name + '" loading="lazy">';
-    } else {
-      html += '<div class="catch-photo-placeholder">' + emoji + '</div>';
-    }
-
-    html += '<div class="catch-body">';
-    html += '<div class="catch-header">';
-    html += '<div><div class="catch-species">' + c.species_name + '</div><div class="catch-date">' + dateStr + '</div></div>';
-    if (c.is_public) html += '<div class="catch-public">🌐 Shared</div>';
-    html += '</div>';
-
-    var chips = [];
-    if (c.method) chips.push(methodEmoji(c.method) + ' ' + capitalize(c.method));
-    if (c.location_name) chips.push('📍 ' + c.location_name);
-    if (c.bait_lure) chips.push('🪝 ' + c.bait_lure);
-    if (chips.length) html += '<div class="catch-chips">' + chips.map(function(ch) { return '<span class="catch-chip">' + ch + '</span>'; }).join('') + '</div>';
-
-    if (c.weight_lbs || c.length_inches) {
-      html += '<div class="catch-measurements">';
-      if (c.weight_lbs) html += '<span class="catch-measurement">⚖️ ' + c.weight_lbs + ' lbs</span>';
-      if (c.length_inches) html += '<span class="catch-measurement">📏 ' + c.length_inches + '"</span>';
-      html += '</div>';
-    }
-
-    if (c.notes) html += '<div class="catch-notes">' + c.notes + '</div>';
-    html += '<span style="font-size:11px;color:var(--text-muted);margin-top:6px;display:inline-block">Tap to view full details</span>';
-    html += '</div></div>';
-  });
-
-  feed.innerHTML = html;
+  feed.innerHTML = data.map(function(c) { return buildCatchCard(c, true); }).join('');
 }
 
-// ── Detail drawer ─────────────────────────────────────────────
-function openDetail(id) {
-  var c = catches.find(function(x) { return x.id === id; });
-  if (!c) return;
+async function loadCommunity() {
+  document.getElementById('catchFeed').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading community catches…</div></div>';
+  var { data, error } = await db.from('catch_logs').select('*').eq('is_public', true).order('caught_at', { ascending: false }).limit(50);
+  if (error) { document.getElementById('catchFeed').innerHTML = '<div class="empty-state"><div class="empty-icon">🌐</div><p>Could not load community feed.</p></div>'; return; }
+  community = data || [];
+  communityFiltered = [];
 
+  if (community.length) {
+    var ids = community.map(function(c) { return c.id; });
+    var { data: reactions } = await db.from('catch_reactions').select('catch_id').in('catch_id', ids);
+    (reactions || []).forEach(function(r) { reactionCounts[r.catch_id] = (reactionCounts[r.catch_id] || 0) + 1; });
+    if (currentUser) {
+      var { data: myR } = await db.from('catch_reactions').select('catch_id').eq('user_id', currentUser.id).in('catch_id', ids);
+      (myR || []).forEach(function(r) { myReactions[r.catch_id] = true; });
+    }
+  }
+
+  if (!community.length) {
+    document.getElementById('catchFeed').innerHTML = '<div class="empty-state"><div class="empty-icon">🌐</div>'
+      + '<div class="empty-title">No shared catches yet</div>'
+      + '<div class="empty-sub">Be the first — log a catch and share it to the community feed</div>'
+      + '<button class="btn-first-catch" onclick="window.location.href=\'catchlog-new.html\'">Log a catch</button></div>';
+    return;
+  }
+  renderCommunity(community);
+}
+
+function filterCommunity(query) {
+  if (!query.trim()) { communityFiltered = []; renderCommunity(community); return; }
+  var q = query.toLowerCase();
+  communityFiltered = community.filter(function(c) {
+    return (c.species_name && c.species_name.toLowerCase().includes(q))
+      || (c.location_name && c.location_name.toLowerCase().includes(q));
+  });
+  renderCommunity(communityFiltered);
+}
+
+function renderCommunity(data) {
+  if (!data.length) {
+    document.getElementById('catchFeed').innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No matches</div><div class="empty-sub">Try a different species or location</div></div>';
+    return;
+  }
+  document.getElementById('catchFeed').innerHTML = data.map(function(c) { return buildCatchCard(c, false); }).join('');
+}
+
+function buildCatchCard(c, isMine) {
+  var date = new Date(c.caught_at);
+  var dateStr = date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  var emoji = getEmoji(c.species_name);
+  var count = reactionCounts[c.id] || 0;
+  var reacted = !!myReactions[c.id];
+
+  var html = '<div class="catch-card" onclick="openDetail(' + c.id + ',\'' + (isMine ? 'mine' : 'community') + '\')">';
+  if (c.photo_url) html += '<img class="catch-photo" src="' + c.photo_url + '" alt="' + c.species_name + '" loading="lazy">';
+  else html += '<div class="catch-photo-placeholder">' + emoji + '</div>';
+  html += '<div class="catch-body">';
+  html += '<div class="catch-header"><div>';
+  html += '<div class="catch-species">' + c.species_name + '</div>';
+  html += '<div class="catch-date">' + dateStr + '</div>';
+  if (!isMine && c.display_name) html += '<div class="catch-angler">by ' + c.display_name + '</div>';
+  html += '</div>';
+  if (isMine && c.is_public) html += '<div class="catch-public">🌐 Shared</div>';
+  html += '</div>';
+
+  var chips = [];
+  if (c.method) chips.push(methodEmoji(c.method) + ' ' + capitalize(c.method));
+  if (c.location_name) chips.push('📍 ' + c.location_name);
+  if (c.bait_lure) chips.push('🪝 ' + c.bait_lure);
+  if (chips.length) html += '<div class="catch-chips">' + chips.map(function(ch) { return '<span class="catch-chip">' + ch + '</span>'; }).join('') + '</div>';
+
+  if (c.weight_lbs || c.length_inches) {
+    html += '<div class="catch-measurements">';
+    if (c.weight_lbs) html += '<span class="catch-measurement">⚖️ ' + c.weight_lbs + ' lbs</span>';
+    if (c.length_inches) html += '<span class="catch-measurement">📏 ' + c.length_inches + '"</span>';
+    html += '</div>';
+  }
+
+  html += '<div class="reaction-bar">';
+  html += '<button class="reaction-btn' + (reacted ? ' reacted' : '') + '" onclick="event.stopPropagation();toggleReaction(' + c.id + ')">'
+    + '🎣 <span class="reaction-count" id="rc-' + c.id + '">' + (count || '') + '</span></button>';
+  html += '<span class="catch-tap-hint">Tap to view ›</span>';
+  html += '</div>';
+  html += '</div></div>';
+  return html;
+}
+
+async function toggleReaction(catchId) {
+  if (!currentUser) { showAuthSheet('React to this catch', 'Create a free account to react to community catches'); return; }
+  var wasReacted = !!myReactions[catchId];
+  myReactions[catchId] = !wasReacted;
+  var delta = wasReacted ? -1 : 1;
+  reactionCounts[catchId] = Math.max(0, (reactionCounts[catchId] || 0) + delta);
+  var countEl = document.getElementById('rc-' + catchId);
+  var btn = countEl ? countEl.closest('.reaction-btn') : null;
+  if (countEl) countEl.textContent = reactionCounts[catchId] || '';
+  if (btn) btn.classList.toggle('reacted', !wasReacted);
+  try {
+    if (wasReacted) await db.from('catch_reactions').delete().eq('catch_id', catchId).eq('user_id', currentUser.id);
+    else await db.from('catch_reactions').insert({ catch_id: catchId, user_id: currentUser.id });
+  } catch(e) {
+    myReactions[catchId] = wasReacted;
+    reactionCounts[catchId] = Math.max(0, (reactionCounts[catchId] || 0) - delta);
+    if (countEl) countEl.textContent = reactionCounts[catchId] || '';
+    if (btn) btn.classList.toggle('reacted', wasReacted);
+  }
+}
+
+function openDetail(id, source) {
+  var list = (source === 'community') ? community : catches;
+  var c = list.find(function(x) { return x.id === id; });
+  if (!c) return;
   var date = new Date(c.caught_at);
   var dateStr = date.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
   var emoji = getEmoji(c.species_name);
-
   var html = '';
-
-  // Full photo
-  if (c.photo_url) {
-    html += '<img class="detail-photo" src="' + c.photo_url + '" alt="' + c.species_name + '">';
-  } else {
-    html += '<div class="detail-photo-placeholder">' + emoji + '</div>';
-  }
-
+  if (c.photo_url) html += '<img class="detail-photo" src="' + c.photo_url + '" alt="' + c.species_name + '">';
+  else html += '<div class="detail-photo-placeholder">' + emoji + '</div>';
   html += '<div class="detail-info">';
   html += '<div class="detail-species">' + c.species_name + '</div>';
-  html += '<div class="detail-date">' + dateStr + (c.is_public ? ' · 🌐 Shared' : '') + '</div>';
-
-  // Detail tiles
+  var metaParts = [dateStr];
+  if (c.display_name && source === 'community') metaParts.push('by ' + c.display_name);
+  if (c.is_public) metaParts.push('🌐 Shared');
+  html += '<div class="detail-meta">' + metaParts.join(' · ') + '</div>';
   var tiles = [];
-  if (c.method)        tiles.push({ label: 'Method',   value: methodEmoji(c.method) + ' ' + capitalize(c.method) });
-  if (c.location_name) tiles.push({ label: 'Location', value: c.location_name });
-  if (c.weight_lbs)    tiles.push({ label: 'Weight',   value: c.weight_lbs + ' lbs' });
-  if (c.length_inches) tiles.push({ label: 'Length',   value: c.length_inches + '"' });
-  if (c.bait_lure)     tiles.push({ label: 'Bait / Lure', value: c.bait_lure });
-  if (c.fishing_score) tiles.push({ label: 'Score at catch', value: c.fishing_score });
-
+  if (c.method)        tiles.push({ label:'Method',         value: methodEmoji(c.method) + ' ' + capitalize(c.method) });
+  if (c.location_name) tiles.push({ label:'Location',       value: c.location_name });
+  if (c.weight_lbs)    tiles.push({ label:'Weight',         value: c.weight_lbs + ' lbs' });
+  if (c.length_inches) tiles.push({ label:'Length',         value: c.length_inches + '"' });
+  if (c.bait_lure)     tiles.push({ label:'Bait / Lure',    value: c.bait_lure });
+  if (c.fishing_score) tiles.push({ label:'Score at catch', value: c.fishing_score });
   if (tiles.length) {
     html += '<div class="detail-grid">';
-    tiles.forEach(function(t) {
-      html += '<div class="detail-tile"><div class="detail-tile-label">' + t.label + '</div>'
-        + '<div class="detail-tile-value">' + t.value + '</div></div>';
-    });
+    tiles.forEach(function(t) { html += '<div class="detail-tile"><div class="detail-tile-label">' + t.label + '</div><div class="detail-tile-value">' + t.value + '</div></div>'; });
     html += '</div>';
   }
-
-  if (c.notes) {
-    html += '<div class="detail-notes">' + c.notes + '</div>';
-  }
-
-  html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
+  if (c.notes) html += '<div class="detail-notes">' + c.notes + '</div>';
+  var count = reactionCounts[c.id] || 0;
+  var reacted = !!myReactions[c.id];
+  html += '<button class="reaction-btn' + (reacted ? ' reacted' : '') + '" style="margin-bottom:12px" onclick="toggleReaction(' + c.id + ')">'
+    + '🎣 <span id="drc-' + c.id + '">' + (count ? count + ' reaction' + (count !== 1 ? 's' : '') : 'Be the first to react') + '</span></button>';
+  if (source === 'mine') html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
   html += '</div>';
-
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('detailDrawer').classList.add('open');
@@ -307,7 +360,6 @@ function closeDetail() {
   document.getElementById('detailDrawer').classList.remove('open');
 }
 
-// Swipe down to close
 (function() {
   var drawer = document.getElementById('detailDrawer');
   if (!drawer) return;
@@ -316,30 +368,24 @@ function closeDetail() {
   drawer.addEventListener('touchend', function(e) { if (e.changedTouches[0].clientY - tsY > 80) closeDetail(); }, { passive: true });
 })();
 
-// ── Delete ────────────────────────────────────────────────────
 async function deleteCatch(id) {
   if (!confirm('Delete this catch?')) return;
-  var user = getUser();
-  if (!user) return;
-  var { error } = await db.from('catch_logs').delete().eq('id', id).eq('user_id', user.id);
+  if (!currentUser) return;
+  var { error } = await db.from('catch_logs').delete().eq('id', id).eq('user_id', currentUser.id);
   if (error) { alert('Could not delete: ' + error.message); return; }
   catches = catches.filter(function(c) { return c.id !== id; });
   renderStats(catches);
-  renderFeed(catches);
+  renderMyCatches(catches);
 }
 
-// ── Logged out ────────────────────────────────────────────────
 function renderLoggedOut() {
   document.getElementById('catchFeed').innerHTML =
-    '<div class="empty-state">'
-    + '<div class="empty-icon">🎣</div>'
+    '<div class="empty-state"><div class="empty-icon">🎣</div>'
     + '<div class="empty-title">Sign in to see your catches</div>'
-    + '<div class="empty-sub">Create a free account to log catches, track your season, and share to the community feed</div>'
-    + '<button class="btn-first-catch" onclick="showAuthSheet(\'Log your catches\', \'Create a free account to start your catch log\')">Sign in</button>'
-    + '</div>';
+    + '<div class="empty-sub">Create a free account to log catches and track your season</div>'
+    + '<button class="btn-first-catch" onclick="showAuthSheet(\'Log your catches\',\'Create a free account to start your catch log\')">Sign in</button></div>';
 }
 
-// ── Helpers ───────────────────────────────────────────────────
 function methodEmoji(m) {
   var map = { surf:'🌊', pier:'🪝', boat:'🚢', kayak:'🛶', fly:'✈️', shore:'🏖', spear:'🤿', other:'🎣' };
   return map[m] || '🎣';
