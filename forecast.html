@@ -70,6 +70,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .wc-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wc-icon{font-size:18px;line-height:1;margin-bottom:3px}
 .wc-score{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700}
+.wc-date{font-size:8px;color:var(--text-muted);margin-bottom:2px}
+.wc-score-lbl{font-size:7px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-top:1px}
+.week-cell.active .wc-date{color:rgba(255,255,255,.5)}
+.week-cell.active .wc-score-lbl{color:rgba(255,255,255,.4)}
 
 /* ── Day panel ── */
 .day-panel{display:none}
@@ -394,8 +398,23 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     tidesByDate[dk].push(t);
   });
 
-  var dayForecasts = forecast ? forecast.filter(function(p){return p.isDaytime;}) : [];
-  var nightForecasts = forecast ? forecast.filter(function(p){return !p.isDaytime;}) : [];
+  // Build one entry per calendar date — fixes missing days when NWS starts with a night period
+  var byDate = {};
+  if (forecast) {
+    forecast.forEach(function(p) {
+      var dk = p.startTime.split('T')[0];
+      if (!byDate[dk]) byDate[dk] = {day:null,night:null};
+      if (p.isDaytime) byDate[dk].day = p; else byDate[dk].night = p;
+    });
+  }
+  var todayLocal = new Date();
+  var todayKey = todayLocal.getFullYear()+'-'
+    +String(todayLocal.getMonth()+1).padStart(2,'0')+'-'
+    +String(todayLocal.getDate()).padStart(2,'0');
+  var fcDateKeys = Object.keys(byDate).sort().filter(function(k){return k>=todayKey;});
+  var dayForecasts = fcDateKeys.map(function(k){return byDate[k].day||byDate[k].night;}).filter(Boolean);
+  var nightForecasts = fcDateKeys.map(function(k){return byDate[k].night;});
+
   var current = hourly ? hourly[0] : null;
   var todayF = dayForecasts[0];
   var curTemp = current ? parseInt(current.temperature) : (todayF ? todayF.temperature : null);
@@ -423,25 +442,29 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     html += '<div class="section-label">7-Day Forecast</div>';
     html += '<div class="week-grid" id="weekGrid">';
     dayForecasts.slice(0,7).forEach(function(p,i) {
-      var d = new Date(p.startTime);
+      var d = new Date(fcDateKeys[i]+'T12:00:00');
       var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
-      var label = i===0 ? 'Today' : i===1 ? 'Tmrw' : DAYS[d.getDay()];
+      var topLabel = i===0 ? 'Today' : i===1 ? 'Tmrw' : DAYS[d.getDay()];
+      var dateLabel = (d.getMonth()+1)+'/'+d.getDate();
       html += '<div class="week-cell'+(i===0?' active':'')+'" id="wcell'+i+'" onclick="switchDay('+i+')">'
-        +'<div class="wc-label">'+label+'</div>'
+        +'<div class="wc-label">'+topLabel+'</div>'
+        +'<div class="wc-date">'+dateLabel+'</div>'
         +'<div class="wc-icon">'+getWxIcon(p.shortForecast)+'</div>'
         +'<div class="wc-score" style="color:'+scoreColor(s)+'">'+s+'</div>'
+        +'<div class="wc-score-lbl">score</div>'
         +'</div>';
     });
     html += '</div>';
 
     // ── Day panels ────────────────────────────────────────────
     dayForecasts.slice(0,7).forEach(function(p,i) {
-      var d = new Date(p.startTime);
+      var d = new Date(fcDateKeys[i]+'T12:00:00');
       var night = nightForecasts[i];
       var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
-      var dateKey = d.toISOString().split('T')[0];
-      var label = i===0 ? 'Today' : i===1 ? 'Tomorrow'
-        : DAYS[d.getDay()]+' '+MONTHS[d.getMonth()]+' '+d.getDate();
+      var dateKey = fcDateKeys[i];
+      var dateStr = MONTHS[d.getMonth()]+' '+d.getDate();
+      var label = i===0 ? 'Today · '+dateStr : i===1 ? 'Tomorrow · '+dateStr
+        : DAYS[d.getDay()]+' '+dateStr;
       var dayTides = tidesByDate[dateKey]||[];
 
       html += '<div class="day-panel'+(i===0?' active':'')+'" id="dpanel'+i+'">';
