@@ -236,44 +236,97 @@
     hideSheet();
   };
 
-  // ── Auth state: show onboarding after sign-in ──────────────
-  // Listen for the event broadcast by auth.js
+  // ── Pending action store ───────────────────────────────────
+  // Stored in sessionStorage so it survives the Google OAuth
+  // redirect. Cleared immediately after being consumed.
+  var PENDING_KEY = 'fs_pending_action';
+
+  function setPendingAction(action) {
+    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(action)); } catch(e) {}
+  }
+  function getPendingAction() {
+    try {
+      var raw = sessionStorage.getItem(PENDING_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch(e) { return null; }
+  }
+  function clearPendingAction() {
+    try { sessionStorage.removeItem(PENDING_KEY); } catch(e) {}
+  }
+
+  // ── Auth state: show onboarding + complete pending action ──
   var _shownOnboard = false;
   document.addEventListener('fsa:authchange', function(e) {
     var user = e.detail.user;
     var event = e.detail.event;
 
-    if (user && event === 'SIGNED_IN' && !_shownOnboard) {
-      // Check if this user has already answered the onboarding question
-      var hasPref = false;
-      try { hasPref = !!localStorage.getItem('fs_fishing_type'); } catch(ex) {}
+    if (user && event === 'SIGNED_IN') {
+      // Complete any pending save action first
+      var action = getPendingAction();
+      if (action) {
+        clearPendingAction();
 
-      if (!hasPref) {
-        _shownOnboard = true;
-        // Small delay so redirect/DOM is settled
-        setTimeout(function() {
-          injectSheet();
-          var overlay = document.getElementById('fsAuthOverlay');
-          var sheet   = document.getElementById('fsAuthSheet');
-          overlay.style.pointerEvents = 'all';
-          overlay.style.opacity = '1';
-          sheet.style.transform = 'translateX(-50%) translateY(0)';
-          showOnboardPane();
-        }, 400);
+        if (action.type === 'species' && action.id) {
+          // Complete the species save
+          var ids = getSavedIds();
+          if (!ids.includes(action.id)) {
+            if (typeof toggleSaved === 'function') toggleSaved(action.id);
+          }
+          // Re-render save button if drawer is still open
+          var saveBtn = document.getElementById('saveBtn');
+          if (saveBtn) {
+            saveBtn.textContent = '⭐ Saved';
+            saveBtn.className = 'd-save-btn saved';
+          }
+        }
+
+        if (action.type === 'spot' && action.name) {
+          // Complete the spot save
+          if (typeof toggleFav === 'function') {
+            toggleFav(action.name, action.lat, action.lng);
+          }
+        }
+      }
+
+      // Show onboarding if user hasn't answered yet.
+      // Triggered by both species AND spot saves — anyone motivated
+      // enough to save something should get the onboarding question.
+      if (!_shownOnboard) {
+        var hasPref = false;
+        try { hasPref = !!localStorage.getItem('fs_fishing_type'); } catch(ex) {}
+
+        if (!hasPref) {
+          _shownOnboard = true;
+          setTimeout(function() {
+            injectSheet();
+            var overlay = document.getElementById('fsAuthOverlay');
+            var sheet   = document.getElementById('fsAuthSheet');
+            overlay.style.pointerEvents = 'all';
+            overlay.style.opacity = '1';
+            sheet.style.transform = 'translateX(-50%) translateY(0)';
+            showOnboardPane();
+          }, 400);
+        }
       }
     }
   });
 
   // ── Event delegation: intercept save actions ───────────────
-  // Runs on every page. If user is logged out, intercepts the
-  // click and shows the auth sheet. If logged in, does nothing
-  // and lets the existing handler fire normally.
+  // Runs on every page. If user is logged out, stores the pending
+  // action in sessionStorage and shows the auth sheet.
+  // If logged in, does nothing and lets existing handler fire.
   document.addEventListener('click', function(e) {
     // Target: Save Species button in species drawer
     var saveBtn = e.target.closest('.d-save-btn');
     if (saveBtn) {
       if (!getUser()) {
         e.stopImmediatePropagation();
+        // Parse species ID from onclick="handleSave(42)"
+        var onclickAttr = saveBtn.getAttribute('onclick') || '';
+        var idMatch = onclickAttr.match(/handleSave\((\d+)\)/);
+        if (idMatch) {
+          setPendingAction({ type: 'species', id: parseInt(idMatch[1]) });
+        }
         showAuthSheet(
           'Save this species',
           'Create a free account to save species and access your collection on any device'
@@ -287,6 +340,17 @@
     if (starBtn) {
       if (!getUser()) {
         e.stopImmediatePropagation();
+        // Parse spot from onclick="toggleFav('Bodega Bay',38.33,-123.04)"
+        var starOnclick = starBtn.getAttribute('onclick') || '';
+        var spotMatch = starOnclick.match(/toggleFav\('([^']+)',([^,]+),([^)]+)\)/);
+        if (spotMatch) {
+          setPendingAction({
+            type: 'spot',
+            name: spotMatch[1],
+            lat: parseFloat(spotMatch[2]),
+            lng: parseFloat(spotMatch[3])
+          });
+        }
         showAuthSheet(
           'Save this spot',
           'Create a free account to save your favourite fishing spots and get score alerts'
