@@ -289,24 +289,39 @@
       }
 
       // Show onboarding if user hasn't answered yet.
-      // Triggered by both species AND spot saves — anyone motivated
-      // enough to save something should get the onboarding question.
+      // Check Supabase first so it works across devices — localStorage
+      // is device-specific and would re-trigger onboarding on new devices.
       if (!_shownOnboard) {
-        var hasPref = false;
-        try { hasPref = !!localStorage.getItem('fs_fishing_type'); } catch(ex) {}
+        _shownOnboard = true; // prevent double-firing while async check runs
 
-        if (!hasPref) {
-          _shownOnboard = true;
-          setTimeout(function() {
-            injectSheet();
-            var overlay = document.getElementById('fsAuthOverlay');
-            var sheet   = document.getElementById('fsAuthSheet');
-            overlay.style.pointerEvents = 'all';
-            overlay.style.opacity = '1';
-            sheet.style.transform = 'translateX(-50%) translateY(0)';
-            showOnboardPane();
-          }, 400);
-        }
+        (async function() {
+          var hasPref = false;
+
+          // 1. Check Supabase user_profiles first (cross-device source of truth)
+          try {
+            var result = await db.from('user_profiles').select('fishing_type').eq('id', user.id).single();
+            if (result.data && result.data.fishing_type) {
+              // Already answered on another device — sync to localStorage and skip
+              try { localStorage.setItem('fs_fishing_type', result.data.fishing_type); } catch(ex) {}
+              hasPref = true;
+            }
+          } catch(ex) {
+            // Supabase check failed — fall back to localStorage
+            try { hasPref = !!localStorage.getItem('fs_fishing_type'); } catch(ex2) {}
+          }
+
+          if (!hasPref) {
+            setTimeout(function() {
+              injectSheet();
+              var overlay = document.getElementById('fsAuthOverlay');
+              var sheet   = document.getElementById('fsAuthSheet');
+              overlay.style.pointerEvents = 'all';
+              overlay.style.opacity = '1';
+              sheet.style.transform = 'translateX(-50%) translateY(0)';
+              showOnboardPane();
+            }, 400);
+          }
+        })();
       }
     }
   });
