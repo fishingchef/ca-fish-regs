@@ -348,11 +348,61 @@ function openDetail(id, source) {
   var reacted = !!myReactions[c.id];
   html += '<button class="reaction-btn' + (reacted ? ' reacted' : '') + '" style="margin-bottom:12px" onclick="toggleReaction(' + c.id + ')">'
     + '🎣 <span id="drc-' + c.id + '">' + (count ? count + ' reaction' + (count !== 1 ? 's' : '') : 'Be the first to react') + '</span></button>';
-  if (source === 'mine') html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
+
+  // Share toggle — only for own catches
+  if (source === 'mine') {
+    var isShared = !!c.is_public;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px">';
+    html += '<div><div style="font-size:14px;font-weight:600;color:var(--text)">🌐 Share to community</div>'
+      + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">General location only — never exact GPS</div></div>';
+    html += '<div id="shareToggleDetail" onclick="toggleShareExisting(' + c.id + ')" style="width:44px;height:24px;background:' + (isShared ? 'var(--kelp-light)' : 'var(--border)') + ';border-radius:100px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">'
+      + '<div style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:' + (isShared ? '22px' : '2px') + ';transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
+      + '</div>';
+    html += '</div>';
+    html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
+  }
   html += '</div>';
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('detailDrawer').classList.add('open');
+}
+
+async function toggleShareExisting(catchId) {
+  if (!currentUser) return;
+  var c = catches.find(function(x) { return x.id === catchId; });
+  if (!c) return;
+  var newPublic = !c.is_public;
+
+  // Optimistic UI update
+  var toggle = document.getElementById('shareToggleDetail');
+  if (toggle) {
+    toggle.style.background = newPublic ? 'var(--kelp-light)' : 'var(--border)';
+    var thumb = toggle.querySelector('div');
+    if (thumb) thumb.style.left = newPublic ? '22px' : '2px';
+  }
+
+  var { error } = await db.from('catch_logs')
+    .update({ is_public: newPublic })
+    .eq('id', catchId)
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    // Revert on error
+    if (toggle) {
+      toggle.style.background = c.is_public ? 'var(--kelp-light)' : 'var(--border)';
+      var thumb = toggle.querySelector('div');
+      if (thumb) thumb.style.left = c.is_public ? '22px' : '2px';
+    }
+    alert('Could not update: ' + error.message);
+    return;
+  }
+
+  // Update local state
+  c.is_public = newPublic;
+  // Refresh the feed card to show/hide 🌐 badge
+  renderMyCatches(catches);
+  // Re-open drawer with updated state
+  openDetail(catchId, 'mine');
 }
 
 function closeDetail() {
