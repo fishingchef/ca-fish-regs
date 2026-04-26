@@ -253,10 +253,18 @@ var photoBlob    = null;
 var selectedMethod = null;
 var isPublic     = false;
 var aiEstimate   = null;
-var speciesData  = []; // loaded from Supabase
+var speciesData  = [];
 var selectedSpeciesId = null;
 var currentLat   = null;
 var currentLng   = null;
+
+// Edit mode — detect ?edit=ID in URL
+var editCatchId = null;
+var editExistingPhotoUrl = null;
+try {
+  var urlParams = new URLSearchParams(window.location.search);
+  editCatchId = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
+} catch(e) {}
 
 // Pre-fill from Fish ID if coming from that page
 var prefill = {};
@@ -278,7 +286,64 @@ async function loadSpecies() {
   var { data } = await db.from('species').select('id, name, scientific_name').order('name');
   speciesData = data || [];
 
-  // Apply prefill from Fish ID
+  // Edit mode — load existing catch and pre-fill all fields
+  if (editCatchId) {
+    document.querySelector('.page-title').innerHTML = 'Edit <span>Catch</span>';
+    document.getElementById('saveBtn').textContent = 'Update catch';
+    var { data: existing } = await db.from('catch_logs').select('*').eq('id', editCatchId).single();
+    if (existing) {
+      // Species
+      document.getElementById('speciesInput').value = existing.species_name || '';
+      selectedSpeciesId = existing.species_id || null;
+      if (existing.species_id) document.getElementById('speciesId').value = existing.species_id;
+
+      // Method
+      if (existing.method) {
+        var chip = document.querySelector('[data-method="' + existing.method + '"]');
+        if (chip) selectMethod(chip);
+      }
+
+      // Location
+      if (existing.location_name) {
+        document.getElementById('locationInput').value = existing.location_name;
+        currentLat = existing.lat;
+        currentLng = existing.lng;
+      }
+
+      // Bait
+      if (existing.bait_lure) document.getElementById('baitInput').value = existing.bait_lure;
+
+      // Weight / length / notes — open details if any present
+      if (existing.weight_lbs || existing.length_inches || existing.notes) {
+        if (!document.getElementById('detailsBody').classList.contains('open')) toggleDetails();
+      }
+      if (existing.weight_lbs)    document.getElementById('weightInput').value = existing.weight_lbs;
+      if (existing.length_inches) document.getElementById('lengthInput').value = existing.length_inches;
+      if (existing.notes)         document.getElementById('notesInput').value  = existing.notes;
+
+      // Share toggle
+      if (existing.is_public) {
+        isPublic = true;
+        document.getElementById('shareToggle').classList.add('on');
+      }
+
+      // Existing photo — show preview without re-uploading
+      if (existing.photo_url) {
+        editExistingPhotoUrl = existing.photo_url;
+        var preview = document.getElementById('photoPreview');
+        var overlay = document.getElementById('photoOverlay');
+        var actions = document.getElementById('photoActions');
+        preview.src = existing.photo_url;
+        preview.style.display = 'block';
+        overlay.classList.add('hidden');
+        actions.style.display = 'flex';
+      }
+    }
+    updateSaveBtn();
+    return;
+  }
+
+  // New catch — apply prefill from Fish ID
   if (prefill.speciesName) {
     document.getElementById('speciesInput').value = prefill.speciesName;
     var match = speciesData.find(function(s) {
@@ -681,17 +746,28 @@ async function saveCatch() {
       weight_lbs:    weight,
       length_inches: length,
       notes:         notes,
-      photo_url:     photoResult ? photoResult.url : null,
+      photo_url:     photoResult ? photoResult.url : (editExistingPhotoUrl || null),
       photo_key:     photoResult ? photoResult.key : null,
       fishing_score: fishingScore,
       is_public:     isPublic,
     };
 
-    var { error } = await db.from('catch_logs').insert(row);
-    if (error) throw new Error(error.message);
-
-    document.getElementById('loadingOverlay').classList.add('hidden');
-    showReward(speciesName, photoResult ? photoResult.url : null, weight, length);
+    if (editCatchId) {
+      // Edit mode — UPDATE existing row, don't overwrite caught_at
+      delete row.caught_at;
+      delete row.user_id;
+      var { error } = await db.from('catch_logs').update(row).eq('id', editCatchId).eq('user_id', user.id);
+      if (error) throw new Error(error.message);
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      // Go back to catch log instead of showing reward card
+      window.location.href = 'catchlog.html';
+    } else {
+      // New catch — INSERT
+      var { error } = await db.from('catch_logs').insert(row);
+      if (error) throw new Error(error.message);
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      showReward(speciesName, photoResult ? photoResult.url : null, weight, length);
+    }
 
   } catch(e) {
     document.getElementById('loadingOverlay').classList.add('hidden');
