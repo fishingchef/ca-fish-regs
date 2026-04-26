@@ -122,13 +122,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <!-- Header -->
 <div class="header">
   <div class="header-wave"></div>
-  <div class="header-content">
-    <div class="app-eyebrow">Own Your Waters.</div>
-    <div class="app-name">Fish<span>Smarter</span></div>
-    <div class="search-wrap">
-      <span style="font-size:16px;color:rgba(255,255,255,.6)">🔍</span>
-      <input id="searchInput" type="text" placeholder="Search species, e.g. rockfish, bass…" autocomplete="off">
+  <div class="header-content" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+    <div style="flex:1">
+      <div class="app-eyebrow">Own Your Waters.</div>
+      <div class="app-name">Fish<span>Smarter</span></div>
+      <div class="search-wrap">
+        <span style="font-size:16px;color:rgba(255,255,255,.6)">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search species, e.g. rockfish, bass…" autocomplete="off">
+      </div>
     </div>
+    <a href="account.html" id="profileAvatar" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none;flex-shrink:0;margin-top:4px">👤</a>
   </div>
 </div>
 
@@ -179,8 +182,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <a class="nav-item" data-page="forecast" href="forecast.html">
     <span class="nav-icon">🌊</span><span>Forecast</span>
   </a>
-  <a class="nav-item" data-page="account" href="account.html">
-    <span class="nav-icon">👤</span><span>Account</span>
+  <a class="nav-item" data-page="account" href="catchlog.html">
+    <span class="nav-icon">📓</span><span>Catches</span>
   </a>
 </nav>
 
@@ -535,11 +538,32 @@ document.getElementById('drawer').addEventListener('touchstart', function(e) {
 document.getElementById('drawer').addEventListener('touchend', function(e) {
   if (e.changedTouches[0].clientY - touchStartY > 80) closeDrawer();
 }, {passive:true});
- 
+
 // ── Init ──────────────────────────────────────────────────────
 loadData();
 </script>
-<script src="js/auth.js"></script>        
-<script src="js/auth-sheet.js"></script> 
+<script src="js/auth.js"></script>
+<script src="js/auth-sheet.js"></script>
+<script>
+document.addEventListener('fsa:authchange', function(e) {
+  var avatar = document.getElementById('profileAvatar');
+  if (!avatar) return;
+  var user = e.detail.user;
+  if (user) {
+    var name = (user.user_metadata && user.user_metadata.full_name) || user.email.split('@')[0] || '';
+    var initials = name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2) || '👤';
+    avatar.textContent = initials;
+    avatar.style.background = 'rgba(82,183,136,.4)';
+    avatar.style.fontSize = '12px';
+    avatar.style.fontWeight = '700';
+    avatar.style.color = '#fff';
+    avatar.style.fontFamily = 'Unbounded,sans-serif';
+  } else {
+    avatar.textContent = '👤';
+    avatar.style.background = 'rgba(255,255,255,.2)';
+    avatar.style.fontSize = '16px';
+  }
+});
+</script>
 </body>
 </html>
