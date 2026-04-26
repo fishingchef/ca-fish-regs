@@ -359,6 +359,7 @@ function openDetail(id, source) {
       + '<div style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:' + (isShared ? '22px' : '2px') + ';transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>'
       + '</div>';
     html += '</div>';
+    html += '<button onclick="window.location.href=\'catchlog-new.html?edit=' + c.id + '\'" style="width:100%;padding:12px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">✏️ Edit this catch</button>';
     html += '<button class="detail-delete" onclick="closeDetail();deleteCatch(' + c.id + ')">Delete this catch</button>';
   }
   html += '</div>';
