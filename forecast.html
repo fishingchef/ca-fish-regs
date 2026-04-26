@@ -186,9 +186,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 </div>
 
 <div class="content" id="content">
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <div>Search a location or tap My Location</div>
+  <div class="loading-state" style="padding-top:48px">
+    <div style="font-size:48px;margin-bottom:16px">🎣</div>
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Where are you fishing?</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">Search a location or tap <strong>My Location</strong> above</div>
+    <button onclick="useGPS()" style="background:var(--ocean);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer">📍 Use My Location</button>
   </div>
 </div>
 
@@ -410,7 +412,8 @@ async function loadSpot(locName, lat, lng) {
 }
 
 function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) {
-  _tideDrawerData = {};
+  _tideDrawerData = [];
+  _tideDrawerIdx = 0;
   var tidesByDate = {};
   (tideData.predictions||[]).forEach(function(t) {
     var dk = t.t.split(' ')[0];
@@ -555,27 +558,35 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
 }
 
 // Store tides by date for drawer lookup
-var _tideDrawerData = {};
+var _tideDrawerData = [];
+var _tideDrawerIdx = 0;
 
 function buildTideRow(t, allDayTides, isToday) {
-  var isH = t.type==='H';
+  var isH = t.type === 'H';
   var parts = t.t.split(' ')[1].split(':');
   var h = parseInt(parts[0]), mn = parts[1];
-  var ampm = h>=12?'PM':'AM';
-  var h12 = h>12?h-12:(h===0?12:h);
-  // Encode allDayTides as a data attribute for the click handler
-  var dataId = t.t.replace(/[^0-9]/g,'');
-  _tideDrawerData[dataId] = {tides: allDayTides, clickedT: t, isToday: !!isToday};
-  return '<div class="tide-row" onclick="openTideDrawer(''+dataId+'')" title="Tap to see tide chart">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<div style="width:32px;height:32px;border-radius:8px;background:'+(isH?'#1a6390':'#e07b39')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-    +'<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">'+(isH?'↑':'↓')+'</span></div>'
-    +'<div><div class="tide-type">'+(isH?'High Tide':'Low Tide')+'</div>'
-    +'<div class="tide-time">'+h12+':'+mn+' '+ampm+'</div></div></div>'
-    +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<div class="tide-ht" style="color:'+(isH?'#1a6390':'#e07b39')+'">'+parseFloat(t.v).toFixed(1)+' ft</div>'
-    +'<div style="font-size:16px;color:var(--text-muted);opacity:.5">›</div>'
-    +'</div></div>';
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+  var idx = _tideDrawerIdx++;
+  _tideDrawerData[idx] = {tides: allDayTides, clickedT: t, isToday: !!isToday};
+  var col = isH ? '#1a6390' : '#e07b39';
+  var arrow = isH ? '&uarr;' : '&darr;';
+  var label = isH ? 'High Tide' : 'Low Tide';
+  var ht = parseFloat(t.v).toFixed(1);
+  var onclick = 'openTideDrawer(' + idx + ')';
+  var html = '<div class="tide-row" onclick="' + onclick + '" title="Tap to see tide chart">';
+  html += '<div style="display:flex;align-items:center;gap:10px">';
+  html += '<div style="width:32px;height:32px;border-radius:8px;background:' + col + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+  html += '<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">' + arrow + '</span>';
+  html += '</div>';
+  html += '<div><div class="tide-type">' + label + '</div>';
+  html += '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div>';
+  html += '</div>';
+  html += '<div style="display:flex;align-items:center;gap:8px">';
+  html += '<div class="tide-ht" style="color:' + col + '">' + ht + ' ft</div>';
+  html += '<span style="font-size:16px;color:var(--text-muted);opacity:.5">&#8250;</span>';
+  html += '</div></div>';
+  return html;
 }
 
 // ── Tide graph drawer ─────────────────────────────────────────
@@ -803,20 +814,34 @@ renderFavsBar();
 updateStarIcons();
 // Only auto-request GPS if user has previously granted it
 // Avoids infinite spinner when permission is blocked or dismissed
+// Never auto-spin on load. The initial HTML already shows the idle state.
+// If user previously used GPS, quietly attempt it — but only replace content on success.
 (function() {
   var usedGps = false;
   try { usedGps = localStorage.getItem('fs_used_gps') === '1'; } catch(e) {}
-  if (usedGps) {
-    useGPS();
-  } else {
-    // Show idle state — user can tap My Location or search manually
-    document.getElementById('content').innerHTML =
-      '<div class="loading-state" style="padding-top:48px">'
-      + '<div style="font-size:48px;margin-bottom:16px">🎣</div>'
-      + '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Where are you fishing?</div>'
-      + '<div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">Search a location or tap <strong>My Location</strong> above</div>'
-      + '<button onclick="useGPS()" style="background:var(--ocean);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer">📍 Use My Location</button>'
-      + '</div>';
+  if (usedGps && navigator.geolocation) {
+    // Show a subtle "Locating…" note without the full spinner overlay
+    var note = document.createElement('div');
+    note.id = 'gps-note';
+    note.style.cssText = 'font-size:12px;color:var(--text-muted);text-align:center;margin-top:12px';
+    note.textContent = '📍 Locating…';
+    var contentEl = document.getElementById('content');
+    if (contentEl) contentEl.appendChild(note);
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var n = document.getElementById('gps-note');
+        if (n) n.remove();
+        try { localStorage.setItem('fs_used_gps','1'); } catch(e){}
+        loadSpot('My Location', pos.coords.latitude, pos.coords.longitude);
+      },
+      function() {
+        // Silently fail — just remove the note, keep idle state
+        var n = document.getElementById('gps-note');
+        if (n) n.remove();
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
   }
 })();
 </script>
