@@ -498,7 +498,8 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     dayForecasts.slice(0,7).forEach(function(p,i) {
       var d = new Date(fcDateKeys[i]+'T12:00:00');
       var cellTides = tidesByDate[fcDateKeys[i]] || [];
-      var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, cellTides, d);
+      // Use todayScore for today's cell so it matches the score card (both use current hourly data)
+      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, cellTides, d);
       var topLabel = i===0 ? 'Today' : i===1 ? 'Tmrw' : DAYS[d.getDay()];
       var dateLabel = (d.getMonth()+1)+'/'+d.getDate();
       html += '<div class="week-cell'+(i===0?' active':'')+'" id="wcell'+i+'" onclick="switchDay('+i+')">'
@@ -516,7 +517,8 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
       var d = new Date(fcDateKeys[i]+'T12:00:00');
       var night = nightForecasts[i];
       var panelTides = tidesByDate[fcDateKeys[i]] || [];
-      var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, panelTides, d);
+      // Use todayScore for today's panel header so it matches the score card
+      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, panelTides, d);
       var dateKey = fcDateKeys[i];
       var dateStr = MONTHS[d.getMonth()]+' '+d.getDate();
       var label = i===0 ? 'Today · '+dateStr : i===1 ? 'Tomorrow · '+dateStr
