@@ -13,6 +13,8 @@
 :root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--ocean-light:#2980b9;--kelp-light:#52b788;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
+
+/* ── Header ── */
 .header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1}
@@ -24,21 +26,52 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .loc-input-wrap input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 0}
 .loc-input-wrap input::placeholder{color:rgba(255,255,255,.6)}
 .btn-search{background:var(--kelp-light);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-.quick-spots{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0 6px;cursor:grab;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
-.quick-spots::-webkit-scrollbar{display:none}
-.spot-btn{flex-shrink:0;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:none;border-radius:100px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+
+/* ── Spots strip ── */
+.spots-strip{padding:10px 0 6px}
+.spots-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.spots-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;cursor:grab;-webkit-overflow-scrolling:touch}
+.spots-row::-webkit-scrollbar{display:none}
+.spot-btn{flex-shrink:0;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:none;border-radius:100px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s;white-space:nowrap}
 .spot-btn:active{background:rgba(255,255,255,.3)}
 .spot-btn.gps-btn{background:rgba(255,255,255,.25);font-weight:600}
+.spot-btn.fav-active{background:rgba(82,183,136,.35);border:1px solid rgba(82,183,136,.6)}
+.spot-star{font-size:12px;cursor:pointer;opacity:.7;transition:opacity .15s}
+.spot-star:hover{opacity:1}
+
+/* ── Favorites section ── */
+.favs-section{padding:12px 20px 0}
+.favs-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px}
+.favs-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.favs-row::-webkit-scrollbar{display:none}
+.fav-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;background:rgba(82,183,136,.2);border:1px solid rgba(82,183,136,.4);color:#fff;border-radius:100px;padding:5px 12px 5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.fav-chip:hover{background:rgba(82,183,136,.35)}
+.fav-chip-remove{font-size:14px;opacity:.6;margin-left:2px;line-height:1}
+.fav-chip-remove:hover{opacity:1}
+.favs-empty{font-size:11px;color:rgba(255,255,255,.35);padding:4px 0 8px;font-style:italic}
+
+/* ── Content ── */
 .content{padding:16px}
 .section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:0 0 10px}
+
+/* ── Score card ── */
 .score-card{border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
 .score-num{font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;color:#fff;line-height:1}
 .score-info-title{font-size:14px;font-weight:700;color:#fff}
 .score-info-sub{font-size:12px;color:rgba(255,255,255,.85);margin-top:3px}
-.day-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:8px;margin-bottom:16px}
-.day-tabs::-webkit-scrollbar{display:none}
-.day-tab{flex-shrink:0;padding:8px 14px;border-radius:100px;border:1.5px solid var(--border);background:var(--white);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;text-align:center;min-width:68px;transition:all .2s}
-.day-tab.active{background:var(--ocean);border-color:var(--ocean);color:#fff}
+
+/* ── 7-day GRID (replaces horizontal scroll tabs) ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+.week-cell{background:var(--white);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;min-width:0}
+.week-cell.active{border-color:var(--ocean);background:var(--ocean)}
+.week-cell.active .wc-label{color:rgba(255,255,255,.7)}
+.week-cell.active .wc-score{color:var(--kelp-light)}
+.week-cell.active .wc-icon{filter:none}
+.wc-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wc-icon{font-size:18px;line-height:1;margin-bottom:3px}
+.wc-score{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700}
+
+/* ── Day panel ── */
 .day-panel{display:none}
 .day-panel.active{display:block}
 .wx-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -52,21 +85,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .wx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .wx-tile{background:var(--bg);border-radius:8px;padding:10px;text-align:center}
 .wx-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
-.wx-tile-value{font-size:20px;font-weight:700;color:var(--text);margin-top:2px}
+.wx-tile-value{font-size:20px;font-weight:700;color:var(--text);margin-top:2px;word-break:break-word;overflow-wrap:break-word;white-space:normal}
 .wx-tile-sub{font-size:10px;color:var(--text-muted);margin-top:1px}
 .wx-detail{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px}
-.tide-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+
+/* ── Tide cards ── */
+.tide-card{background:var(--white);border-radius:var(--radius-sm);padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:10px}
 .tide-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
 .tide-row:last-child{border-bottom:none}
 .tide-type{font-size:13px;font-weight:500}
 .tide-time{font-size:11px;color:var(--text-muted);margin-top:1px}
 .tide-ht{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700}
-.tide-high .tide-ht{color:#1a6390}
-.tide-low .tide-ht{color:#e07b39}
+
+/* ── 14-day section ── */
+.extended-header{display:flex;align-items:center;gap:10px;background:var(--ocean);border-radius:var(--radius-sm);padding:12px 16px;margin:20px 0 12px}
+.extended-header-icon{font-size:24px}
+.extended-header-text .ext-title{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;color:#fff;letter-spacing:.5px}
+.extended-header-text .ext-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+
+/* ── Loading / error ── */
 .loading-state{padding:40px 20px;text-align:center;color:var(--text-muted)}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .error-state{background:var(--white);border-radius:var(--radius-sm);padding:24px;text-align:center;margin-top:8px}
+
+/* ── Bottom nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
 .nav-item.active{color:var(--ocean)}
@@ -88,15 +131,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
       </div>
       <button class="btn-search" onclick="searchLocation()">Go</button>
     </div>
-    <div class="quick-spots">
-      <button class="spot-btn gps-btn" onclick="useGPS()">📍 My Location</button>
-      <button class="spot-btn" onclick="loadSpot('San Francisco Bay',37.8044,-122.2711)">SF Bay</button>
-      <button class="spot-btn" onclick="loadSpot('Monterey Bay',36.6002,-121.8947)">Monterey</button>
-      <button class="spot-btn" onclick="loadSpot('Bodega Bay',38.3327,-123.0497)">Bodega Bay</button>
-      <button class="spot-btn" onclick="loadSpot('Morro Bay',35.3658,-120.8499)">Morro Bay</button>
-      <button class="spot-btn" onclick="loadSpot('Santa Barbara',34.4208,-119.6982)">Santa Barbara</button>
-      <button class="spot-btn" onclick="loadSpot('San Diego',32.7157,-117.1611)">San Diego</button>
-      <button class="spot-btn" onclick="loadSpot('Eureka',40.8021,-124.1637)">Eureka</button>
+
+    <!-- Favorites row -->
+    <div class="favs-section" id="favsSection" style="display:none">
+      <div class="favs-label">⭐ My Spots</div>
+      <div class="favs-row" id="favsRow"></div>
+    </div>
+
+    <!-- Quick spots strip -->
+    <div class="spots-strip">
+      <div class="spots-label">Popular Spots</div>
+      <div class="spots-row" id="spotsRow">
+        <button class="spot-btn gps-btn" onclick="useGPS()">📍 My Location</button>
+        <button class="spot-btn" id="spot-SF Bay" onclick="loadSpot('San Francisco Bay',37.8044,-122.2711)">
+          <span>SF Bay</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('San Francisco Bay',37.8044,-122.2711)" id="star-SF Bay">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-Monterey" onclick="loadSpot('Monterey Bay',36.6002,-121.8947)">
+          <span>Monterey</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('Monterey Bay',36.6002,-121.8947)" id="star-Monterey">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-Bodega Bay" onclick="loadSpot('Bodega Bay',38.3327,-123.0497)">
+          <span>Bodega Bay</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('Bodega Bay',38.3327,-123.0497)" id="star-Bodega Bay">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-Morro Bay" onclick="loadSpot('Morro Bay',35.3658,-120.8499)">
+          <span>Morro Bay</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('Morro Bay',35.3658,-120.8499)" id="star-Morro Bay">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-Santa Barbara" onclick="loadSpot('Santa Barbara',34.4208,-119.6982)">
+          <span>Santa Barbara</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('Santa Barbara',34.4208,-119.6982)" id="star-Santa Barbara">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-San Diego" onclick="loadSpot('San Diego',32.7157,-117.1611)">
+          <span>San Diego</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('San Diego',32.7157,-117.1611)" id="star-San Diego">☆</span>
+        </button>
+        <button class="spot-btn" id="spot-Eureka" onclick="loadSpot('Eureka',40.8021,-124.1637)">
+          <span>Eureka</span><span class="spot-star" onclick="event.stopPropagation();toggleFav('Eureka',40.8021,-124.1637)" id="star-Eureka">☆</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -121,45 +189,107 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// ── Favorites ─────────────────────────────────────────────────
+function getFavs() {
+  try { return JSON.parse(localStorage.getItem('fs_favspots') || '[]'); } catch(e) { return []; }
+}
+function saveFavs(favs) {
+  try { localStorage.setItem('fs_favspots', JSON.stringify(favs)); } catch(e) {}
+}
+function toggleFav(name, lat, lng) {
+  var favs = getFavs();
+  var idx = favs.findIndex(function(f) { return f.name === name; });
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.push({ name: name, lat: lat, lng: lng });
+  }
+  saveFavs(favs);
+  renderFavsBar();
+  updateStarIcons();
+}
+function isFav(name) {
+  return getFavs().some(function(f) { return f.name === name; });
+}
+function updateStarIcons() {
+  var favs = getFavs();
+  document.querySelectorAll('.spot-star').forEach(function(el) {
+    var spotBtn = el.closest('.spot-btn');
+    if (!spotBtn) return;
+    var spotName = spotBtn.querySelector('span:first-child').textContent.trim();
+    // match against fav names (partial — preset names may differ)
+    var favName = favs.find(function(f) {
+      return f.name.toLowerCase().includes(spotName.toLowerCase()) || spotName.toLowerCase().includes(f.name.toLowerCase().split(' ')[0]);
+    });
+    el.textContent = favName ? '⭐' : '☆';
+    el.style.opacity = favName ? '1' : '0.7';
+  });
+}
+function renderFavsBar() {
+  var favs = getFavs();
+  var section = document.getElementById('favsSection');
+  var row = document.getElementById('favsRow');
+  if (!favs.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  row.innerHTML = favs.map(function(f) {
+    return '<div class="fav-chip" onclick="loadSpot(\'' + f.name.replace(/'/g,"\\'") + '\',' + f.lat + ',' + f.lng + ')">'
+      + '⭐ ' + f.name
+      + '<span class="fav-chip-remove" onclick="event.stopPropagation();toggleFav(\'' + f.name.replace(/'/g,"\\'") + '\',' + f.lat + ',' + f.lng + ')" title="Remove">×</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Save searched location as potential favorite ──────────────
+function offerSaveLocation(name, lat, lng) {
+  // Add a "save this spot" button after loading — shown in content area header
+  var existing = document.getElementById('saveLocBtn');
+  if (existing) existing.remove();
+  var btn = document.createElement('button');
+  btn.id = 'saveLocBtn';
+  var already = isFav(name);
+  btn.style.cssText = 'display:flex;align-items:center;gap:6px;background:'+(already?'rgba(82,183,136,.15)':'var(--white)')+';border:1.5px solid '+(already?'var(--kelp-light)':'var(--border)')+';color:'+(already?'#2d7d46':'var(--text-muted)')+';border-radius:100px;padding:6px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px';
+  btn.innerHTML = (already ? '⭐ Saved to My Spots' : '☆ Save to My Spots');
+  btn.onclick = function() {
+    toggleFav(name, lat, lng);
+    var nowFav = isFav(name);
+    btn.innerHTML = nowFav ? '⭐ Saved to My Spots' : '☆ Save to My Spots';
+    btn.style.background = nowFav ? 'rgba(82,183,136,.15)' : 'var(--white)';
+    btn.style.borderColor = nowFav ? 'var(--kelp-light)' : 'var(--border)';
+    btn.style.color = nowFav ? '#2d7d46' : 'var(--text-muted)';
+  };
+  var content = document.getElementById('content');
+  content.insertBefore(btn, content.firstChild);
+}
+
+// ── Utility ───────────────────────────────────────────────────
 function showLoading(msg) {
   document.getElementById('content').innerHTML =
     '<div class="loading-state"><div class="spinner"></div><div>' + (msg || 'Loading…') + '</div></div>';
 }
-
 function showError(msg) {
   document.getElementById('content').innerHTML =
     '<div class="error-state"><div style="font-size:32px;margin-bottom:8px">🌊</div>'
     + '<div style="font-weight:600;margin-bottom:6px">Could not load forecast</div>'
-    + '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + (msg || 'Check your connection and try again.') + '</div>'
+    + '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + (msg||'Check connection and try again.') + '</div>'
     + '<button onclick="useGPS()" style="padding:10px 24px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-family:inherit;cursor:pointer">Try My Location</button>'
     + '</div>';
 }
 
-// State name/abbreviation lookup — used to detect explicit user intent
 var STATE_HINTS = {
-  'al':'Alabama','alaska':'Alaska','ak':'Alaska','arizona':'Arizona','az':'Arizona',
-  'california':'California','ca':'California','colorado':'Colorado','co':'Colorado',
-  'florida':'Florida','fl':'Florida','georgia':'Georgia','ga':'Georgia',
-  'hawaii':'Hawaii','hi':'Hawaii','idaho':'Idaho','id':'Idaho',
-  'montana':'Montana','mt':'Montana','nevada':'Nevada','nv':'Nevada',
-  'oregon':'Oregon','or':'Oregon','texas':'Texas','tx':'Texas',
-  'utah':'Utah','ut':'Utah','washington':'Washington','wa':'Washington',
-  'wyoming':'Wyoming','wy':'Wyoming',
+  'california':'California','ca':'California','oregon':'Oregon','or':'Oregon',
+  'washington':'Washington','wa':'Washington','nevada':'Nevada','nv':'Nevada',
+  'arizona':'Arizona','az':'Arizona','hawaii':'Hawaii','hi':'Hawaii',
+  'alaska':'Alaska','ak':'Alaska','florida':'Florida','fl':'Florida',
+  'texas':'Texas','tx':'Texas','montana':'Montana','mt':'Montana',
+  'idaho':'Idaho','id':'Idaho','utah':'Utah','ut':'Utah',
+  'colorado':'Colorado','co':'Colorado','wyoming':'Wyoming','wy':'Wyoming',
 };
-
 function detectStateHint(query) {
-  // Check if query ends with a state name or abbreviation
-  // e.g. "Crater Lake OR", "Portland Oregon", "Bodega Bay, CA"
-  var q = query.toLowerCase().replace(/[,\.]/g, ' ').trim();
+  var q = query.toLowerCase().replace(/[,\.]/g,' ').trim();
   var parts = q.split(/\s+/);
-  // Check last word
-  var last = parts[parts.length - 1];
+  var last = parts[parts.length-1];
   if (STATE_HINTS[last]) return STATE_HINTS[last];
-  // Check last two words as a phrase (e.g. "new york")
-  if (parts.length >= 2) {
-    var lastTwo = parts.slice(-2).join(' ');
-    if (STATE_HINTS[lastTwo]) return STATE_HINTS[lastTwo];
-  }
+  if (parts.length >= 2) { var lt = parts.slice(-2).join(' '); if (STATE_HINTS[lt]) return STATE_HINTS[lt]; }
   return null;
 }
 
@@ -168,77 +298,38 @@ async function searchLocation() {
   if (!q) return;
   showLoading('Searching for ' + q + '…');
   try {
-    var regionCfg = (typeof getRegionConfig === 'function') ? getRegionConfig() : { admin1: 'California', country_code: 'US', name: 'California' };
-
-    // Detect if user explicitly stated a state in their query
+    var regionCfg = (typeof getRegionConfig==='function') ? getRegionConfig() : {admin1:'California',country_code:'US',name:'California'};
     var explicitState = detectStateHint(q);
-
-    // If state hint detected, strip it from the query for geocoding
-    // e.g. "Crater Lake OR" -> search "Crater Lake" biased to Oregon
     var searchQ = q;
     if (explicitState) {
-      var statePattern = new RegExp('\\s*,?\\s*(' + explicitState + '|' + Object.keys(STATE_HINTS).filter(function(k) { return STATE_HINTS[k] === explicitState; }).join('|') + ')\\s*$', 'i');
-      searchQ = q.replace(statePattern, '').trim();
-      if (!searchQ) searchQ = q; // fallback if nothing left
+      var statePattern = new RegExp('\\s*,?\\s*('+explicitState+'|'+Object.keys(STATE_HINTS).filter(function(k){return STATE_HINTS[k]===explicitState;}).join('|')+')\\s*$','i');
+      searchQ = q.replace(statePattern,'').trim() || q;
     }
-
-    // Fetch up to 10 candidates
-    var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
-      + encodeURIComponent(searchQ) + '&count=10&language=en&format=json');
+    var res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(searchQ)+'&count=10&language=en&format=json');
     var data = await res.json();
-
     if (!data.results || !data.results.length) {
-      // Retry: if explicit state, try appending state name to clean query
-      // If no state, try appending home region name
-      var retryQ = explicitState
-        ? searchQ + ' ' + explicitState
-        : searchQ + ' ' + regionCfg.name;
-      var res2 = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='
-        + encodeURIComponent(retryQ) + '&count=5&language=en&format=json');
+      var retryQ = explicitState ? searchQ+' '+explicitState : searchQ+' '+regionCfg.name;
+      var res2 = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(retryQ)+'&count=5&language=en&format=json');
       var data2 = await res2.json();
-      if (!data2.results || !data2.results.length) {
-        showError('Location not found. Try a nearby city instead — e.g. "Klamath Falls OR" or "Medford Oregon"');
-        return;
-      }
+      if (!data2.results || !data2.results.length) { showError('Location not found. Try a nearby city.'); return; }
       data = data2;
     }
-
     var qLower = q.toLowerCase();
     var scored = data.results.map(function(r) {
       var score = 0;
-      var admin = (r.admin1 || '').toLowerCase();
-      var country = (r.country_code || '').toUpperCase();
-
-      if (explicitState) {
-        // User told us exactly which state — heavily reward matching it,
-        // apply zero home-region bias
-        if (admin === explicitState.toLowerCase()) score += 150;
-        else if (country === 'US') score += 5;
-      } else {
-        // Ambiguous query — bias toward home region
-        if (admin === regionCfg.admin1.toLowerCase()) score += 100;
-        else if (country === regionCfg.country_code) score += 15;
-      }
-
-      // Name quality bonuses (always apply)
-      if (r.name.toLowerCase() === qLower) score += 50;
-      else if (r.name.toLowerCase().startsWith(qLower)) score += 25;
-      if (r.population) score += Math.min(r.population / 10000, 20);
-
-      return { r: r, score: score };
+      var admin = (r.admin1||'').toLowerCase();
+      if (explicitState) { if (admin===explicitState.toLowerCase()) score+=150; else if ((r.country_code||'').toUpperCase()==='US') score+=5; }
+      else { if (admin===regionCfg.admin1.toLowerCase()) score+=100; else if ((r.country_code||'').toUpperCase()===regionCfg.country_code) score+=15; }
+      if (r.name.toLowerCase()===qLower) score+=50;
+      else if (r.name.toLowerCase().startsWith(qLower)) score+=25;
+      if (r.population) score+=Math.min(r.population/10000,20);
+      return {r:r,score:score};
     });
-
-    scored.sort(function(a, b) { return b.score - a.score; });
+    scored.sort(function(a,b){return b.score-a.score;});
     var best = scored[0].r;
-    var locName = best.name
-      + (best.admin1 ? ', ' + best.admin1 : '')
-      + (best.country_code !== 'US' ? ', ' + best.country_code : '');
-
+    var locName = best.name+(best.admin1?', '+best.admin1:'')+(best.country_code!=='US'?', '+best.country_code:'');
     await loadSpot(locName, best.latitude, best.longitude);
-  } catch(e) {
-    console.error('[FS] search error:', e);
-    showError('Search failed. Check your connection.');
-  }
+  } catch(e) { showError('Search failed. Check your connection.'); }
 }
 
 function useGPS() {
@@ -251,90 +342,60 @@ function useGPS() {
 }
 
 async function loadSpot(locName, lat, lng) {
-  showLoading('Loading forecast for ' + locName + '…');
+  showLoading('Loading forecast for '+locName+'…');
   try {
-    console.log('[FS] loadSpot called:', locName, lat, lng);
-
-    // Check app.js loaded correctly
-    if (typeof nearestStation === 'undefined') {
-      showError('App script failed to load. Please hard-refresh the page (hold refresh button → Empty Cache and Hard Reload).');
-      console.error('[FS] nearestStation is undefined — js/app.js did not load');
-      return;
-    }
-
+    if (typeof nearestStation==='undefined') { showError('App script failed to load. Please hard-refresh.'); return; }
     var station = nearestStation(lat, lng);
-    console.log('[FS] nearest station:', station.name, station.id);
-
     var today = new Date();
     var ds = today.toISOString().split('T')[0].replace(/-/g,'');
-    var end14 = new Date(today);
-    end14.setDate(today.getDate() + 13);
+    var end14 = new Date(today); end14.setDate(today.getDate()+13);
     var de = end14.toISOString().split('T')[0].replace(/-/g,'');
+    var tideUrl = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date='+ds+'&end_date='+de
+      +'&station='+station.id+'&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json';
 
-    var tideUrl = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=' + ds
-      + '&end_date=' + de + '&station=' + station.id
-      + '&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json';
-
-    var tideData = {predictions: []};
+    var tideData = {predictions:[]};
     var forecast = null, hourly = null;
 
     try {
-      console.log('[FS] fetching tides...');
       var tideRes = await fetch(tideUrl);
-      console.log('[FS] tide status:', tideRes.status);
       tideData = await tideRes.json();
-      console.log('[FS] tide predictions:', tideData.predictions ? tideData.predictions.length : 'none', tideData.error || '');
-    } catch(e) { console.error('[FS] Tides fetch error:', e.message); }
+    } catch(e) { console.error('[FS] Tides error:', e.message); }
 
     try {
-      console.log('[FS] fetching NWS weather...');
-      var wxPointUrl = 'https://api.weather.gov/points/' + lat.toFixed(4) + ',' + lng.toFixed(4);
-      var wxPointRes = await fetch(wxPointUrl, {
-        headers: { 'User-Agent': 'FishSmarterApp/1.0 (fishsmarter.app)', 'Accept': 'application/geo+json' }
-      });
-      console.log('[FS] NWS points status:', wxPointRes.status);
+      var wxPointRes = await fetch('https://api.weather.gov/points/'+lat.toFixed(4)+','+lng.toFixed(4),
+        {headers:{'User-Agent':'FishSmarterApp/1.0 (fishsmarter.app)','Accept':'application/geo+json'}});
       if (wxPointRes.ok) {
         var wxPoint = await wxPointRes.json();
         if (wxPoint.properties && wxPoint.properties.forecast) {
-          console.log('[FS] fetching forecast:', wxPoint.properties.forecast);
           var fRes = await fetch(wxPoint.properties.forecast);
           var hRes = await fetch(wxPoint.properties.forecastHourly);
-          console.log('[FS] forecast status:', fRes.status, 'hourly status:', hRes.status);
           if (fRes.ok) { var fData = await fRes.json(); forecast = fData.properties && fData.properties.periods; }
           if (hRes.ok) { var hData = await hRes.json(); hourly = hData.properties && hData.properties.periods; }
-          console.log('[FS] forecast periods:', forecast ? forecast.length : 0);
         }
-      } else {
-        var errText = await wxPointRes.text();
-        console.error('[FS] NWS error:', errText.substring(0, 200));
       }
-    } catch(e) { console.error('[FS] Weather fetch error:', e.message); }
+    } catch(e) { console.error('[FS] Weather error:', e.message); }
 
     if (!tideData.predictions || !tideData.predictions.length) {
-      console.error('[FS] No tide data. tideData:', JSON.stringify(tideData).substring(0, 200));
-      showError('Could not load tide data. NOAA service may be temporarily unavailable — try again in a moment.');
+      showError('Could not load tide data. NOAA service may be temporarily unavailable — try again shortly.');
       return;
     }
-
-    console.log('[FS] Rendering forecast...');
     renderForecast(locName, lat, lng, station, tideData, forecast, hourly);
-  } catch(e) {
-    console.error('[FS] loadSpot outer catch:', e.message, e.stack);
-    showError('Could not load forecast: ' + e.message);
-  }
+    offerSaveLocation(locName, lat, lng);
+    renderFavsBar();
+    updateStarIcons();
+  } catch(e) { showError('Could not load forecast: '+e.message); }
 }
 
 function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) {
-  // Group tides by date
   var tidesByDate = {};
-  (tideData.predictions || []).forEach(function(t) {
+  (tideData.predictions||[]).forEach(function(t) {
     var dk = t.t.split(' ')[0];
     if (!tidesByDate[dk]) tidesByDate[dk] = [];
     tidesByDate[dk].push(t);
   });
 
-  var dayForecasts = forecast ? forecast.filter(function(p) { return p.isDaytime; }) : [];
-  var nightForecasts = forecast ? forecast.filter(function(p) { return !p.isDaytime; }) : [];
+  var dayForecasts = forecast ? forecast.filter(function(p){return p.isDaytime;}) : [];
+  var nightForecasts = forecast ? forecast.filter(function(p){return !p.isDaytime;}) : [];
   var current = hourly ? hourly[0] : null;
   var todayF = dayForecasts[0];
   var curTemp = current ? parseInt(current.temperature) : (todayF ? todayF.temperature : null);
@@ -344,85 +405,76 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
 
   var html = '';
 
-  // Location info
+  // Location line
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">'
-    + '📍 ' + locName + ' · Tide station: ' + station.name + '</div>';
+    +'📍 '+locName+' · Tide station: '+station.name+'</div>';
 
-  // Today's fishing score card
-  html += '<div class="score-card" style="background:' + scoreColor(todayScore) + '">'
-    + '<div class="score-num">' + todayScore + '</div>'
-    + '<div><div class="score-info-title">Today\'s Fishing Score</div>'
-    + '<div class="score-info-sub">' + scoreDesc(todayScore)
-    + (curTemp ? ' · ' + curTemp + '°F' : '')
-    + ' · ' + curWind + ' · ' + curFcast + '</div></div></div>';
+  // Today score card
+  html += '<div class="score-card" style="background:'+scoreColor(todayScore)+'">'
+    +'<div class="score-num">'+todayScore+'</div>'
+    +'<div><div class="score-info-title">Today\'s Fishing Score</div>'
+    +'<div class="score-info-sub">'+scoreDesc(todayScore)
+    +(curTemp?' · '+curTemp+'°F':'')
+    +' · '+curWind+' · '+curFcast+'</div></div></div>';
 
   if (dayForecasts.length > 0) {
-    // Day selector tabs
+
+    // ── 7-day grid ────────────────────────────────────────────
     html += '<div class="section-label">7-Day Forecast</div>';
-    html += '<div class="day-tabs" id="dayTabs">';
-    dayForecasts.slice(0, 7).forEach(function(p, i) {
+    html += '<div class="week-grid" id="weekGrid">';
+    dayForecasts.slice(0,7).forEach(function(p,i) {
       var d = new Date(p.startTime);
       var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
-      var label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : DAYS[d.getDay()];
-      html += '<button class="day-tab' + (i === 0 ? ' active' : '') + '" onclick="switchDay(' + i + ')" id="dtab' + i + '">'
-        + label + '<br>'
-        + '<span style="font-size:11px;color:' + (i === 0 ? 'var(--kelp-light)' : scoreColor(s)) + '">'
-        + getWxIcon(p.shortForecast) + ' ' + s + '</span></button>';
+      var label = i===0 ? 'Today' : i===1 ? 'Tmrw' : DAYS[d.getDay()];
+      html += '<div class="week-cell'+(i===0?' active':'')+'" id="wcell'+i+'" onclick="switchDay('+i+')">'
+        +'<div class="wc-label">'+label+'</div>'
+        +'<div class="wc-icon">'+getWxIcon(p.shortForecast)+'</div>'
+        +'<div class="wc-score" style="color:'+scoreColor(s)+'">'+s+'</div>'
+        +'</div>';
     });
     html += '</div>';
 
-    // Day panels
-    dayForecasts.slice(0, 7).forEach(function(p, i) {
+    // ── Day panels ────────────────────────────────────────────
+    dayForecasts.slice(0,7).forEach(function(p,i) {
       var d = new Date(p.startTime);
       var night = nightForecasts[i];
       var s = calcFishingScore(p.temperature, p.windSpeed, p.shortForecast);
       var dateKey = d.toISOString().split('T')[0];
-      var label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
-        : DAYS[d.getDay()] + ' ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
-      var dayTides = tidesByDate[dateKey] || [];
+      var label = i===0 ? 'Today' : i===1 ? 'Tomorrow'
+        : DAYS[d.getDay()]+' '+MONTHS[d.getMonth()]+' '+d.getDate();
+      var dayTides = tidesByDate[dateKey]||[];
 
-      html += '<div class="day-panel' + (i === 0 ? ' active' : '') + '" id="dpanel' + i + '">';
+      html += '<div class="day-panel'+(i===0?' active':'')+'" id="dpanel'+i+'">';
+
+      // Weather card
       html += '<div class="wx-card">'
-        + '<div class="wx-header">'
-        + '<span class="wx-icon">' + getWxIcon(p.shortForecast) + '</span>'
-        + '<div class="wx-info"><div class="wx-day">' + label + '</div>'
-        + '<div class="wx-desc">' + p.shortForecast + ' · ' + p.windSpeed + ' ' + p.windDirection + '</div></div>'
-        + '<div class="wx-score-pill" style="background:' + scoreColor(s) + '">'
-        + s + '<span class="wx-score-sub">' + scoreDesc(s) + '</span></div>'
-        + '</div>'
-        + '<div class="wx-grid">'
-        + '<div class="wx-tile"><div class="wx-tile-label">High Temp</div>'
-        + '<div class="wx-tile-value">' + p.temperature + '°</div></div>'
-        + '<div class="wx-tile"><div class="wx-tile-label">Wind</div>'
-        + '<div class="wx-tile-value" style="font-size:14px">' + p.windSpeed + '</div>'
-        + '<div class="wx-tile-sub">' + p.windDirection + '</div></div>';
+        +'<div class="wx-header">'
+        +'<span class="wx-icon">'+getWxIcon(p.shortForecast)+'</span>'
+        +'<div class="wx-info"><div class="wx-day">'+label+'</div>'
+        +'<div class="wx-desc">'+p.shortForecast+' · '+p.windSpeed+' '+p.windDirection+'</div></div>'
+        +'<div class="wx-score-pill" style="background:'+scoreColor(s)+'">'+s
+        +'<span class="wx-score-sub">'+scoreDesc(s)+'</span></div>'
+        +'</div>'
+        +'<div class="wx-grid">'
+        +'<div class="wx-tile"><div class="wx-tile-label">High Temp</div>'
+        +'<div class="wx-tile-value">'+p.temperature+'°</div></div>'
+        +'<div class="wx-tile"><div class="wx-tile-label">Wind</div>'
+        +'<div class="wx-tile-value" style="font-size:14px">'+p.windSpeed+'</div>'
+        +'<div class="wx-tile-sub">'+p.windDirection+'</div></div>';
       if (night) {
         html += '<div class="wx-tile"><div class="wx-tile-label">Tonight</div>'
-          + '<div class="wx-tile-value">' + night.temperature + '°</div></div>';
+          +'<div class="wx-tile-value">'+night.temperature+'°</div></div>';
       }
       html += '</div>';
-      if (p.detailedForecast) {
-        html += '<div class="wx-detail">' + p.detailedForecast + '</div>';
-      }
+      if (p.detailedForecast) html += '<div class="wx-detail">'+p.detailedForecast+'</div>';
       html += '</div>';
 
       // Tides for this day
-      html += '<div class="section-label">Tides — ' + station.name + '</div>';
+      html += '<div class="section-label">Tides — '+station.name+'</div>';
       html += '<div class="tide-card">';
       if (dayTides.length) {
         dayTides.forEach(function(t) {
-          var isH = t.type === 'H';
-          var parts = t.t.split(' ')[1].split(':');
-          var h = parseInt(parts[0]), mn = parts[1];
-          var ampm = h >= 12 ? 'PM' : 'AM';
-          var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-          html += '<div class="tide-row">'
-            + '<div style="display:flex;align-items:center;gap:10px">'
-            + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-            + '<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">' + (isH ? '↑' : '↓') + '</span></div>'
-            + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
-            + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
-            + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
+          html += buildTideRow(t);
         });
       } else {
         html += '<div style="font-size:13px;color:var(--text-muted);padding:8px">No tide data for this day</div>';
@@ -432,32 +484,24 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
     });
   }
 
-  // Extended tide forecast (days 8-14, tides only)
-  var extKeys = Object.keys(tidesByDate).sort().slice(7, 14);
+  // ── Extended 14-day section ───────────────────────────────
+  var extKeys = Object.keys(tidesByDate).sort().slice(7,14);
   if (extKeys.length) {
-    html += '<div class="section-label" style="margin-top:8px">14-Day Tide Forecast</div>';
-    html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Weather unavailable beyond 7 days · Tide predictions only</div>';
+    html += '<div class="extended-header">'
+      +'<div class="extended-header-icon">📅</div>'
+      +'<div class="extended-header-text">'
+      +'<div class="ext-title">Days 8–14 · Tide Forecast</div>'
+      +'<div class="ext-sub">Weather data unavailable beyond 7 days · Tide predictions only</div>'
+      +'</div></div>';
+
     extKeys.forEach(function(dk) {
-      var d = new Date(dk + 'T12:00:00');
+      var d = new Date(dk+'T12:00:00');
       var ts = tidesByDate[dk];
-      if (!ts || !ts.length) return;
+      if (!ts||!ts.length) return;
       html += '<div class="tide-card" style="margin-bottom:10px">'
-        + '<div style="font-size:13px;font-weight:600;margin-bottom:8px">'
-        + DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + '</div>';
-      ts.forEach(function(t) {
-        var isH = t.type === 'H';
-        var parts = t.t.split(' ')[1].split(':');
-        var h = parseInt(parts[0]), mn = parts[1];
-        var ampm = h >= 12 ? 'PM' : 'AM';
-        var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-        html += '<div class="tide-row">'
-          + '<div style="display:flex;align-items:center;gap:10px">'
-          + '<div style="width:32px;height:32px;border-radius:8px;background:' + (isH ? '#1a6390' : '#e07b39') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
-          + '<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">' + (isH ? '↑' : '↓') + '</span></div>'
-          + '<div><div class="tide-type">' + (isH ? 'High Tide' : 'Low Tide') + '</div>'
-          + '<div class="tide-time">' + h12 + ':' + mn + ' ' + ampm + '</div></div></div>'
-          + '<div class="tide-ht" style="color:' + (isH ? '#1a6390' : '#e07b39') + '">' + parseFloat(t.v).toFixed(1) + ' ft</div></div>';
-      });
+        +'<div style="font-size:13px;font-weight:600;margin-bottom:8px">'
+        +DAYS[d.getDay()]+', '+MONTHS[d.getMonth()]+' '+d.getDate()+'</div>';
+      ts.forEach(function(t) { html += buildTideRow(t); });
       html += '</div>';
     });
   }
@@ -465,37 +509,44 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   document.getElementById('content').innerHTML = html;
 }
 
+function buildTideRow(t) {
+  var isH = t.type==='H';
+  var parts = t.t.split(' ')[1].split(':');
+  var h = parseInt(parts[0]), mn = parts[1];
+  var ampm = h>=12?'PM':'AM';
+  var h12 = h>12?h-12:(h===0?12:h);
+  return '<div class="tide-row">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<div style="width:32px;height:32px;border-radius:8px;background:'+(isH?'#1a6390':'#e07b39')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+    +'<span style="font-size:16px;font-weight:700;color:#fff;line-height:1">'+(isH?'↑':'↓')+'</span></div>'
+    +'<div><div class="tide-type">'+(isH?'High Tide':'Low Tide')+'</div>'
+    +'<div class="tide-time">'+h12+':'+mn+' '+ampm+'</div></div></div>'
+    +'<div class="tide-ht" style="color:'+(isH?'#1a6390':'#e07b39')+'">'+parseFloat(t.v).toFixed(1)+' ft</div></div>';
+}
+
 function switchDay(i) {
-  document.querySelectorAll('.day-tab').forEach(function(t, idx) {
-    t.classList.toggle('active', idx === i);
+  document.querySelectorAll('.week-cell').forEach(function(c,idx) {
+    c.classList.toggle('active', idx===i);
   });
-  document.querySelectorAll('.day-panel').forEach(function(p, idx) {
-    p.classList.toggle('active', idx === i);
+  document.querySelectorAll('.day-panel').forEach(function(p,idx) {
+    p.classList.toggle('active', idx===i);
   });
 }
 
-// Mouse drag scrolling for quick-spots on desktop
+// ── Mouse drag scroll for spots row ──────────────────────────
 (function() {
-  var el = document.querySelector('.quick-spots');
+  var el = document.getElementById('spotsRow');
   if (!el) return;
-  var isDown = false, startX, scrollLeft;
-  el.addEventListener('mousedown', function(e) {
-    isDown = true;
-    el.style.cursor = 'grabbing';
-    startX = e.pageX - el.offsetLeft;
-    scrollLeft = el.scrollLeft;
-  });
-  el.addEventListener('mouseleave', function() { isDown = false; el.style.cursor = 'grab'; });
-  el.addEventListener('mouseup', function() { isDown = false; el.style.cursor = 'grab'; });
-  el.addEventListener('mousemove', function(e) {
-    if (!isDown) return;
-    e.preventDefault();
-    var x = e.pageX - el.offsetLeft;
-    el.scrollLeft = scrollLeft - (x - startX);
-  });
+  var isDown=false, startX, scrollLeft;
+  el.addEventListener('mousedown',function(e){isDown=true;el.style.cursor='grabbing';startX=e.pageX-el.offsetLeft;scrollLeft=el.scrollLeft;});
+  el.addEventListener('mouseleave',function(){isDown=false;el.style.cursor='grab';});
+  el.addEventListener('mouseup',function(){isDown=false;el.style.cursor='grab';});
+  el.addEventListener('mousemove',function(e){if(!isDown)return;e.preventDefault();el.scrollLeft=scrollLeft-(e.pageX-el.offsetLeft-startX);});
 })();
 
-// Auto-load with GPS on first visit
+// ── Init ──────────────────────────────────────────────────────
+renderFavsBar();
+updateStarIcons();
 useGPS();
 </script>
 </body>
