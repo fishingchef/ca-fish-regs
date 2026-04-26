@@ -55,10 +55,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .action-bar{padding:10px 16px;display:flex;gap:8px}
 .btn-map{flex:1;padding:10px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 
-
-/* ── GPS banner ── */
-
-
 /* ── Species list ── */
 .species-list{padding:8px 12px 16px}
 .section-label{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;padding:8px 4px 6px}
@@ -102,18 +98,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .d-tile{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
 .d-tile-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.d-tile-value{font-size:16px;font-weight:700;color:var(--ocean);font-family:'Unbounded',sans-serif}
-.d-tile-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
-.d-note{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px}
+.d-tile-value{font-size:16px;font-weight:700;color:var(--ocean);font-family:'Unbounded',sans-serif;word-break:break-word;overflow-wrap:break-word;white-space:normal}
+.d-tile-sub{font-size:11px;color:var(--text-muted);margin-top:2px;word-break:break-word;overflow-wrap:break-word}
+.d-note{background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px;word-break:break-word;overflow-wrap:break-word}
 .d-note.warning{background:#fdf0e0;color:#7a4f00;border-left:3px solid var(--warning)}
 .d-note.danger{background:#fde8e8;color:#7a0000;border-left:3px solid var(--danger)}
+.reg-note{word-break:break-word;overflow-wrap:break-word}
 .lang-pills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px}
 .lang-pill{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .lang-pill.active{background:var(--ocean);color:#fff;border-color:var(--ocean)}
 .d-save-btn{width:100%;padding:13px;background:var(--bg);color:var(--ocean);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px}
 .d-save-btn.saved{background:#fff8e1;border-color:var(--warning);color:#7a4f00}
-.d-tile-value{word-break:break-word;overflow-wrap:break-word;white-space:normal}
-.d-tile-sub,.d-note,.reg-note{word-break:break-word;overflow-wrap:break-word}
 
 /* ── Bottom Nav ── */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
@@ -158,8 +153,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <span>⚠️</span><span id="alertText">Active closure in effect</span><span style="margin-left:auto">›</span>
 </div>
 
-
-
 <!-- Species list -->
 <div class="species-list" id="speciesList">
   <div class="loading-state">
@@ -194,7 +187,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/app.js"></script>
 <script>
-
 
 // ── State ────────────────────────────────────────────────────
 var allSpecies = [];
@@ -242,8 +234,6 @@ function showClosures() {
   document.getElementById('drawerBody').innerHTML = html;
   openDrawer();
 }
-
-// ── Render list ───────────────────────────────────────────────
 
 // ── Regulation display — single source of truth ──────────────
 // All badge/label/tile rendering derives from regulation_type.
@@ -335,9 +325,6 @@ function getRegulationDisplay(sp, reg) {
 
   // type === 'specific' — exact CDFW limits
   if (reg) {
-    var now = new Date();
-    var month = now.getMonth() + 1;
-    // Simple open/closed heuristic — season_note determines open status
     var sNote = (reg.season_note || '').toLowerCase();
     var isOpen = sNote === '' || sNote.includes('year-round') || sNote.includes('year round');
     display.isOpen     = isOpen;
@@ -352,7 +339,6 @@ function getRegulationDisplay(sp, reg) {
       if (reg.size_min_inches) display.cardLimit += ' · Min ' + reg.size_min_inches + '"';
     }
 
-    // Build tiles
     if (reg.bag_limit) {
       display.tileHtml +=
         '<div class="d-tile"><div class="d-tile-label">Bag Limit</div>' +
@@ -397,40 +383,41 @@ function getBadgeClass(status) {
   return 'badge-unknown';
 }
 
+// ── Render list ───────────────────────────────────────────────
 function renderList() {
   var savedIds = getSavedIds();
   var list = allSpecies.filter(function(sp) {
-    // Filter
-    if (currentFilter === 'saltwater' && sp.water_type !== 'saltwater') return false;
+    if (currentFilter === 'saltwater'  && sp.water_type !== 'saltwater')  return false;
     if (currentFilter === 'freshwater' && sp.water_type !== 'freshwater') return false;
-    if (currentFilter === 'saved' && !savedIds.includes(sp.id)) return false;
-    if (currentFilter === 'invasive' && sp.category !== 'Invasive') return false;
+    if (currentFilter === 'saved'      && !savedIds.includes(sp.id))      return false;
+    if (currentFilter === 'invasive'   && sp.category !== 'Invasive')     return false;
 
     var reg = allRegulations.find(function(r) { return r.species_id === sp.id; });
     var status = deriveStatus(reg);
-    if (currentFilter === 'open' && status !== 'open') return false;
+    if (currentFilter === 'open'    && status !== 'open')     return false;
     if (currentFilter === 'caution' && status !== 'seasonal') return false;
 
-    // Search
     if (currentSearch) {
       var q = currentSearch.toLowerCase();
-      var nameMatch = sp.name && sp.name.toLowerCase().includes(q);
-      var sciMatch = sp.scientific_name && sp.scientific_name.toLowerCase().includes(q);
-      var catMatch = sp.category && sp.category.toLowerCase().includes(q);
-      if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(err) {
-    console.warn('[FS] Service worker registration failed:', err);
+      var nameMatch = sp.name            && sp.name.toLowerCase().includes(q);
+      var sciMatch  = sp.scientific_name && sp.scientific_name.toLowerCase().includes(q);
+      var catMatch  = sp.category        && sp.category.toLowerCase().includes(q);
+      if (!nameMatch && !sciMatch && !catMatch) return false;
+    }
+    return true;
   });
-}
+
+  if (!list.length) {
+    document.getElementById('speciesList').innerHTML =
+      '<div class="no-results"><div class="no-results-icon">🔍</div><h3>No species found</h3><p>Try a different search or filter</p></div>';
+    return;
+  }
 
   var html = '<div class="section-label">' + list.length + ' species</div>';
   list.forEach(function(sp) {
     var reg = allRegulations.find(function(r) { return r.species_id === sp.id; });
     var rd = getRegulationDisplay(sp, reg);
-    var badgeClass = rd.badgeClass;
-    var badgeText  = rd.badgeText;
-    var cardClass  = rd.isOpen ? 'open' : (sp.category === 'Invasive' ? 'invasive' : 'unknown');
-    var limitText  = rd.cardLimit;
+    var cardClass = rd.isOpen ? 'open' : (sp.category === 'Invasive' ? 'invasive' : 'unknown');
 
     html += '<div class="species-card ' + cardClass + '" onclick="openDrawer(' + sp.id + ')">'
       + (sp.image_url
@@ -440,8 +427,8 @@ function renderList() {
       +   '<div class="card-name">' + sp.name + '</div>'
       +   (sp.scientific_name ? '<div class="card-sci">' + sp.scientific_name + '</div>' : '')
       +   '<div class="card-meta">'
-      +     '<span class="badge ' + badgeClass + '">' + badgeText + '</span>'
-      +     (limitText ? '<span class="card-limit">' + limitText + '</span>' : '')
+      +     '<span class="badge ' + rd.badgeClass + '">' + rd.badgeText + '</span>'
+      +     (rd.cardLimit ? '<span class="card-limit">' + rd.cardLimit + '</span>' : '')
       +   '</div>'
       + '</div>'
       + '<span class="card-arrow">›</span>'
@@ -473,7 +460,6 @@ function openDrawer(speciesId) {
   html += '<div class="d-name">' + sp.name + '</div>';
   if (sp.scientific_name) html += '<div class="d-sci">' + sp.scientific_name + '</div>';
 
-  // Status + water type badges
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'
     + '<span class="badge ' + getBadgeClass(status) + '">' + getStatusLabel(status) + '</span>'
     + '<span class="badge" style="background:var(--bg);color:var(--text-muted)">' + (sp.water_type || '') + '</span>'
@@ -484,8 +470,6 @@ function openDrawer(speciesId) {
     html += '<div class="d-note"><span data-translate="description">' + sp.description + '</span></div>';
   }
 
-  // ── Regulation block — driven by regulation_type ─────────────
-  // ── Regulation display — uses getRegulationDisplay() ────────
   html += '<div class="d-section">Regulations</div>';
   if (typeof buildLangPills === 'function') {
     if (typeof currentLang !== 'undefined') currentLang = 'en';
@@ -507,6 +491,7 @@ function openDrawer(speciesId) {
     + 'Always verify at <a href="https://wildlife.ca.gov" style="color:var(--ocean-light)">wildlife.ca.gov</a> before keeping any catch.</div>';
   html += '<button class="d-save-btn' + (isSaved ? ' saved' : '') + '" id="saveBtn" onclick="handleSave(' + sp.id + ')">'
     + (isSaved ? '⭐ Saved' : '☆ Save Species') + '</button>';
+
   document.getElementById('drawerBody').innerHTML = html;
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
@@ -524,11 +509,8 @@ function handleSave(id) {
     btn.textContent = isSaved ? '⭐ Saved' : '☆ Save Species';
     btn.className = 'd-save-btn' + (isSaved ? ' saved' : '');
   }
-  // Re-render if on saved filter
   if (currentFilter === 'saved') renderList();
 }
-
-
 
 // ── Events ────────────────────────────────────────────────────
 document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -555,18 +537,6 @@ document.getElementById('drawer').addEventListener('touchend', function(e) {
 }, {passive:true});
 
 // ── Init ──────────────────────────────────────────────────────
-// Clear old service workers and caches
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r) { r.unregister(); });
-  });
-}
-if ('caches' in window) {
-  caches.keys().then(function(keys) {
-    keys.forEach(function(k) { caches.delete(k); });
-  });
-}
-
 loadData();
 </script>
 </body>
