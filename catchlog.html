@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — My Catches</title>
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--success:#27ae60;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#fff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:var(--nav-h)}
+
+/* ── Header ── */
+.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between}
+.header-text .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.header-text .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff}
+.header-text .page-title span{color:var(--kelp-light)}
+.btn-log{background:var(--kelp-light);border:none;border-radius:100px;padding:8px 16px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px}
+
+/* ── Stats strip ── */
+.stats-strip{background:var(--ocean);padding:0 20px 16px;display:flex;gap:8px}
+.stat-pill{flex:1;background:rgba(255,255,255,.1);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.stat-pill-num{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:#fff;line-height:1}
+.stat-pill-lbl{font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* ── Content ── */
+.content{padding:12px 12px 16px}
+
+/* ── Catch card ── */
+.catch-card{background:var(--white);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer}
+.catch-photo{width:100%;height:200px;object-fit:cover;display:block}
+.catch-photo-placeholder{height:80px;background:var(--ocean);display:flex;align-items:center;justify-content:center;font-size:36px}
+.catch-body{padding:14px}
+.catch-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.catch-species{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:900;color:var(--text)}
+.catch-date{font-size:11px;color:var(--text-muted);margin-top:2px}
+.catch-public{font-size:10px;font-weight:600;color:var(--kelp-light);background:#e8f5ee;padding:2px 8px;border-radius:100px;flex-shrink:0}
+.catch-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.catch-chip{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 9px;border-radius:100px}
+.catch-measurements{display:flex;gap:12px;margin-bottom:6px}
+.catch-measurement{font-size:13px;font-weight:600;color:var(--ocean)}
+.catch-notes{font-size:12px;color:var(--text-muted);line-height:1.5}
+.catch-delete{font-size:12px;color:var(--danger);margin-top:8px;cursor:pointer;display:inline-block}
+
+/* ── Empty state ── */
+.empty-state{padding:48px 20px;text-align:center}
+.empty-icon{font-size:56px;margin-bottom:16px}
+.empty-title{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6}
+.btn-first-catch{padding:14px 28px;background:var(--kelp-light);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+
+/* ── Loading ── */
+.loading-state{padding:40px 20px;text-align:center;color:var(--text-muted)}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Bottom nav ── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
+.nav-item.active{color:var(--ocean)}
+.nav-icon{font-size:22px;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="header-text">
+      <div class="app-eyebrow">Fish Smarter</div>
+      <div class="page-title">My <span>Catches</span></div>
+    </div>
+    <button class="btn-log" onclick="window.location.href='catchlog-new.html'">+ Log catch</button>
+  </div>
+</div>
+
+<!-- Stats strip -->
+<div class="stats-strip" id="statsStrip" style="display:none">
+  <div class="stat-pill">
+    <div class="stat-pill-num" id="statTotal">0</div>
+    <div class="stat-pill-lbl">Total</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-pill-num" id="statSpecies">0</div>
+    <div class="stat-pill-lbl">Species</div>
+  </div>
+  <div class="stat-pill">
+    <div class="stat-pill-num" id="statBest">–</div>
+    <div class="stat-pill-lbl">Best score</div>
+  </div>
+</div>
+
+<!-- Catch feed -->
+<div class="content" id="catchFeed">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <div>Loading your catches…</div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><span class="nav-icon">🐟</span><span>Species</span></a>
+  <a class="nav-item" href="fishid.html"><span class="nav-icon">📷</span><span>Fish ID</span></a>
+  <a class="nav-item" href="forecast.html"><span class="nav-icon">🌊</span><span>Forecast</span></a>
+  <a class="nav-item active" href="catchlog.html"><span class="nav-icon">📓</span><span>Catches</span></a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/auth-sheet.js"></script>
+<script>
+
+var catches = [];
+
+// ── Auth guard ─────────────────────────────────────────────────
+document.addEventListener('fsa:authchange', function(e) {
+  if (e.detail.user) {
+    loadCatches(e.detail.user);
+  } else {
+    renderLoggedOut();
+  }
+});
+
+setTimeout(function() {
+  var user = getUser();
+  if (user) loadCatches(user);
+  else {
+    var feed = document.getElementById('catchFeed');
+    if (feed && feed.querySelector('.spinner')) renderLoggedOut();
+  }
+}, 600);
+
+// ── Load catches ──────────────────────────────────────────────
+async function loadCatches(user) {
+  var { data, error } = await db
+    .from('catch_logs')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('caught_at', { ascending: false });
+
+  if (error) {
+    document.getElementById('catchFeed').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load catches. Check your connection.</p></div>';
+    return;
+  }
+
+  catches = data || [];
+  renderStats(catches);
+  renderFeed(catches);
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function renderStats(data) {
+  if (!data.length) return;
+  document.getElementById('statsStrip').style.display = 'flex';
+  document.getElementById('statTotal').textContent = data.length;
+  var uniqueSpecies = new Set(data.map(function(c) { return c.species_name; })).size;
+  document.getElementById('statSpecies').textContent = uniqueSpecies;
+  var scores = data.filter(function(c) { return c.fishing_score; }).map(function(c) { return c.fishing_score; });
+  document.getElementById('statBest').textContent = scores.length ? Math.max.apply(null, scores) : '–';
+}
+
+// ── Feed ──────────────────────────────────────────────────────
+function renderFeed(data) {
+  var feed = document.getElementById('catchFeed');
+
+  if (!data.length) {
+    feed.innerHTML =
+      '<div class="empty-state">'
+      + '<div class="empty-icon">🎣</div>'
+      + '<div class="empty-title">No catches yet</div>'
+      + '<div class="empty-sub">Log your first catch — add a photo and let AI estimate the size for you</div>'
+      + '<button class="btn-first-catch" onclick="window.location.href=\'catchlog-new.html\'">Log my first catch</button>'
+      + '</div>';
+    return;
+  }
+
+  var html = '';
+  data.forEach(function(c) {
+    var date = new Date(c.caught_at);
+    var dateStr = date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    var emoji = getEmoji(c.species_name);
+
+    html += '<div class="catch-card">';
+
+    // Photo or placeholder
+    if (c.photo_url) {
+      html += '<img class="catch-photo" src="' + c.photo_url + '" alt="' + c.species_name + '" loading="lazy">';
+    } else {
+      html += '<div class="catch-photo-placeholder">' + emoji + '</div>';
+    }
+
+    html += '<div class="catch-body">';
+    html += '<div class="catch-header">';
+    html += '<div><div class="catch-species">' + c.species_name + '</div><div class="catch-date">' + dateStr + '</div></div>';
+    if (c.is_public) html += '<div class="catch-public">🌐 Shared</div>';
+    html += '</div>';
+
+    // Chips
+    var chips = [];
+    if (c.method) chips.push(methodEmoji(c.method) + ' ' + capitalize(c.method));
+    if (c.location_name) chips.push('📍 ' + c.location_name);
+    if (c.bait_lure) chips.push('🪝 ' + c.bait_lure);
+    if (chips.length) html += '<div class="catch-chips">' + chips.map(function(ch) { return '<span class="catch-chip">' + ch + '</span>'; }).join('') + '</div>';
+
+    // Measurements
+    if (c.weight_lbs || c.length_inches) {
+      html += '<div class="catch-measurements">';
+      if (c.weight_lbs) html += '<span class="catch-measurement">⚖️ ' + c.weight_lbs + ' lbs</span>';
+      if (c.length_inches) html += '<span class="catch-measurement">📏 ' + c.length_inches + '"</span>';
+      html += '</div>';
+    }
+
+    if (c.notes) html += '<div class="catch-notes">' + c.notes + '</div>';
+
+    html += '<span class="catch-delete" onclick="deleteCatch(' + c.id + ')">Delete</span>';
+    html += '</div></div>';
+  });
+
+  feed.innerHTML = html;
+}
+
+// ── Delete ────────────────────────────────────────────────────
+async function deleteCatch(id) {
+  if (!confirm('Delete this catch?')) return;
+  var user = getUser();
+  if (!user) return;
+  var { error } = await db.from('catch_logs').delete().eq('id', id).eq('user_id', user.id);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  catches = catches.filter(function(c) { return c.id !== id; });
+  renderStats(catches);
+  renderFeed(catches);
+}
+
+// ── Logged out ────────────────────────────────────────────────
+function renderLoggedOut() {
+  document.getElementById('catchFeed').innerHTML =
+    '<div class="empty-state">'
+    + '<div class="empty-icon">🎣</div>'
+    + '<div class="empty-title">Sign in to see your catches</div>'
+    + '<div class="empty-sub">Create a free account to log catches, track your season, and share to the community feed</div>'
+    + '<button class="btn-first-catch" onclick="showAuthSheet(\'Log your catches\', \'Create a free account to start your catch log\')">Sign in</button>'
+    + '</div>';
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function methodEmoji(m) {
+  var map = { surf:'🌊', pier:'🪝', boat:'🚢', kayak:'🛶', fly:'✈️', shore:'🏖', spear:'🤿', other:'🎣' };
+  return map[m] || '🎣';
+}
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+</script>
+</body>
+</html>

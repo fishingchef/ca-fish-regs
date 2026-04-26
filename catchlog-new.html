@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fish Smarter — Log a Catch</title>
+<meta name="theme-color" content="#0a3d62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ocean:#0a3d62;--ocean-mid:#1a5f8a;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--success:#27ae60;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#fff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:100px}
+
+/* ── Header ── */
+.header{background:var(--ocean);padding:48px 20px 20px;position:relative;overflow:hidden}
+.header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
+.header-content{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between}
+.header-text .app-eyebrow{font-family:'Unbounded',sans-serif;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
+.header-text .page-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;color:#fff}
+.header-text .page-title span{color:var(--kelp-light)}
+.btn-back{background:rgba(255,255,255,.15);border:none;border-radius:100px;padding:8px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:4px}
+
+/* ── Photo zone ── */
+.photo-zone{position:relative;background:#0a2a42;min-height:260px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.photo-zone img{width:100%;max-height:320px;object-fit:cover;display:block}
+.photo-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.photo-overlay.hidden{display:none}
+.photo-icon{font-size:48px;opacity:.7}
+.photo-text{font-size:14px;color:rgba(255,255,255,.8);font-weight:500}
+.photo-sub{font-size:12px;color:rgba(255,255,255,.5)}
+.photo-actions{position:absolute;bottom:12px;right:12px;display:flex;gap:8px}
+.photo-action-btn{background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:100px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px)}
+
+/* ── AI estimate banner ── */
+.ai-banner{background:var(--ocean);padding:12px 16px;display:none;align-items:center;gap:10px}
+.ai-banner.show{display:flex}
+.ai-banner-icon{font-size:20px;flex-shrink:0}
+.ai-banner-text{flex:1}
+.ai-banner-title{font-size:12px;font-weight:600;color:#fff}
+.ai-banner-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:1px}
+.ai-banner-accept{background:var(--kelp-light);color:#fff;border:none;border-radius:100px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
+
+/* ── Form ── */
+.form-body{padding:16px}
+.field-group{margin-bottom:16px}
+.field-label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.field-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;transition:border-color .2s}
+.field-input:focus{border-color:var(--ocean-mid)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── Species autocomplete ── */
+.species-wrap{position:relative}
+.species-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-sm);z-index:50;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
+.species-dropdown.open{display:block}
+.species-option{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--bg)}
+.species-option:last-child{border-bottom:none}
+.species-option:hover{background:var(--bg)}
+.species-option-sci{font-size:11px;color:var(--text-muted);font-style:italic}
+.species-manual{padding:10px 14px;font-size:13px;color:var(--ocean-mid);cursor:pointer;border-top:1px solid var(--border)}
+
+/* ── Method chips ── */
+.method-chips{display:flex;gap:8px;flex-wrap:wrap}
+.method-chip{padding:8px 14px;background:var(--bg);border:1.5px solid var(--border);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.method-chip.active{background:var(--ocean);border-color:var(--ocean);color:#fff}
+
+/* ── Details expander ── */
+.details-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 0;cursor:pointer;border-top:1px solid var(--border);margin-top:4px}
+.details-toggle-label{font-size:13px;color:var(--ocean-mid);font-weight:600}
+.details-toggle-arrow{font-size:18px;color:var(--text-muted);transition:transform .2s}
+.details-toggle-arrow.open{transform:rotate(90deg)}
+.details-body{display:none;padding-top:4px}
+.details-body.open{display:block}
+
+/* ── Share toggle ── */
+.share-row{display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;border:1.5px solid var(--border)}
+.share-info{flex:1}
+.share-title{font-size:14px;font-weight:600;color:var(--text)}
+.share-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.toggle{width:44px;height:24px;background:var(--border);border-radius:100px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--kelp-light)}
+.toggle-thumb{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-thumb{left:22px}
+
+/* ── Save button ── */
+.save-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:12px 16px;background:#fff;border-top:1px solid var(--border);z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.btn-save{width:100%;padding:15px;background:var(--kelp-light);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-save:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Loading overlay ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(10,61,98,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;color:#fff;gap:16px}
+.loading-overlay.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:15px;font-weight:500}
+
+/* ── Reward card ── */
+.reward-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end;justify-content:center}
+.reward-overlay.hidden{display:none}
+.reward-card{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;padding-bottom:env(safe-area-inset-bottom)}
+.reward-photo{width:100%;height:200px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:16px}
+.reward-photo.no-photo{background:var(--ocean);display:flex;align-items:center;justify-content:center;font-size:64px}
+.reward-species{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;color:var(--text);margin-bottom:4px}
+.reward-meta{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.reward-stat{background:var(--bg);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:10px;font-size:14px;color:var(--text);font-weight:500}
+.reward-stat span{color:var(--kelp-light);font-weight:700}
+.btn-reward-done{width:100%;padding:14px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-wave"></div>
+  <div class="header-content">
+    <div class="header-text">
+      <div class="app-eyebrow">Catch Log</div>
+      <div class="page-title">Log a <span>Catch</span></div>
+    </div>
+    <button class="btn-back" onclick="history.back()">← Back</button>
+  </div>
+</div>
+
+<!-- Photo zone -->
+<div class="photo-zone" id="photoZone" onclick="document.getElementById('galleryInput').click()">
+  <img id="photoPreview" style="display:none">
+  <div class="photo-overlay" id="photoOverlay">
+    <div class="photo-icon">📷</div>
+    <div class="photo-text">Add a photo</div>
+    <div class="photo-sub">Tap to choose from gallery</div>
+  </div>
+  <div class="photo-actions" id="photoActions" style="display:none">
+    <button class="photo-action-btn" onclick="event.stopPropagation();document.getElementById('cameraInput').click()">📷 Retake</button>
+    <button class="photo-action-btn" onclick="event.stopPropagation();document.getElementById('galleryInput').click()">🖼 Change</button>
+  </div>
+</div>
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+<input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+
+<!-- AI size estimate banner -->
+<div class="ai-banner" id="aiBanner">
+  <div class="ai-banner-icon">✨</div>
+  <div class="ai-banner-text">
+    <div class="ai-banner-title" id="aiBannerTitle">AI estimate loading…</div>
+    <div class="ai-banner-sub" id="aiBannerSub"></div>
+  </div>
+  <button class="ai-banner-accept" id="aiBannerAccept" onclick="acceptAiEstimate()">Use</button>
+</div>
+
+<!-- Form -->
+<div class="form-body">
+
+  <!-- Species -->
+  <div class="field-group">
+    <div class="field-label">Species *</div>
+    <div class="species-wrap">
+      <input class="field-input" id="speciesInput" type="text" placeholder="Search species…" autocomplete="off" oninput="searchSpecies(this.value)" onfocus="searchSpecies(this.value)">
+      <div class="species-dropdown" id="speciesDropdown"></div>
+    </div>
+    <input type="hidden" id="speciesId">
+  </div>
+
+  <!-- Method -->
+  <div class="field-group">
+    <div class="field-label">Method</div>
+    <div class="method-chips" id="methodChips">
+      <div class="method-chip" data-method="surf" onclick="selectMethod(this)">🌊 Surf</div>
+      <div class="method-chip" data-method="pier" onclick="selectMethod(this)">🪝 Pier</div>
+      <div class="method-chip" data-method="boat" onclick="selectMethod(this)">🚢 Boat</div>
+      <div class="method-chip" data-method="kayak" onclick="selectMethod(this)">🛶 Kayak</div>
+      <div class="method-chip" data-method="fly" onclick="selectMethod(this)">✈️ Fly</div>
+      <div class="method-chip" data-method="shore" onclick="selectMethod(this)">🏖 Shore</div>
+      <div class="method-chip" data-method="spear" onclick="selectMethod(this)">🤿 Spear</div>
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="field-group">
+    <div class="field-label">Location</div>
+    <input class="field-input" id="locationInput" type="text" placeholder="Where did you catch it?">
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;cursor:pointer" onclick="useGPSLocation()">📍 Use my current location</div>
+  </div>
+
+  <!-- Bait / lure -->
+  <div class="field-group">
+    <div class="field-label">Bait / Lure</div>
+    <input class="field-input" id="baitInput" type="text" placeholder="e.g. Anchovy, Gulp, Bucktail jig…">
+  </div>
+
+  <!-- Add details expander -->
+  <div class="details-toggle" onclick="toggleDetails()">
+    <span class="details-toggle-label">+ Add weight, length & notes</span>
+    <span class="details-toggle-arrow" id="detailsArrow">›</span>
+  </div>
+  <div class="details-body" id="detailsBody">
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field-group" style="margin-bottom:0">
+        <div class="field-label">Weight (lbs)</div>
+        <input class="field-input" id="weightInput" type="number" step="0.1" min="0" placeholder="e.g. 3.5">
+      </div>
+      <div class="field-group" style="margin-bottom:0">
+        <div class="field-label">Length (in)</div>
+        <input class="field-input" id="lengthInput" type="number" step="0.5" min="0" placeholder="e.g. 18">
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Notes</div>
+      <textarea class="field-input" id="notesInput" rows="3" placeholder="Tide, conditions, what worked…" style="resize:none"></textarea>
+    </div>
+  </div>
+
+  <!-- Share toggle -->
+  <div style="height:16px"></div>
+  <div class="share-row">
+    <div class="share-info">
+      <div class="share-title">🌐 Share to community feed</div>
+      <div class="share-sub">Shows general location only — never exact GPS</div>
+    </div>
+    <div class="toggle" id="shareToggle" onclick="toggleShare()">
+      <div class="toggle-thumb"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Fixed save bar -->
+<div class="save-bar">
+  <button class="btn-save" id="saveBtn" onclick="saveCatch()" disabled>Log this catch</button>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Saving your catch…</div>
+</div>
+
+<!-- Reward overlay -->
+<div class="reward-overlay hidden" id="rewardOverlay">
+  <div class="reward-card" id="rewardCard"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/auth-sheet.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────────────
+var photoBase64  = null;
+var photoType    = null;
+var photoBlob    = null;
+var selectedMethod = null;
+var isPublic     = false;
+var aiEstimate   = null;
+var speciesData  = []; // loaded from Supabase
+var selectedSpeciesId = null;
+var currentLat   = null;
+var currentLng   = null;
+
+// Pre-fill from Fish ID if coming from that page
+var prefill = {};
+try {
+  var raw = sessionStorage.getItem('fs_catchlog_prefill');
+  if (raw) { prefill = JSON.parse(raw); sessionStorage.removeItem('fs_catchlog_prefill'); }
+} catch(e) {}
+
+// ── Auth guard ─────────────────────────────────────────────────
+document.addEventListener('fsa:authchange', function(e) {
+  if (!e.detail.user) {
+    // Not logged in — redirect to species page which will show auth sheet
+    window.location.href = 'index.html';
+  }
+});
+
+// ── Load species list ──────────────────────────────────────────
+async function loadSpecies() {
+  var { data } = await db.from('species').select('id, name, scientific_name').order('name');
+  speciesData = data || [];
+
+  // Apply prefill from Fish ID
+  if (prefill.speciesName) {
+    document.getElementById('speciesInput').value = prefill.speciesName;
+    var match = speciesData.find(function(s) {
+      return s.name.toLowerCase() === prefill.speciesName.toLowerCase();
+    });
+    if (match) {
+      selectedSpeciesId = match.id;
+      document.getElementById('speciesId').value = match.id;
+    }
+  }
+  if (prefill.photoBase64) {
+    photoBase64 = prefill.photoBase64;
+    photoType   = prefill.photoType || 'image/jpeg';
+    showPhotoPreview('data:' + photoType + ';base64,' + photoBase64);
+    if (prefill.speciesName) runAiEstimate();
+  }
+  if (prefill.locationName) document.getElementById('locationInput').value = prefill.locationName;
+
+  updateSaveBtn();
+}
+
+// ── Photo handling ─────────────────────────────────────────────
+function handlePhoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      // Compress to max 1200px, 300KB target
+      var maxSize = 1200;
+      var w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      // Try quality 0.8, drop to 0.6 if still >300KB
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      if (dataUrl.length > 400000) dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+      photoBase64 = dataUrl.split(',')[1];
+      photoType   = 'image/jpeg';
+
+      // Also store as blob for R2 upload
+      canvas.toBlob(function(blob) { photoBlob = blob; }, 'image/jpeg', 0.8);
+
+      showPhotoPreview(dataUrl);
+
+      // Auto-run AI estimate if species is already filled
+      var species = document.getElementById('speciesInput').value.trim();
+      if (species) runAiEstimate();
+
+      updateSaveBtn();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showPhotoPreview(src) {
+  var preview = document.getElementById('photoPreview');
+  var overlay = document.getElementById('photoOverlay');
+  var actions = document.getElementById('photoActions');
+  preview.src = src;
+  preview.style.display = 'block';
+  overlay.classList.add('hidden');
+  actions.style.display = 'flex';
+}
+
+// ── AI size estimate ──────────────────────────────────────────
+async function runAiEstimate() {
+  if (!photoBase64) return;
+  var speciesName = document.getElementById('speciesInput').value.trim();
+  if (!speciesName) return;
+
+  var banner = document.getElementById('aiBanner');
+  var title  = document.getElementById('aiBannerTitle');
+  var sub    = document.getElementById('aiBannerSub');
+  banner.classList.add('show');
+  title.textContent = '✨ Estimating size…';
+  sub.textContent   = 'Analyzing photo with AI';
+  document.getElementById('aiBannerAccept').style.display = 'none';
+
+  try {
+    var res = await fetch('/api/estimate-size', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64, imageType: photoType, speciesName })
+    });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      title.textContent = '📏 Add measurements manually';
+      sub.textContent   = 'Tap "+ Add details" below';
+      document.getElementById('aiBannerAccept').style.display = 'none';
+      return;
+    }
+
+    aiEstimate = data;
+    title.textContent = 'AI estimate: ~' + data.weightLow + '–' + data.weightHigh + ' lbs · ' + data.lengthLow + '–' + data.lengthHigh + '"';
+    sub.textContent   = data.reason || 'Tap Use to apply, or enter manually below';
+    document.getElementById('aiBannerAccept').style.display = 'block';
+
+  } catch(e) {
+    banner.classList.remove('show');
+  }
+}
+
+function acceptAiEstimate() {
+  if (!aiEstimate) return;
+  // Use midpoint of range
+  var weight = ((aiEstimate.weightLow + aiEstimate.weightHigh) / 2).toFixed(1);
+  var length = Math.round((aiEstimate.lengthLow + aiEstimate.lengthHigh) / 2);
+  document.getElementById('weightInput').value = weight;
+  document.getElementById('lengthInput').value = length;
+  // Open the details section so user can see values
+  if (!document.getElementById('detailsBody').classList.contains('open')) toggleDetails();
+  // Update banner
+  document.getElementById('aiBannerTitle').textContent = '✓ Applied: ' + weight + ' lbs · ' + length + '"';
+  document.getElementById('aiBannerSub').textContent = 'Edit in details below if needed';
+  document.getElementById('aiBannerAccept').style.display = 'none';
+}
+
+// ── Species autocomplete ───────────────────────────────────────
+function searchSpecies(query) {
+  var dropdown = document.getElementById('speciesDropdown');
+  if (!query || query.length < 2) { dropdown.classList.remove('open'); return; }
+
+  var q = query.toLowerCase();
+  var matches = speciesData.filter(function(s) {
+    return s.name.toLowerCase().includes(q) ||
+           (s.scientific_name && s.scientific_name.toLowerCase().includes(q));
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    dropdown.innerHTML = '<div class="species-manual" onclick="useManualSpecies(\'' + query.replace(/'/g, "\\'") + '\')">Use "' + query + '" (manual entry)</div>';
+    dropdown.classList.add('open');
+    return;
+  }
+
+  dropdown.innerHTML = matches.map(function(s) {
+    return '<div class="species-option" onclick="selectSpecies(' + s.id + ',\'' + s.name.replace(/'/g, "\\'") + '\')">'
+      + s.name
+      + (s.scientific_name ? '<div class="species-option-sci">' + s.scientific_name + '</div>' : '')
+      + '</div>';
+  }).join('')
+  + '<div class="species-manual" onclick="useManualSpecies(\'' + query.replace(/'/g, "\\'") + '\')">Not listed — use "' + query + '"</div>';
+  dropdown.classList.add('open');
+}
+
+function selectSpecies(id, name) {
+  selectedSpeciesId = id;
+  document.getElementById('speciesId').value = id;
+  document.getElementById('speciesInput').value = name;
+  document.getElementById('speciesDropdown').classList.remove('open');
+  updateSaveBtn();
+  // Trigger AI estimate if photo is ready
+  if (photoBase64) runAiEstimate();
+}
+
+function useManualSpecies(name) {
+  selectedSpeciesId = null;
+  document.getElementById('speciesId').value = '';
+  document.getElementById('speciesInput').value = name;
+  document.getElementById('speciesDropdown').classList.remove('open');
+  updateSaveBtn();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.species-wrap')) {
+    document.getElementById('speciesDropdown').classList.remove('open');
+  }
+});
+
+// ── Method ────────────────────────────────────────────────────
+function selectMethod(chip) {
+  document.querySelectorAll('.method-chip').forEach(function(c) { c.classList.remove('active'); });
+  chip.classList.add('active');
+  selectedMethod = chip.getAttribute('data-method');
+}
+
+// ── Location ──────────────────────────────────────────────────
+function useGPSLocation() {
+  if (!navigator.geolocation) return;
+  document.getElementById('locationInput').value = 'Getting location…';
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    currentLat = pos.coords.latitude;
+    currentLng = pos.coords.longitude;
+    // Reverse geocode using Open-Meteo geocoding
+    fetch('https://geocoding-api.open-meteo.com/v1/search?name=&latitude=' + currentLat + '&longitude=' + currentLng + '&count=1&format=json')
+      .catch(function() {});
+    document.getElementById('locationInput').value = currentLat.toFixed(4) + ', ' + currentLng.toFixed(4);
+  }, function() {
+    document.getElementById('locationInput').value = '';
+  });
+}
+
+// Auto-get GPS on load
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    currentLat = pos.coords.latitude;
+    currentLng = pos.coords.longitude;
+    if (!document.getElementById('locationInput').value) {
+      document.getElementById('locationInput').value = currentLat.toFixed(4) + ', ' + currentLng.toFixed(4);
+    }
+  }, function() {}, { timeout: 5000, maximumAge: 60000 });
+}
+
+// ── Details toggle ────────────────────────────────────────────
+function toggleDetails() {
+  var body  = document.getElementById('detailsBody');
+  var arrow = document.getElementById('detailsArrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+// ── Share toggle ──────────────────────────────────────────────
+function toggleShare() {
+  isPublic = !isPublic;
+  document.getElementById('shareToggle').classList.toggle('on', isPublic);
+}
+
+// ── Save button state ─────────────────────────────────────────
+function updateSaveBtn() {
+  var species = document.getElementById('speciesInput').value.trim();
+  document.getElementById('saveBtn').disabled = !species;
+}
+document.getElementById('speciesInput').addEventListener('input', updateSaveBtn);
+
+// ── Upload photo to R2 ────────────────────────────────────────
+async function uploadPhoto(userId) {
+  if (!photoBlob && !photoBase64) return null;
+
+  // Build form data for Worker
+  var formData = new FormData();
+  var blob = photoBlob || new Blob(
+    [Uint8Array.from(atob(photoBase64), function(c) { return c.charCodeAt(0); })],
+    { type: photoType }
+  );
+  formData.append('photo', blob, 'catch.jpg');
+  formData.append('user_id', userId);
+
+  // Get Supabase session token for Worker auth validation
+  var session = await db.auth.getSession();
+  var token = session.data.session ? session.data.session.access_token : '';
+
+  var res = await fetch('https://fishsmarter-upload.ideas2execution.workers.dev', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: formData
+  });
+
+  if (!res.ok) {
+    var err = await res.json().catch(function() { return {}; });
+    throw new Error(err.error || 'Photo upload failed');
+  }
+
+  var data = await res.json();
+  return { url: data.url, key: data.key };
+}
+
+// ── Save catch ────────────────────────────────────────────────
+async function saveCatch() {
+  var user = getUser();
+  if (!user) { showAuthSheet('Log this catch', 'Create a free account to save your catches'); return; }
+
+  var speciesName = document.getElementById('speciesInput').value.trim();
+  if (!speciesName) return;
+
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('loadingText').textContent = photoBase64 ? 'Uploading photo…' : 'Saving your catch…';
+
+  try {
+    // Upload photo if present
+    var photoResult = null;
+    if (photoBase64) {
+      document.getElementById('loadingText').textContent = 'Uploading photo…';
+      photoResult = await uploadPhoto(user.id);
+    }
+
+    document.getElementById('loadingText').textContent = 'Saving your catch…';
+
+    // Get current fishing score from forecast page context (best effort)
+    var fishingScore = null;
+    try {
+      var scoreEl = document.getElementById('scoreNum');
+      if (scoreEl) fishingScore = parseInt(scoreEl.textContent);
+    } catch(e) {}
+
+    var weight = parseFloat(document.getElementById('weightInput').value) || null;
+    var length = parseFloat(document.getElementById('lengthInput').value) || null;
+    var location = document.getElementById('locationInput').value.trim() || null;
+    var bait = document.getElementById('baitInput').value.trim() || null;
+    var notes = document.getElementById('notesInput').value.trim() || null;
+
+    var row = {
+      user_id:      user.id,
+      species_id:   selectedSpeciesId || null,
+      species_name: speciesName,
+      caught_at:    new Date().toISOString(),
+      location_name: location,
+      lat:          currentLat,
+      lng:          currentLng,
+      method:       selectedMethod,
+      bait_lure:    bait,
+      weight_lbs:   weight,
+      length_inches: length,
+      notes:        notes,
+      photo_url:    photoResult ? photoResult.url : null,
+      photo_key:    photoResult ? photoResult.key : null,
+      fishing_score: fishingScore,
+      is_public:    isPublic,
+    };
+
+    var { error } = await db.from('catch_logs').insert(row);
+    if (error) throw new Error(error.message);
+
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    showReward(speciesName, photoResult ? photoResult.url : null, weight, length);
+
+  } catch(e) {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    alert('Could not save catch: ' + e.message);
+  }
+}
+
+// ── Reward card ───────────────────────────────────────────────
+async function showReward(speciesName, photoUrl, weight, length) {
+  // Get personal catch count for this species
+  var user = getUser();
+  var count = 0;
+  if (user) {
+    var { count: c } = await db.from('catch_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .ilike('species_name', speciesName);
+    count = c || 1;
+  }
+
+  var emoji = getEmoji(speciesName);
+  var html = '';
+
+  if (photoUrl) {
+    html += '<img class="reward-photo" src="' + photoUrl + '" alt="' + speciesName + '">';
+  } else {
+    html += '<div class="reward-photo no-photo">' + emoji + '</div>';
+  }
+
+  html += '<div class="reward-species">' + speciesName + '</div>';
+  html += '<div class="reward-meta">' + new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) + '</div>';
+
+  if (count > 1) {
+    html += '<div class="reward-stat">🎣 Your <span>#' + count + '</span> ' + speciesName + ' this year</div>';
+  } else {
+    html += '<div class="reward-stat">🎉 <span>First ' + speciesName + '</span> in your catch log!</div>';
+  }
+
+  if (weight) html += '<div class="reward-stat">⚖️ <span>' + weight + ' lbs</span>' + (length ? ' · ' + length + '"' : '') + '</div>';
+  if (isPublic) html += '<div class="reward-stat">🌐 <span>Shared</span> to community feed</div>';
+
+  html += '<button class="btn-reward-done" onclick="document.getElementById(\'rewardOverlay\').classList.add(\'hidden\');window.location.href=\'catchlog.html\'">View my catches →</button>';
+
+  document.getElementById('rewardCard').innerHTML = html;
+  document.getElementById('rewardOverlay').classList.remove('hidden');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadSpecies();
+
+</script>
+</body>
+</html>
