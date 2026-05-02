@@ -443,7 +443,13 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   var dayForecasts = fcDateKeys.map(function(k){return byDate[k].day||byDate[k].night;}).filter(Boolean);
   var nightForecasts = fcDateKeys.map(function(k){return byDate[k].night;});
 
-  var current = hourly ? hourly[0] : null;
+  var now = new Date();
+  var current = null;
+  if (hourly && hourly.length) {
+    current = hourly.find(function(p) {
+      return new Date(p.startTime) <= now && new Date(p.endTime) > now;
+    }) || hourly[0];
+  }
   var todayF = dayForecasts[0];
   var curTemp = current ? parseInt(current.temperature) : (todayF ? todayF.temperature : null);
   var curWind = current ? current.windSpeed : (todayF ? todayF.windSpeed : 'N/A');
