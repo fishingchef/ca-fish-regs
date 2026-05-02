@@ -384,7 +384,7 @@ async function loadSpot(locName, lat, lng) {
       +'&station='+station.id+'&product=predictions&datum=MLLW&time_zone=lst_ldt&interval=hilo&units=english&application=fishsmarter&format=json';
 
     var tideData = {predictions:[]};
-    var forecast = null, hourly = null;
+    var forecast = null, hourly = null, pressureTrend = null;
 
     try {
       var tideRes = await fetch(tideUrl);
@@ -405,18 +405,31 @@ async function loadSpot(locName, lat, lng) {
       }
     } catch(e) { console.error('[FS] Weather error:', e.message); }
 
+    try {
+      var pmUrl = 'https://api.open-meteo.com/v1/forecast?latitude='+lat.toFixed(4)
+        +'&longitude='+lng.toFixed(4)+'&hourly=pressure_msl&past_hours=4&forecast_days=1&timezone=GMT';
+      var pmRes = await fetch(pmUrl);
+      if (pmRes.ok) {
+        var pmData = await pmRes.json();
+        var allP = pmData.hourly && pmData.hourly.pressure_msl ? pmData.hourly.pressure_msl : [];
+        // First 4 entries are the past_hours readings (chronological, oldest first)
+        var recentP = allP.slice(0, 4).filter(function(v) { return v != null; });
+        pressureTrend = calcPressureTrend(recentP);
+      }
+    } catch(e) { console.error('[FS] Pressure error:', e.message); }
+
     if (!tideData.predictions || !tideData.predictions.length) {
       showError('Could not load tide data. NOAA service may be temporarily unavailable — try again shortly.');
       return;
     }
-    renderForecast(locName, lat, lng, station, tideData, forecast, hourly);
+    renderForecast(locName, lat, lng, station, tideData, forecast, hourly, pressureTrend);
     offerSaveLocation(locName, lat, lng);
     renderFavsBar();
     updateStarIcons();
   } catch(e) { showError('Could not load forecast: '+e.message); }
 }
 
-function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) {
+function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, pressureTrend) {
   _tideDrawerData = [];
   _tideDrawerIdx = 0;
   var tidesByDate = {};
@@ -456,7 +469,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   var curFcast = current ? current.shortForecast : (todayF ? todayF.shortForecast : '');
   var todayTideKey = fcDateKeys[0] || '';
   var todayTides = tidesByDate[todayTideKey] || [];
-  var todayScore = calcFishingScore(curTemp, curWind, curFcast, todayTides, new Date());
+  var todayScore = calcFishingScore(curTemp, curWind, curFcast, todayTides, new Date(), pressureTrend);
 
   var html = '';
 
@@ -484,13 +497,13 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly) 
   html += scoreInfoRow('&#127780; Weather condition', 'included', '#e8f5ee', '#2d7d46');
   html += scoreInfoRow('&#127754; Tide state (incoming vs outgoing)', 'included', '#e8f5ee', '#2d7d46');
   html += scoreInfoRow('&#128336; Time of day (dawn & dusk bonus)', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#128200; Barometric pressure trend', 'included', '#e8f5ee', '#2d7d46');
   html += '</div>';
   html += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">';
   html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Not yet factored in</div>';
   html += '<div style="display:flex;flex-direction:column;gap:7px">';
   html += scoreInfoRow('&#127777; Water temperature', 'not included', '#f0f4f8', '#5a6473');
   html += scoreInfoRow('&#127769; Moon phase', 'not included', '#f0f4f8', '#5a6473');
-  html += scoreInfoRow('&#128200; Barometric pressure trend', 'not included', '#f0f4f8', '#5a6473');
   html += scoreInfoRow('&#129416; Species-specific behavior', 'not included', '#f0f4f8', '#5a6473');
   html += '</div></div>';
   html += '<div style="background:#fff3cd;border-left:3px solid #f0a500;border-radius:6px;padding:10px 12px;font-size:11px;color:#7a4f00;line-height:1.6">';
@@ -887,6 +900,22 @@ function switchDay(i) {
   td.addEventListener('touchstart', function(e){ tsY = e.touches[0].clientY; }, {passive:true});
   td.addEventListener('touchend', function(e){ if (e.changedTouches[0].clientY - tsY > 80) closeTideDrawer(); }, {passive:true});
 })();
+
+// ── Pressure trend ───────────────────────────────────────────
+// pressures: array of pressure_msl (hPa) readings, oldest first, from Open-Meteo
+function calcPressureTrend(pressures) {
+  if (!pressures || pressures.length < 2) return null;
+  var recent = pressures[pressures.length - 1];
+  var oldest = pressures[0];
+  var delta = recent - oldest;
+  var minP = Math.min.apply(null, pressures);
+  if (delta < -3)                    return 'rapid_fall';      // front arriving — fish go deep
+  if (delta < -0.5)                  return 'falling';         // pre-frontal frenzy
+  if (delta > 1 && minP < 1009)     return 'rising_after_low'; // post-storm clearing
+  if (delta > 0.5)                   return 'rising';          // gradual improvement
+  if (recent >= 1013)                return 'steady_high';     // stable high — consistent
+  return 'steady_low';                                         // stable but suppressed
+}
 
 // ── Score info helpers ───────────────────────────────────────
 function scoreInfoRow(label, status, bgColor, textColor) {

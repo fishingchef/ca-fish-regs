@@ -214,23 +214,25 @@ function getWxIcon(text) {
 
 // ── Fishing score ───────────────────────────────────────────
 // Inputs:
-//   temp         — air temp string e.g. "62" (°F), from NWS forecast
-//   wind         — wind string e.g. "7 mph", from NWS forecast
-//   forecastText — NWS short forecast e.g. "Partly Sunny"
-//   tides        — array of NOAA hi/lo predictions for the day [{t, v, type}], optional
-//   targetDate   — Date object for the day being scored, optional (defaults to now)
+//   temp          — air temp string e.g. "62" (°F), from NWS forecast
+//   wind          — wind string e.g. "7 mph", from NWS forecast
+//   forecastText  — NWS short forecast e.g. "Partly Sunny"
+//   tides         — array of NOAA hi/lo predictions for the day [{t, v, type}], optional
+//   targetDate    — Date object for the day being scored, optional (defaults to now)
+//   pressureTrend — 'falling'|'rising_after_low'|'rising'|'steady_high'|'steady_low'|'rapid_fall'|null
 //
 // Score breakdown:
-//   Baseline:       60
-//   Temperature:   -20 to +18
-//   Wind:          -35 to +15
-//   Weather:       -40 to +10
-//   Tide state:     -8 to +18  (only when tides provided)
-//   Tidal range:     0 to  +6  (only when tides provided)
-//   Time of day:    -5 to +10
-//   Total range:    10–99
+//   Baseline:          60
+//   Temperature:      -20 to +18
+//   Wind:             -35 to +15
+//   Weather:          -40 to +10
+//   Tide state:        -8 to +18  (only when tides provided)
+//   Tidal range:        0 to  +6  (only when tides provided)
+//   Time of day:       -5 to +10
+//   Pressure trend:    -5 to  +8  (only when pressureTrend provided)
+//   Total range:       10–99
 
-function calcFishingScore(temp, wind, forecastText, tides, targetDate) {
+function calcFishingScore(temp, wind, forecastText, tides, targetDate, pressureTrend) {
   var score = 60;
 
   // ── 1. Air temperature ─────────────────────────────────────
@@ -344,6 +346,19 @@ function calcFishingScore(temp, wind, forecastText, tides, targetDate) {
     else if (hr >= 8 && hr < 10)  score += 5;  // morning
     else if (hr >= 17 && hr < 20) score += 10; // dusk — golden hour
     else if (hr >= 20)            score -= 5;  // night
+  }
+
+  // ── 6. Barometric pressure trend ──────────────────────────
+  // Falling pressure before a front = pre-frontal feeding frenzy.
+  // Rising after a low = post-storm clearing = reliable bite window.
+  // Rapid fall = front already arriving = fish go deep.
+  if (pressureTrend) {
+    if      (pressureTrend === 'falling')           score += 8;
+    else if (pressureTrend === 'rising_after_low')  score += 6;
+    else if (pressureTrend === 'rising')            score += 3;
+    else if (pressureTrend === 'steady_high')       score += 3;
+    else if (pressureTrend === 'rapid_fall')        score -= 5;
+    // steady_low: 0 — stable but suppressed conditions
   }
 
   return Math.max(10, Math.min(99, score));
