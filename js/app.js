@@ -212,6 +212,26 @@ function getWxIcon(text) {
   return '🌤️';
 }
 
+// ── Moon phase ───────────────────────────────────────────────
+// Returns { phase, emoji, adjustment } for any date using the known
+// Jan 6 2000 new moon reference and the 29.53059-day lunar cycle.
+function getMoonPhase(date) {
+  var KNOWN_NEW_MOON = new Date('2000-01-06T18:14:00Z');
+  var LUNAR_CYCLE = 29.53059;
+  var d = date || new Date();
+  var diffDays = (d.getTime() - KNOWN_NEW_MOON.getTime()) / 86400000;
+  var cycleDay = ((diffDays % LUNAR_CYCLE) + LUNAR_CYCLE) % LUNAR_CYCLE;
+
+  if (cycleDay < 1.5 || cycleDay >= 28)  return { phase: 'new_moon',        emoji: '🌑', adjustment: 6 };
+  if (cycleDay < 7)                       return { phase: 'waxing_crescent', emoji: '🌒', adjustment: 3 };
+  if (cycleDay < 8)                       return { phase: 'first_quarter',   emoji: '🌓', adjustment: 1 };
+  if (cycleDay < 13)                      return { phase: 'waxing_gibbous',  emoji: '🌔', adjustment: 3 };
+  if (cycleDay < 16)                      return { phase: 'full_moon',       emoji: '🌕', adjustment: 6 };
+  if (cycleDay < 21)                      return { phase: 'waning_gibbous',  emoji: '🌖', adjustment: 2 };
+  if (cycleDay < 22)                      return { phase: 'last_quarter',    emoji: '🌗', adjustment: 1 };
+  return                                         { phase: 'waning_crescent', emoji: '🌘', adjustment: 2 };
+}
+
 // ── Fishing score ───────────────────────────────────────────
 // Inputs:
 //   temp          — air temp string e.g. "62" (°F), from NWS forecast
@@ -220,6 +240,7 @@ function getWxIcon(text) {
 //   tides         — array of NOAA hi/lo predictions for the day [{t, v, type}], optional
 //   targetDate    — Date object for the day being scored, optional (defaults to now)
 //   pressureTrend — 'falling'|'rising_after_low'|'rising'|'steady_high'|'steady_low'|'rapid_fall'|null
+//   moonPhase     — result of getMoonPhase(date), optional
 //
 // Score breakdown:
 //   Baseline:          60
@@ -230,9 +251,10 @@ function getWxIcon(text) {
 //   Tidal range:        0 to  +6  (only when tides provided)
 //   Time of day:       -5 to +10
 //   Pressure trend:    -5 to  +8  (only when pressureTrend provided)
+//   Moon phase:        +1 to  +6
 //   Total range:       10–99
 
-function calcFishingScore(temp, wind, forecastText, tides, targetDate, pressureTrend) {
+function calcFishingScore(temp, wind, forecastText, tides, targetDate, pressureTrend, moonPhase) {
   var score = 60;
 
   // ── 1. Air temperature ─────────────────────────────────────
@@ -359,6 +381,12 @@ function calcFishingScore(temp, wind, forecastText, tides, targetDate, pressureT
     else if (pressureTrend === 'steady_high')       score += 3;
     else if (pressureTrend === 'rapid_fall')        score -= 5;
     // steady_low: 0 — stable but suppressed conditions
+  }
+
+  // ── 7. Moon phase ──────────────────────────────────────────
+  // New and full moons create stronger tidal pulls, increasing fish activity.
+  if (moonPhase && moonPhase.adjustment) {
+    score += moonPhase.adjustment;
   }
 
   return Math.max(10, Math.min(99, score));

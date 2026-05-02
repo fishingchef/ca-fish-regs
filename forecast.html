@@ -469,7 +469,8 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
   var curFcast = current ? current.shortForecast : (todayF ? todayF.shortForecast : '');
   var todayTideKey = fcDateKeys[0] || '';
   var todayTides = tidesByDate[todayTideKey] || [];
-  var todayScore = calcFishingScore(curTemp, curWind, curFcast, todayTides, new Date(), pressureTrend);
+  var todayMoon = getMoonPhase(new Date());
+  var todayScore = calcFishingScore(curTemp, curWind, curFcast, todayTides, new Date(), pressureTrend, todayMoon);
 
   var html = '';
 
@@ -481,7 +482,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
   html += '<div class="score-card" id="scoreBanner" style="background:'+scoreColor(todayScore)+'">'
     +'<div class="score-num" id="scoreNum">'+todayScore+'</div>'
     +'<div><div class="score-info-title" id="scoreTitle">Today\'s Fishing Score</div>'
-    +'<div class="score-info-sub" id="scoreSub">'+scoreDesc(todayScore)
+    +'<div class="score-info-sub" id="scoreSub">'+todayMoon.emoji+' '+scoreDesc(todayScore)
     +(curTemp?' · '+curTemp+'°F':'')
     +' · '+curWind+' · '+curFcast+'</div></div></div>';
 
@@ -498,12 +499,12 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
   html += scoreInfoRow('&#127754; Tide state (incoming vs outgoing)', 'included', '#e8f5ee', '#2d7d46');
   html += scoreInfoRow('&#128336; Time of day (dawn & dusk bonus)', 'included', '#e8f5ee', '#2d7d46');
   html += scoreInfoRow('&#128200; Barometric pressure trend', 'included', '#e8f5ee', '#2d7d46');
+  html += scoreInfoRow('&#127769; Moon phase', 'included', '#e8f5ee', '#2d7d46');
   html += '</div>';
   html += '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">';
   html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Not yet factored in</div>';
   html += '<div style="display:flex;flex-direction:column;gap:7px">';
   html += scoreInfoRow('&#127777; Water temperature', 'not included', '#f0f4f8', '#5a6473');
-  html += scoreInfoRow('&#127769; Moon phase', 'not included', '#f0f4f8', '#5a6473');
   html += scoreInfoRow('&#129416; Species-specific behavior', 'not included', '#f0f4f8', '#5a6473');
   html += '</div></div>';
   html += '<div style="background:#fff3cd;border-left:3px solid #f0a500;border-radius:6px;padding:10px 12px;font-size:11px;color:#7a4f00;line-height:1.6">';
@@ -519,12 +520,14 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
     var daySummaries = dayForecasts.slice(0,7).map(function(p,i) {
       var d = new Date(fcDateKeys[i]+'T12:00:00');
       var t = tidesByDate[fcDateKeys[i]] || [];
-      var sc = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, t, d);
+      var moonForDay = getMoonPhase(d);
+      var sc = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, t, d, null, moonForDay);
       var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       var monNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       // Score card title: "Today's" / "Tomorrow's" take possessive; named days don't
       var shortLabel = i===0 ? 'Today' : i===1 ? 'Tomorrow' : dayNames[d.getDay()]+', '+monNames[d.getMonth()]+' '+d.getDate();
-      var sub = scoreDesc(sc) + (p.temperature ? ' · ' + p.temperature + '°F' : '') + ' · ' + p.windSpeed + ' · ' + p.shortForecast;
+      var moonEmoji = i === 0 ? todayMoon.emoji : moonForDay.emoji;
+      var sub = moonEmoji + ' ' + scoreDesc(sc) + (p.temperature ? ' · ' + p.temperature + '°F' : '') + ' · ' + p.windSpeed + ' · ' + p.shortForecast;
       return { score: sc, label: shortLabel, sub: sub, color: scoreColor(sc) };
     });
     window._daySummaries = daySummaries;
@@ -536,7 +539,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
       var d = new Date(fcDateKeys[i]+'T12:00:00');
       var cellTides = tidesByDate[fcDateKeys[i]] || [];
       // Use todayScore for today's cell so it matches the score card (both use current hourly data)
-      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, cellTides, d);
+      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, cellTides, d, null, getMoonPhase(d));
       var topLabel = i===0 ? 'Today' : i===1 ? 'Tmrw' : DAYS[d.getDay()];
       var dateLabel = (d.getMonth()+1)+'/'+d.getDate();
       html += '<div class="week-cell'+(i===0?' active':'')+'" id="wcell'+i+'" onclick="switchDay('+i+')">'
@@ -555,7 +558,7 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
       var night = nightForecasts[i];
       var panelTides = tidesByDate[fcDateKeys[i]] || [];
       // Use todayScore for today's panel header so it matches the score card
-      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, panelTides, d);
+      var s = (i === 0) ? todayScore : calcFishingScore(p.temperature, p.windSpeed, p.shortForecast, panelTides, d, null, getMoonPhase(d));
       var dateKey = fcDateKeys[i];
       var dateStr = MONTHS[d.getMonth()]+' '+d.getDate();
       var label = i===0 ? 'Today · '+dateStr : i===1 ? 'Tomorrow · '+dateStr
