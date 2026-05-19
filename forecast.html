@@ -255,7 +255,8 @@ function renderFavsBar() {
   if (!favs.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   row.innerHTML = favs.map(function(f) {
-    return '<div class="fav-chip" onclick="loadSpot(\'' + f.name.replace(/'/g,"\\'") + '\',' + f.lat + ',' + f.lng + ')">'
+    var safeName = f.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<div class="fav-chip" data-name="' + safeName + '" data-lat="' + f.lat + '" data-lng="' + f.lng + '">'
       + '⭐ ' + f.name
       + '<span class="fav-chip-remove" onclick="event.stopPropagation();toggleFav(\'' + f.name.replace(/'/g,"\\'") + '\',' + f.lat + ',' + f.lng + ')" title="Remove">×</span>'
       + '</div>';
@@ -972,6 +973,17 @@ function toggleScoreInfo() {
 // ── Init ──────────────────────────────────────────────────────
 renderFavsBar();
 updateStarIcons();
+
+// Delegated click handler for My Spots chips.
+// Attached once to the stable container so it survives renderFavsBar() re-renders.
+// Using delegation avoids the inline-onclick-on-div approach which mobile browsers
+// can drop when the parent overflow-x:auto scroll container intercepts the touch.
+document.getElementById('favsRow').addEventListener('click', function(e) {
+  if (e.target.closest('.fav-chip-remove')) return;
+  var chip = e.target.closest('.fav-chip');
+  if (!chip) return;
+  loadSpot(chip.dataset.name, parseFloat(chip.dataset.lat), parseFloat(chip.dataset.lng));
+});
 // Only auto-request GPS if user has previously granted it.
 // Avoids infinite spinner when permission is blocked or dismissed.
 // Never auto-spin on load. The initial HTML already shows the idle state.
