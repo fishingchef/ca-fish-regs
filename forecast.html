@@ -47,7 +47,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .favs-row::-webkit-scrollbar{display:none}
 .fav-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;background:rgba(82,183,136,.2);border:1px solid rgba(82,183,136,.4);color:#fff;border-radius:100px;padding:5px 12px 5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
 .fav-chip:hover{background:rgba(82,183,136,.35)}
-.fav-chip-remove{font-size:14px;opacity:.6;margin-left:2px;line-height:1;cursor:pointer;padding:0 4px;touch-action:manipulation}
+.fav-chip-remove{font-size:14px;opacity:.6;cursor:pointer;touch-action:manipulation;pointer-events:all;
+  /* 44×44 iOS HIG tap target — padding expands hit area, negative margin keeps chip layout intact */
+  padding:15px 14px;margin:-15px -12px -15px 2px;line-height:1}
 .fav-chip-remove:hover{opacity:1}
 .favs-empty{font-size:11px;color:rgba(255,255,255,.35);padding:4px 0 8px;font-style:italic}
 .favs-device-note{font-size:10px;color:rgba(255,255,255,.3);padding:5px 0 2px;font-style:italic}
@@ -942,17 +944,33 @@ function toggleScoreInfo() {
 renderFavsBar();
 updateStarIcons();
 
-// Delegated click handler for My Spots chips — handles both load and delete.
-// Single listener on the stable container; survives renderFavsBar() innerHTML rebuilds.
-// Remove button is checked first so the two actions never interfere.
-document.getElementById('favsRow').addEventListener('click', function(e) {
+// ── My Spots delegated handlers ──────────────────────────────
+// touchend + click on favsRow handle delete and load respectively.
+// touchend fires first on mobile; preventDefault() suppresses the
+// subsequent synthetic click so toggleFav never runs twice.
+// document.body.contains() guards against double-fire on Android.
+function _favRemove(e) {
+  var removeBtn = e.target.closest('.fav-chip-remove');
+  if (!removeBtn) return false;
+  var chip = removeBtn.closest('.fav-chip');
+  if (!chip || !document.body.contains(chip)) return false;
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('[FS] My Spots delete tap:', chip.dataset.name, '| event:', e.type);
+  toggleFav(chip.dataset.name, parseFloat(chip.dataset.lat), parseFloat(chip.dataset.lng));
+  return true;
+}
+
+var _favsRow = document.getElementById('favsRow');
+
+// touchend: catches taps in iOS scroll containers that suppress click
+_favsRow.addEventListener('touchend', function(e) { _favRemove(e); }, { passive: false });
+
+// click: desktop fallback + Android; _favRemove returns false if chip already gone
+_favsRow.addEventListener('click', function(e) {
+  if (_favRemove(e)) return;
   var chip = e.target.closest('.fav-chip');
   if (!chip) return;
-  if (e.target.closest('.fav-chip-remove')) {
-    e.stopPropagation();
-    toggleFav(chip.dataset.name, parseFloat(chip.dataset.lat), parseFloat(chip.dataset.lng));
-    return;
-  }
   loadSpot(chip.dataset.name, parseFloat(chip.dataset.lat), parseFloat(chip.dataset.lng));
 });
 // Only auto-request GPS if user has previously granted it.
