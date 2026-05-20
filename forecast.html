@@ -43,13 +43,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 /* ── Favorites section ── */
 .favs-section{padding:12px 20px 0}
 .favs-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px}
-.favs-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.favs-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .favs-row::-webkit-scrollbar{display:none}
 .fav-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;background:rgba(82,183,136,.2);border:1px solid rgba(82,183,136,.4);color:#fff;border-radius:100px;padding:5px 12px 5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
 .fav-chip:hover{background:rgba(82,183,136,.35)}
-.fav-chip-remove{font-size:14px;opacity:.6;margin-left:2px;line-height:1}
+.fav-chip-remove{font-size:14px;opacity:.6;margin-left:2px;line-height:1;cursor:pointer;padding:0 4px;touch-action:manipulation}
 .fav-chip-remove:hover{opacity:1}
 .favs-empty{font-size:11px;color:rgba(255,255,255,.35);padding:4px 0 8px;font-style:italic}
+.favs-device-note{font-size:10px;color:rgba(255,255,255,.3);padding:5px 0 2px;font-style:italic}
 
 /* ── Content ── */
 .content{padding:16px}
@@ -157,6 +158,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
     <div class="favs-section" id="favsSection" style="display:none">
       <div class="favs-label">⭐ My Spots</div>
       <div class="favs-row" id="favsRow"></div>
+      <div class="favs-device-note">Saved on this device only</div>
     </div>
 
     <!-- Quick spots strip -->
@@ -947,6 +949,7 @@ document.getElementById('favsRow').addEventListener('click', function(e) {
   var chip = e.target.closest('.fav-chip');
   if (!chip) return;
   if (e.target.closest('.fav-chip-remove')) {
+    e.stopPropagation();
     toggleFav(chip.dataset.name, parseFloat(chip.dataset.lat), parseFloat(chip.dataset.lng));
     return;
   }
