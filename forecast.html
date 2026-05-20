@@ -390,9 +390,6 @@ async function loadSpot(locName, lat, lng) {
     try {
       var tideRes = await fetch(tideUrl);
       tideData = await tideRes.json();
-      if (isDSTActive() && tideData.predictions) {
-        tideData.predictions = shiftTidePredictions(tideData.predictions, 60);
-      }
     } catch(e) { console.error('[FS] Tides error:', e.message); }
 
     try {
@@ -637,38 +634,6 @@ function renderForecast(locName, lat, lng, station, tideData, forecast, hourly, 
 }
 
 // Store tides by date for drawer lookup
-// ── DST offset for NOAA tide times ───────────────────────────
-// NOAA's lst_ldt parameter returns local standard time regardless of DST.
-// Compare Jan/Jul timezone offsets to detect whether DST is currently active.
-function isDSTActive() {
-  var y = new Date().getFullYear();
-  var stdOffset = Math.max(
-    new Date(y, 0, 1).getTimezoneOffset(),
-    new Date(y, 6, 1).getTimezoneOffset()
-  );
-  return new Date().getTimezoneOffset() < stdOffset;
-}
-
-function shiftTidePredictions(predictions, offsetMins) {
-  return predictions.map(function(p) {
-    var parts = p.t.split(' ');
-    var timeParts = parts[1].split(':');
-    var total = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]) + offsetMins;
-    var dayDelta = 0;
-    if (total < 0)     { dayDelta = -1; total += 1440; }
-    if (total >= 1440) { dayDelta =  1; total -= 1440; }
-    var date = parts[0];
-    if (dayDelta) {
-      var d = new Date(date + 'T12:00:00');
-      d.setDate(d.getDate() + dayDelta);
-      date = d.toISOString().split('T')[0];
-    }
-    var h = Math.floor(total / 60);
-    var m = total % 60;
-    return Object.assign({}, p, { t: date + ' ' + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') });
-  });
-}
-
 var _tideDrawerData = [];
 var _tideDrawerIdx = 0;
 
