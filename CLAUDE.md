@@ -1,4 +1,7 @@
 # Fish Smarter — Project Context & Decisions
+
+[![CI](https://github.com/fishingchef/ca-fish-regs/actions/workflows/ci.yml/badge.svg)](https://github.com/fishingchef/ca-fish-regs/actions/workflows/ci.yml)
+
 > Paste this file at the start of any new Claude conversation to restore full project context.
 > Last updated: April 2026
 
