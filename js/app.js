@@ -404,19 +404,28 @@ function scoreDesc(s) {
 }
 
 // ── NOAA tide stations ──────────────────────────────────────
+// Outer coast and inner bay stations are kept separate so the nearest-station
+// logic never snaps an outer coast location to an inner bay reference.
 const TIDE_STATIONS = [
-  {id:'9415020', name:'Point Reyes',              lat:37.99, lng:-122.97},
-  {id:'9414290', name:'San Francisco',            lat:37.81, lng:-122.47},
-  {id:'9414750', name:'Alameda Naval Air Station', lat:37.79, lng:-122.3013},
+  // ── North Coast ───────────────────────────────────────────
+  {id:'9418767', name:'North Spit',               lat:40.77,   lng:-124.22},
+  {id:'9416841', name:'Arena Cove',               lat:38.91,   lng:-123.71},
+  // ── Bay Area outer coast ──────────────────────────────────
+  {id:'9415020', name:'Point Reyes',              lat:37.99,   lng:-122.97},
+  {id:'9414131', name:'Half Moon Bay',            lat:37.4963, lng:-122.4830},
+  // ── SF Bay (inner) ────────────────────────────────────────
+  {id:'9414290', name:'San Francisco',            lat:37.81,   lng:-122.47},
+  {id:'9414750', name:'Alameda Naval Air Station', lat:37.79,  lng:-122.3013},
   {id:'9414763', name:'Alameda',                  lat:37.7717, lng:-122.2993},
   {id:'9414523', name:'Redwood City',             lat:37.5068, lng:-122.2102},
   {id:'9414575', name:'Coyote Creek',             lat:37.4572, lng:-122.0295},
-  {id:'9413450', name:'Monterey',                 lat:36.60, lng:-121.89},
-  {id:'9411340', name:'Santa Barbara',            lat:34.41, lng:-119.69},
-  {id:'9410660', name:'Los Angeles',              lat:33.72, lng:-118.27},
-  {id:'9410230', name:'La Jolla',                 lat:32.87, lng:-117.26},
-  {id:'9416841', name:'Arena Cove',               lat:38.91, lng:-123.71},
-  {id:'9418767', name:'North Spit',               lat:40.77, lng:-124.22},
+  // ── Central Coast ─────────────────────────────────────────
+  {id:'9413450', name:'Monterey',                 lat:36.60,   lng:-121.89},
+  {id:'9412110', name:'Port San Luis',            lat:35.1680, lng:-120.7540},
+  // ── South Coast ───────────────────────────────────────────
+  {id:'9411340', name:'Santa Barbara',            lat:34.41,   lng:-119.69},
+  {id:'9410660', name:'Los Angeles',              lat:33.72,   lng:-118.27},
+  {id:'9410230', name:'La Jolla',                 lat:32.87,   lng:-117.26},
 ];
 // Weight longitude difference by cos(lat) so 1° lng and 1° lat represent
 // comparable ground distances at California latitudes (~35–42°N).
