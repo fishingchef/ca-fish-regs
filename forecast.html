@@ -377,6 +377,7 @@ async function loadSpot(locName, lat, lng) {
   try {
     if (typeof nearestStation==='undefined') { showError('App script failed to load. Please hard-refresh.'); return; }
     var station = nearestStation(lat, lng);
+    console.log('[FS] Tide station selected:', station.id, '—', station.name, '| User coords:', lat.toFixed(4), lng.toFixed(4));
     var today = new Date();
     var ds = today.toISOString().split('T')[0].replace(/-/g,'');
     var end14 = new Date(today); end14.setDate(today.getDate()+13);
