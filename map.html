@@ -16,7 +16,7 @@
 :root{--ocean:#0a3d62;--kelp-light:#52b788;--danger:#c0392b;--warning:#f0a500;--text:#1a1a2e;--text-muted:#5a6473;--bg:#f0f4f8;--white:#ffffff;--border:#dce3ea;--radius:16px;--radius-sm:10px;--nav-h:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#map{flex:1;min-height:0}
+#map{flex:1;min-height:0;height:100%}
 .header{background:var(--ocean);padding:48px 20px 12px;position:relative;overflow:hidden;flex-shrink:0}
 .header-wave{position:absolute;inset:0;opacity:.06;background-image:repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 22px)}
 .header-content{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between}
@@ -581,8 +581,6 @@ document.getElementById('drawer').addEventListener('touchend', function(e) { if 
 
 initMap();
 </script>
-<script src="js/auth.js"></script>
-<script src="js/auth-sheet.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/auth-sheet.js"></script>
 <script>
