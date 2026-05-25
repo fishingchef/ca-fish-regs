@@ -86,7 +86,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 </div>
 
 <div id="map-wrap">
-  <div id="map"></div>
+  <div id="map" style="width:100%;height:500px;background:red;"></div>
   <div class="map-legend" id="mapLegend">
     <div class="legend-item"><div class="legend-dot" style="background:rgba(204,0,0,.5);border:2px solid #cc0000"></div>SMR (no take)</div>
     <div class="legend-item"><div class="legend-dot" style="background:rgba(255,136,0,.4);border:2px solid #ff8800"></div>SMCA (restricted)</div>
@@ -253,6 +253,7 @@ async function loadMPAs() {
     );
     if (!res.ok) throw new Error('CDFW API error');
     const data = await res.json();
+    console.log('MPA data received, features:', data.features ? data.features.length : 0);
     if (data.features && data.features.length > 0) {
       mpaGeoJSON = data;
       drawMPAPolygons(data);
@@ -553,9 +554,14 @@ function showSpotDetail(spot, inMPA) {
 }
 
 function initMap() {
-  console.log('initMap called');
+  console.log('initMap start');
+  var mapDiv = document.getElementById('map');
+  console.log('map div:', mapDiv);
+  console.log('map div offsetHeight:', mapDiv ? mapDiv.offsetHeight : 'NOT FOUND');
+  console.log('map div offsetWidth:', mapDiv ? mapDiv.offsetWidth : 'NOT FOUND');
   try {
     map = L.map('map', { center: [36.7, -121.9], zoom: 7, zoomControl: false });
+    console.log('Leaflet map created');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
     map.on('click', function(e) { closeDrawer(); });
