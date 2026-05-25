@@ -72,6 +72,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;transition:color .2s}
 .nav-item.active{color:var(--ocean)}
 .nav-icon{font-size:22px;line-height:1}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -88,7 +89,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);max
   <!-- Rendered by JS based on auth state -->
   <div style="padding:40px 0;text-align:center;color:var(--text-muted)">
     <div class="spinner" style="width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--ocean);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
 </div>
 
