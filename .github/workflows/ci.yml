@@ -30,8 +30,27 @@ jobs:
 
       - name: Check HTML syntax (html-validate)
         run: |
-          echo '{"extends":[],"rules":{"no-dup-attr":"error","close-order":"error"}}' > .htmlvalidate.json
-          npx --yes html-validate forecast.html catchlog.html catchlog-new.html
+          npx --yes html-validate --config '{"rules":{"no-missing-references":true,"void-style":true,"unrecognized-char-ref":true,"close-order":true,"element-permitted-content":true}}' forecast.html catchlog.html catchlog-new.html map.html account.html index.html
+
+      - name: Check div balance
+        run: |
+          node -e "
+          const fs = require('fs');
+          const files = ['forecast.html','catchlog.html','catchlog-new.html','map.html','account.html','index.html'];
+          let failed = false;
+          files.forEach(f => {
+            const html = fs.readFileSync(f, 'utf8');
+            const opens = (html.match(/<div/gi) || []).length;
+            const closes = (html.match(/<\/div>/gi) || []).length;
+            if (opens !== closes) {
+              console.error('DIV MISMATCH in ' + f + ': ' + opens + ' opening vs ' + closes + ' closing');
+              failed = true;
+            } else {
+              console.log('OK ' + f + ': ' + opens + ' divs balanced');
+            }
+          });
+          if (failed) process.exit(1);
+          "
 
   smoke-test:
     name: Smoke Test
