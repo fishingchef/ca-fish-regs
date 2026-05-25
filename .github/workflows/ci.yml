@@ -30,7 +30,18 @@ jobs:
 
       - name: Check HTML syntax (html-validate)
         run: |
-          npx --yes html-validate --config '{"rules":{"no-missing-references":"error","void-style":"error","unrecognized-char-ref":"error","close-order":"error","element-permitted-content":"error"}}' forecast.html catchlog.html catchlog-new.html map.html account.html index.html
+          cat > .htmlvalidate.json << 'EOF'
+          {
+            "rules": {
+              "no-missing-references": "error",
+              "void-style": "error",
+              "unrecognized-char-ref": "error",
+              "close-order": "error",
+              "element-permitted-content": "error"
+            }
+          }
+          EOF
+          npx --yes html-validate --config .htmlvalidate.json forecast.html catchlog.html catchlog-new.html map.html account.html index.html
 
       - name: Check div balance
         run: |
